@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="##缘起项目中需要用到kafka，公司的message queue sdk中已经封装了kafka的使用，在xml文件中进行配置就可以方便使用。但由于sdk的强依赖的问题，假如kafka链接失败会导致应用无法启动。所以就只能放弃sdk转为操作底层api操作kafka的启动监听以及关闭。 在使用的过程遇到了启动空指针以及关闭时TransactionManager已经被关闭的问题，同时Spring的初始">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spring-7-SpringBean的销毁过程(转)">
+<meta property="og:url" content="https://longzl2015.github.io/2019/06/09/spring/spring-mvc/spring-7-spring%20bean%E7%9A%84%E9%94%80%E6%AF%81%E8%BF%87%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="##缘起项目中需要用到kafka，公司的message queue sdk中已经封装了kafka的使用，在xml文件中进行配置就可以方便使用。但由于sdk的强依赖的问题，假如kafka链接失败会导致应用无法启动。所以就只能放弃sdk转为操作底层api操作kafka的启动监听以及关闭。 在使用的过程遇到了启动空指针以及关闭时TransactionManager已经被关闭的问题，同时Spring的初始">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-06-09T03:09:07.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.907Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="spring">
+<meta property="article:tag" content="bean">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://longzl2015.github.io/2019/06/09/spring/spring-mvc/spring-7-spring%20bean%E7%9A%84%E9%94%80%E6%AF%81%E8%BF%87%E7%A8%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>spring-7-SpringBean的销毁过程(转) | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2019/06/09/spring/spring-mvc/spring-7-spring%20bean%E7%9A%84%E9%94%80%E6%AF%81%E8%BF%87%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          spring-7-SpringBean的销毁过程(转)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-06-09 11:09:07" itemprop="dateCreated datePublished" datetime="2019-06-09T11:09:07+08:00">2019-06-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index">
+                    <span itemprop="name">spring</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/springmvc/" itemprop="url" rel="index">
+                    <span itemprop="name">springmvc</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2019/06/09/spring/spring-mvc/spring-7-spring%20bean%E7%9A%84%E9%94%80%E6%AF%81%E8%BF%87%E7%A8%8B/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/06/09/spring/spring-mvc/spring-7-spring bean的销毁过程/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>##缘起<br>项目中需要用到kafka，公司的message queue sdk中已经封装了kafka的使用，在xml文件中进行配置就可以方便使用。但由于sdk的强依赖的问题，假如kafka链接失败会导致应用无法启动。所以就只能放弃sdk转为操作底层api操作kafka的启动监听以及关闭。</p>
+<p>在使用的过程遇到了启动空指针以及关闭时TransactionManager已经被关闭的问题，同时Spring的初始化启动以及关闭过程是日常spring使用中最为关心的阶段，在前几篇文章介绍了Spring的初始化实现，那么结合前几篇文章以及对Spring关闭过程的解读来分析一下对于上述的场景遇到的问题可以怎么解决。</p>
+<p>首先对Spring的Bean销毁过程的分析。</p>
+<h2 id="Spring的关闭过程"><a href="#Spring的关闭过程" class="headerlink" title="Spring的关闭过程"></a>Spring的关闭过程</h2><p>spring通过AbstractApplicateContext的close方法执行容器的关闭处理，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">close</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">synchronized</span> (<span class="keyword">this</span>.startupShutdownMonitor) &#123;</span><br><span class="line">	    doClose();</span><br><span class="line">		<span class="comment">// If we registered a JVM shutdown hook, we don't need it anymore now:</span></span><br><span class="line">		<span class="comment">// We've already explicitly closed the context.</span></span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.shutdownHook != <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				Runtime.getRuntime().removeShutdownHook(<span class="keyword">this</span>.shutdownHook);</span><br><span class="line">			&#125;<span class="keyword">catch</span> (IllegalStateException ex) &#123;</span><br><span class="line">				<span class="comment">// ignore - VM is already shutting down</span></span><br><span class="line">			&#125;</span><br><span class="line">                   &#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">doClose</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.active.get() &amp;&amp; <span class="keyword">this</span>.closed.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>)) &#123;</span><br><span class="line">			<span class="keyword">if</span> (logger.isInfoEnabled()) &#123;</span><br><span class="line">				logger.info(<span class="string">"Closing "</span> + <span class="keyword">this</span>);</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			LiveBeansView.unregisterApplicationContext(<span class="keyword">this</span>);</span><br><span class="line"></span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				<span class="comment">// Publish shutdown event.</span></span><br><span class="line">				publishEvent(<span class="keyword">new</span> ContextClosedEvent(<span class="keyword">this</span>));</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">				logger.warn(<span class="string">"Exception thrown from ApplicationListener handling ContextClosedEvent"</span>, ex);</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// Stop all Lifecycle beans, to avoid delays during individual destruction.</span></span><br><span class="line">			<span class="keyword">try</span> &#123;</span><br><span class="line">				getLifecycleProcessor().onClose();</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">catch</span> (Throwable ex) &#123;</span><br><span class="line">				logger.warn(<span class="string">"Exception thrown from LifecycleProcessor on context close"</span>, ex);</span><br><span class="line">			&#125;</span><br><span class="line"></span><br><span class="line">			<span class="comment">// Destroy all cached singletons in the context's BeanFactory.</span></span><br><span class="line">			destroyBeans();</span><br><span class="line"></span><br><span class="line">			<span class="comment">// Close the state of this context itself.</span></span><br><span class="line">			closeBeanFactory();</span><br><span class="line"></span><br><span class="line">			<span class="comment">// Let subclasses do some final clean-up if they wish...</span></span><br><span class="line">			onClose();</span><br><span class="line"></span><br><span class="line">			<span class="keyword">this</span>.active.set(<span class="keyword">false</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>可以看到最终的关闭处理是通过调用doClose方法执行，在onClose方法中处理了以下事情：</p>
+<ol>
+<li>发布容器关闭事件ContextCloseEvent</li>
+<li>调用lifeCycleProcessor的onClose方法（在AbstractBeanFactory的refresh的最后一步，调用的是LifeCycleProcessor接口的onRefresh方法，两者互相对应）</li>
+<li>调用destroyBean方法</li>
+<li>调用closeBeanFactory方法。是一个抽象方法，用于让子类关闭factory，比如将BeanFactory设置为null</li>
+<li>调用onClose方法。这是一个空方法，目的是为了让子类在最后能够对关闭事件进行扩展</li>
+</ol>
+<p>上述方法中destroyBean方法最为关键，bean的释放就是在这个方法中处理。</p>
+<h2 id="destoryBean"><a href="#destoryBean" class="headerlink" title="destoryBean"></a>destoryBean</h2><p>destoryBean最终是委托DefaultListableBeanFactory的destroySingletons方法进行bean的关闭处理，我们来看一下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">destroySingletons</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">		logger.debug(<span class="string">"Destroying singletons in "</span> + <span class="keyword">this</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">synchronized</span> (<span class="keyword">this</span>.singletonObjects) &#123;</span><br><span class="line">		<span class="keyword">this</span>.singletonsCurrentlyInDestruction = <span class="keyword">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	String[] disposableBeanNames;</span><br><span class="line">	<span class="keyword">synchronized</span> (<span class="keyword">this</span>.disposableBeans) &#123;</span><br><span class="line">        <span class="comment">// 获取到所有需要进行关闭释放的bean。</span></span><br><span class="line">		disposableBeanNames = StringUtils.toStringArray(<span class="keyword">this</span>.disposableBeans.keySet());</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">int</span> i = disposableBeanNames.length - <span class="number">1</span>; i &gt;= <span class="number">0</span>; i--) &#123;</span><br><span class="line">		destroySingleton(disposableBeanNames[i]);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">this</span>.containedBeanMap.clear();</span><br><span class="line">	<span class="keyword">this</span>.dependentBeanMap.clear();</span><br><span class="line">	<span class="keyword">this</span>.dependenciesForBeanMap.clear();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">synchronized</span> (<span class="keyword">this</span>.singletonObjects) &#123;</span><br><span class="line">		<span class="keyword">this</span>.singletonObjects.clear();</span><br><span class="line">		<span class="keyword">this</span>.singletonFactories.clear();</span><br><span class="line">		<span class="keyword">this</span>.earlySingletonObjects.clear();</span><br><span class="line">		<span class="keyword">this</span>.registeredSingletons.clear();</span><br><span class="line">		<span class="keyword">this</span>.singletonsCurrentlyInDestruction = <span class="keyword">false</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在Spring装载上下文，解析bean配置的时候，就会生成对应的disposableBeans数据。一个具体的bean在创建完成后，会在AbstractAutowireCapableBeanFactory的registerDisposableBeanIfNecessary中判断当前bean是否需要放入到disposableBeans中。</p>
+<p>目前以下三种情况的bean会被注册到disposableBeans中：</p>
+<ol>
+<li>实现了DisposableBean接口</li>
+<li>在xml配置文件中自定义了destroy方法</li>
+<li>实现了AutoCloseable接口。Mybatis的SqlSessionTemplate类就是实现了该接口，导致在spring容器关闭的时候，被反射调用了这个close方法。而SqlSessionTemplate类的生命周期是受Mybatis<br>管理的，不能手动执行close。这也就是很经典的一个异常： Invocation of destroy method ‘close’ failed on bean with name ‘sqlSessionTemplate’<br>第二和第三种方式，Spring都通过一个DisposableBeanAdapter将具体的bean包装成为一个实现了DisposableBean接口的实现类，使得在最终销毁Bean释放资源时，统一对DisposableBean操作。</li>
+</ol>
+<h2 id="Bean销毁的顺序"><a href="#Bean销毁的顺序" class="headerlink" title="Bean销毁的顺序"></a>Bean销毁的顺序</h2><p>上面的代码逻辑中，会对取到的disposableBeans循环一个个调用destroyBean方法进行销毁与进行资源释放。那么是不是bean的销毁是有序的呢？能不能执行bean的销毁顺序呢？比如B要比A先释放？</p>
+<p>可能这是一个很多人都会遇到的一个问题。Spring是不支持执行bean销毁的顺序，这个可以从Spring的一些官方讨论中得到：</p>
+<blockquote>
+<p>假如你所销毁的资源有顺序关系的话，可以使用bean之间的依赖关系来实现这个目的，Spring在bean的销毁顺序上做了很多努力，但目前并不支持destroy的顺序配置。默认是先加载的bean后销毁，是一个反向操作。</p>
+</blockquote>
+<p>所以你可以在destroyBean中看到一个关键逻辑，会先执行当前bean所依赖的bean的销毁操作。代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">   <span class="comment">//...</span></span><br><span class="line">   Set&lt;String&gt; dependencies = <span class="keyword">this</span>.dependentBeanMap.remove(beanName);</span><br><span class="line"><span class="keyword">if</span> (dependencies != <span class="keyword">null</span>) &#123;</span><br><span class="line">	<span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">		logger.debug(<span class="string">"Retrieved dependent beans for bean '"</span> + beanName + <span class="string">"': "</span> + dependencies);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">for</span> (String dependentBeanName : dependencies) &#123;</span><br><span class="line">		destroySingleton(dependentBeanName);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line">   <span class="comment">//...</span></span><br></pre></td></tr></table></figure>
+
+<p>对于bean之间的依赖配置，可以使用下面方式：</p>
+<ol>
+<li>在xml配置文件中通过视同depensOn的方式指定一个bean对另外一个bean的依赖</li>
+<li>一个bean中的属性也是当前bean所依赖的实例</li>
+</ol>
+<p>上文就是Spring 销毁bean的一个大概的逻辑，后续会编写一个实践案例来贯穿Spring的初始化与关闭</p>
+<h2 id="来源"><a href="#来源" class="headerlink" title="来源"></a>来源</h2><p><a href="Spring中Bean的关闭与资源释放">Spring中Bean的关闭与资源释放</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spring/" rel="tag"># spring</a>
+              <a href="/tags/bean/" rel="tag"># bean</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/06/09/spring/spring-mvc/spring-6-HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8/" rel="prev" title="spring-6-HandlerMethodArgumentResolver参数解析器">
+      <i class="fa fa-chevron-left"></i> spring-6-HandlerMethodArgumentResolver参数解析器
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/06/09/spring/spring-mvc/spring-7-spring%20bean%E7%9A%84%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B/" rel="next" title="spring-7-SpringBean的加载过程.md">
+      spring-7-SpringBean的加载过程.md <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#Spring的关闭过程"><span class="nav-number">1.</span> <span class="nav-text">Spring的关闭过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#destoryBean"><span class="nav-number">2.</span> <span class="nav-text">destoryBean</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Bean销毁的顺序"><span class="nav-number">3.</span> <span class="nav-text">Bean销毁的顺序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#来源"><span class="nav-number">4.</span> <span class="nav-text">来源</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2019/06/09/spring/spring-mvc/spring-7-spring%20bean%E7%9A%84%E9%94%80%E6%AF%81%E8%BF%87%E7%A8%8B/",
+            identifier: "2019/06/09/spring/spring-mvc/spring-7-spring bean的销毁过程/",
+            title: "spring-7-SpringBean的销毁过程(转)"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

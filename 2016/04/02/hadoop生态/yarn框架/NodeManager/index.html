@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="NodeManager（NM）是YARN中每个节点上的代理，它管理Hadoop集群中单个计算节点，包括与ResourceManger保持通信，监督Container的生命周期管理，监控每个Container的资源使用（内存、CPU等）情况，追踪节点健康状况，管理日志和不同应用程序用到的附属服务（auxiliary service）。  1 NodeManager内各组件功能1.1 NodeStat">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NodeManager介绍">
+<meta property="og:url" content="https://longzl2015.github.io/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/NodeManager/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="NodeManager（NM）是YARN中每个节点上的代理，它管理Hadoop集群中单个计算节点，包括与ResourceManger保持通信，监督Container的生命周期管理，监控每个Container的资源使用（内存、CPU等）情况，追踪节点健康状况，管理日志和不同应用程序用到的附属服务（auxiliary service）。  1 NodeManager内各组件功能1.1 NodeStat">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://longzl2015.github.io/images/NodeManager/yarn-state-machine.task-attempt.png">
+<meta property="article:published_time" content="2016-04-02T14:46:48.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.839Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="yarn">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://longzl2015.github.io/images/NodeManager/yarn-state-machine.task-attempt.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/NodeManager/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>NodeManager介绍 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/NodeManager/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          NodeManager介绍
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2016-04-02 22:46:48" itemprop="dateCreated datePublished" datetime="2016-04-02T22:46:48+08:00">2016-04-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hadoop%E7%94%9F%E6%80%81/" itemprop="url" rel="index">
+                    <span itemprop="name">hadoop生态</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hadoop%E7%94%9F%E6%80%81/yarn/" itemprop="url" rel="index">
+                    <span itemprop="name">yarn</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/NodeManager/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2016/04/02/hadoop生态/yarn框架/NodeManager/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>NodeManager（NM）是YARN中每个节点上的代理，它管理Hadoop集群中单个计算节点，包括与ResourceManger保持通信，监督Container的生命周期管理，监控每个Container的资源使用（内存、CPU等）情况，追踪节点健康状况，管理日志和不同应用程序用到的附属服务（auxiliary service）。</p>
+<p><img src="/images/NodeManager/yarn-state-machine.task-attempt.png" alt="NodeManager"></p>
+<h2 id="1-NodeManager内各组件功能"><a href="#1-NodeManager内各组件功能" class="headerlink" title="1 NodeManager内各组件功能"></a>1 NodeManager内各组件功能</h2><h3 id="1-1-NodeStatusUpdater"><a href="#1-1-NodeStatusUpdater" class="headerlink" title="1.1 NodeStatusUpdater"></a>1.1 NodeStatusUpdater</h3><p>当NM启动时，该组件向RM注册，并发送节点上可用资源。接下来，NM与RM通信，汇报各个Container的状态更新，包括节点上正运行的Container、已完成的Contaner等。<br>此外，RM可能向NodeStatusUpdater发信号，杀死处于运行中的Container。</p>
+<p>注：NodeStatusUpdater是NM与RM通信的唯一通道，它实际上是RPC协议ResourceTracker的client，它周期性地调用RPC函数nodeHeartbeat()向RM汇报本节点上各种信息，包括资源使用情况，各个Container运行情况等。</p>
+<h3 id="1-2-ContainerManager"><a href="#1-2-ContainerManager" class="headerlink" title="1.2 ContainerManager"></a>1.2 ContainerManager</h3><p>它是NodeManager中核心组件，它由以下几个子组件构成，每个子组件负责一部分功能，以管理运行在该节点上的所有Container。（注意，ContainerManager实际上是个接口，真正的实现是ContainerManagerImpl类）</p>
+<h4 id="1-2-1-RPC-Server"><a href="#1-2-1-RPC-Server" class="headerlink" title="1.2.1 RPC Server"></a>1.2.1 RPC Server</h4><p>ContainerManager从各个Application Master上接收RPC请求以启动Container或者停止正在运行的Container。它与ContainerTokenSecretManager（下面将介绍）合作，以对所有请求进行合法性验证。所有作用在正运行Container的操作均会被写入audit-log，以便让安全工具进行后续处理。<br>注：这里的“RPC Server”实际上是RPC协议ContainerManager的server，AM可通过该协议通知某个节点启动或者释放container，ContainerManager定义了三个接口供AM使用：</p>
+<blockquote>
+<p>StartContainerResponse startContainer(StartContainerRequest request); //启动container<br>StopContainerResponse stopContainer(StopContainerRequest request); //释放container<br>GetContainerStatusResponse getContainerStatus(GetContainerStatusRequest request);//获取container列表。</p>
+</blockquote>
+<h4 id="1-2-2-ResourceLocalizationService"><a href="#1-2-2-ResourceLocalizationService" class="headerlink" title="1.2.2 ResourceLocalizationService"></a>1.2.2 ResourceLocalizationService</h4><p>负责（从HDFS上）安全地下载和组织Container需要的各种文件资源。它尽量将文件分摊到各个磁盘上。它会为下载的文件添加访问控制限制，并为之施加合适的（磁盘空间）使用上限。</p>
+<p>注：该服务会采用多线程方式同时从HDFS上下载文件，并按照文件类型（public或者private文件）存放到不同目录下，并为目录设置严格的访问权限，同时，每个用户可使用的磁盘空间大小也可以设置。</p>
+<h4 id="1-2-3-ContainersLauncher"><a href="#1-2-3-ContainersLauncher" class="headerlink" title="1.2.3 ContainersLauncher"></a>1.2.3 ContainersLauncher</h4><p>维护了一个线程池，随时准备并在必要时尽快启动Container，同时，当收到来自RM或者 ApplicationMaster的清理Container请求时，会清理对应的Container进程。</p>
+<h4 id="1-2-4-AuxServices"><a href="#1-2-4-AuxServices" class="headerlink" title="1.2.4 AuxServices"></a>1.2.4 AuxServices</h4><p>NM提供了一个框架以通过配置附属服务扩展自己的功能，这允许每个节点定制一些特定框架可能需要的服务，当然，这些服务是与NM其他服务隔离开的（有自己的安全验证机制）。附属服务需要在NM启动之前配置好，且由对应应用程序的运行在本节点上的第一container触发启动。</p>
+<h4 id="1-2-5-ContainersMonitor"><a href="#1-2-5-ContainersMonitor" class="headerlink" title="1.2.5 ContainersMonitor"></a>1.2.5 ContainersMonitor</h4><p>当一个Container启动之后，该组件便开始观察它在运行过程中的资源利用率。为了实现资源隔离和公平共享，RM为每个Container分配了一定量的资源。ContainersMonitor持续监控每个Container的利用率，一旦一个Container超出了它的允许使用份额，它将向Container发送信号将其杀掉，这可以避免失控的Container影响了同节点上其他正在运行的Container。（注意，ContainersMonitor实际上是个接口，真正的实现是ContainersMonitorImpl类）。</p>
+<p>注：NM启动一个container后，ContainersMonitor会将该container进程对一个的pid添加到监控列表中，以监控以pid为根的整棵进程树的资源使用情况，它周期性地从/etc/proc中获取进程树使用的总资源，一旦发现超过了预期值，则会将其杀死。在最新版YARN中，已采用了Linux container对资源进行隔离。</p>
+<h4 id="1-2-6-LogHandler"><a href="#1-2-6-LogHandler" class="headerlink" title="1.2.6 LogHandler"></a>1.2.6 LogHandler</h4><p>一个可插拔组件，用户通过它可选择将Container日志写到本地磁盘上还是将其打包后上传到一个文件系统中。</p>
+<h3 id="1-3-ContainerExecutor"><a href="#1-3-ContainerExecutor" class="headerlink" title="1.3 ContainerExecutor"></a>1.3 ContainerExecutor</h3><p>与底层操作系统交互，安全存放Container需要的文件和目录，进而以一种安全的方式启动和清除Container对应的进程。<br>注：在最新版YARN中，已采用了Linux container对资源进行隔离</p>
+<h3 id="1-4-NodeHealthCheckerService"><a href="#1-4-NodeHealthCheckerService" class="headerlink" title="1.4 NodeHealthCheckerService"></a>1.4 NodeHealthCheckerService</h3><p>提供以下功能：通过周期性地运行一个配置好的脚本检查节点的健康状况，它也会通过周期性地在磁盘上创建临时文件以监控磁盘健康状况。任何系统健康方面的改变均会通知NodeStatusUpdater（前面已经介绍过），它会进一步将信息传递给RM。</p>
+<h3 id="1-5-Security"><a href="#1-5-Security" class="headerlink" title="1.5 Security"></a>1.5 Security</h3><p>（1） ApplicationACLsManager NM需要为所有面向用户的API提供安全检查，如在Web-UI上只能将container日志显示给授权用户。该组件为每个应用程序维护了一个ACL列表，一旦收到类似请求后会利用该列表对其进行验证。<br>（2） ContainerTokenSecretManager 检查收到的各种访问请求的合法性，确保这些请求操作已被RM授权。</p>
+<h3 id="1-6-WebServer"><a href="#1-6-WebServer" class="headerlink" title="1.6 WebServer"></a>1.6 WebServer</h3><p>在给定时间点，展示该节点上所有应用程序和container列表，节点健康相关的信息和container产生的日志。</p>
+<h2 id="2-主要功能亮点"><a href="#2-主要功能亮点" class="headerlink" title="2 主要功能亮点"></a>2 主要功能亮点</h2><h3 id="2-1-启动Container"><a href="#2-1-启动Container" class="headerlink" title="2.1 启动Container"></a>2.1 启动Container</h3><p>为了能够启动Container，NM期望收到的Container定义了关于它运行时所需的详细信息，包括运行container的命令、环境变量、所需的资源列表和安全令牌等。<br>一旦收到container启动请求，如果YARN启用了安全机制，则NM首先验证请求合法性以对用户和正确的资源分配进行授权。之后，NM将按照以下步骤启动一个container：</p>
+<ol>
+<li>在本地拷贝一份运行Container所需的所有资源（通过Distributed Cache实现）。</li>
+<li>为container创建经隔离的工作目录，并在这些目录中准备好所有（文件）资源。</li>
+<li>运行命令启动container</li>
+</ol>
+<h3 id="2-2-日志聚集"><a href="#2-2-日志聚集" class="headerlink" title="2.2 日志聚集"></a>2.2 日志聚集</h3><p>处理用户日志是过去令人头痛的事情之一。与MRv1不同，NM不再截取日志并将日志留单个节点（TaskTracker）上，而是将日志上传到一个文件系统中，比如HDFS，以此来解决日志管理问题。<br>在某个NM上，所有属于同一个应用程序的container日志经聚集后被写到（可能经过压缩处理）一个FS上的日志文件中，用户可通过YARN命令行工具，WEB-UI或者直接通过FS访问这些日志。</p>
+<h3 id="2-3-MapReduce-shuffle如何利用NM的附属服务"><a href="#2-3-MapReduce-shuffle如何利用NM的附属服务" class="headerlink" title="2.3 MapReduce shuffle如何利用NM的附属服务"></a>2.3 MapReduce shuffle如何利用NM的附属服务</h3><p>运行MapReduce程序所需的shuffle功能是通过附属服务实现的，该服务会启动一个Netty Server，它知道如何处理来自Reduce Task的MR相关的shuffle请求。MR（MapReduce） AM（ApplicationMaster）为shuffle服务定义了服务ID，和可能需要的安全令牌，而NM向AM提供shuffle服务的运行端口号，并由AM传递给各个Reduce Task。</p>
+<h2 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h2><p>在YARN中，NodeManager主要用于管理抽象的container，它只处理container相关的事情，而不必关心每个应用程序（如MapReduce Task）自身的状态管理，它也不再有类似于map slot和reduce slot的slot概念，正是由于上述各个模块间清晰的责任分离，NM可以很容易的扩展，且它的代码也更容易维护。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="https://hortonworks.com/blog/apache-hadoop-yarn-nodemanager/" target="_blank" rel="noopener">介绍NodeManager</a></p>
+<p><a href="http://dongxicheng.org/mapreduce-nextgen/nodemanager-architecture/" target="_blank" rel="noopener">董的博客</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/yarn/" rel="tag"># yarn</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/ResourceManager/" rel="prev" title="ResourceManager">
+      <i class="fa fa-chevron-left"></i> ResourceManager
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2016/04/02/hadoop%E7%94%9F%E6%80%81/sqoop/sqoop%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" rel="next" title="sqoop 常用操作">
+      sqoop 常用操作 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-NodeManager内各组件功能"><span class="nav-number">1.</span> <span class="nav-text">1 NodeManager内各组件功能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-NodeStatusUpdater"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 NodeStatusUpdater</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-ContainerManager"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 ContainerManager</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-1-RPC-Server"><span class="nav-number">1.2.1.</span> <span class="nav-text">1.2.1 RPC Server</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-2-ResourceLocalizationService"><span class="nav-number">1.2.2.</span> <span class="nav-text">1.2.2 ResourceLocalizationService</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-3-ContainersLauncher"><span class="nav-number">1.2.3.</span> <span class="nav-text">1.2.3 ContainersLauncher</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-4-AuxServices"><span class="nav-number">1.2.4.</span> <span class="nav-text">1.2.4 AuxServices</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-5-ContainersMonitor"><span class="nav-number">1.2.5.</span> <span class="nav-text">1.2.5 ContainersMonitor</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-2-6-LogHandler"><span class="nav-number">1.2.6.</span> <span class="nav-text">1.2.6 LogHandler</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-ContainerExecutor"><span class="nav-number">1.3.</span> <span class="nav-text">1.3 ContainerExecutor</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-NodeHealthCheckerService"><span class="nav-number">1.4.</span> <span class="nav-text">1.4 NodeHealthCheckerService</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-Security"><span class="nav-number">1.5.</span> <span class="nav-text">1.5 Security</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-WebServer"><span class="nav-number">1.6.</span> <span class="nav-text">1.6 WebServer</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-主要功能亮点"><span class="nav-number">2.</span> <span class="nav-text">2 主要功能亮点</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-启动Container"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 启动Container</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-日志聚集"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 日志聚集</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-MapReduce-shuffle如何利用NM的附属服务"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 MapReduce shuffle如何利用NM的附属服务</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#结论"><span class="nav-number">3.</span> <span class="nav-text">结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">4.</span> <span class="nav-text">参考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/NodeManager/",
+            identifier: "2016/04/02/hadoop生态/yarn框架/NodeManager/",
+            title: "NodeManager介绍"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

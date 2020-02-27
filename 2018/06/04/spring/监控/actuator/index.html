@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="SpringBoot四大神器之 Actuator[TOC] 序Spring Boot有四大神器，分别是auto-configuration、starters、cli、actuator，本文主要讲actuator。actuator是spring boot提供的对应用系统的自省和监控的集成功能，可以对应用系统进行配置查看、相关功能统计等。 使用actuator 添加依赖  1234&lt;depend">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Actuator">
+<meta property="og:url" content="https://longzl2015.github.io/2018/06/04/spring/%E7%9B%91%E6%8E%A7/actuator/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="SpringBoot四大神器之 Actuator[TOC] 序Spring Boot有四大神器，分别是auto-configuration、starters、cli、actuator，本文主要讲actuator。actuator是spring boot提供的对应用系统的自省和监控的集成功能，可以对应用系统进行配置查看、相关功能统计等。 使用actuator 添加依赖  1234&lt;depend">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2018-06-04T15:22:58.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.917Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="Actuator">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://longzl2015.github.io/2018/06/04/spring/%E7%9B%91%E6%8E%A7/actuator/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Actuator | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2018/06/04/spring/%E7%9B%91%E6%8E%A7/actuator/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Actuator
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-04 23:22:58" itemprop="dateCreated datePublished" datetime="2018-06-04T23:22:58+08:00">2018-06-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index">
+                    <span itemprop="name">spring</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/%E7%9B%91%E6%8E%A7/" itemprop="url" rel="index">
+                    <span itemprop="name">监控</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2018/06/04/spring/%E7%9B%91%E6%8E%A7/actuator/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/06/04/spring/监控/actuator/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="SpringBoot四大神器之-Actuator"><a href="#SpringBoot四大神器之-Actuator" class="headerlink" title="SpringBoot四大神器之 Actuator"></a>SpringBoot四大神器之 Actuator</h1><p>[TOC]</p>
+<h2 id="序"><a href="#序" class="headerlink" title="序"></a>序</h2><p>Spring Boot有四大神器，分别是auto-configuration、starters、cli、actuator，本文主要讲actuator。actuator是spring boot提供的对应用系统的自省和监控的集成功能，可以对应用系统进行配置查看、相关功能统计等。</p>
+<h2 id="使用actuator"><a href="#使用actuator" class="headerlink" title="使用actuator"></a>使用actuator</h2><ul>
+<li>添加依赖</li>
+</ul>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-starter-actuator<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="主要暴露的功能"><a href="#主要暴露的功能" class="headerlink" title="主要暴露的功能"></a>主要暴露的功能</h2><table>
+<thead>
+<tr>
+<th>HTTP方法</th>
+<th>路径</th>
+<th>描述</th>
+<th>鉴权</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GET</td>
+<td>/autoconfig</td>
+<td>查看自动配置的使用情况</td>
+<td>true</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/configprops</td>
+<td>查看配置属性，包括默认配置</td>
+<td>true</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/beans</td>
+<td>查看bean及其关系列表</td>
+<td>true</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/dump</td>
+<td>打印线程栈</td>
+<td>true</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/env</td>
+<td>查看所有环境变量</td>
+<td>true</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/env/{name}</td>
+<td>查看具体变量值</td>
+<td>true</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/health</td>
+<td>查看应用健康指标</td>
+<td>false</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/info</td>
+<td>查看应用信息</td>
+<td>false</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/mappings</td>
+<td>查看所有url映射</td>
+<td>true</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/metrics</td>
+<td>查看应用基本指标</td>
+<td>true</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/metrics/{name}</td>
+<td>查看具体指标</td>
+<td>true</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/shutdown</td>
+<td>关闭应用</td>
+<td>true</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/trace</td>
+<td>查看基本追踪信息</td>
+<td>true</td>
+</tr>
+</tbody></table>
+<h3 id="autoconfig"><a href="#autoconfig" class="headerlink" title="/autoconfig"></a>/autoconfig</h3><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"positiveMatches"</span>: &#123;</span><br><span class="line">        <span class="attr">"AuditAutoConfiguration.AuditEventRepositoryConfiguration"</span>: [</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">"condition"</span>: <span class="string">"OnBeanCondition"</span>, </span><br><span class="line">                <span class="attr">"message"</span>: <span class="string">"@ConditionalOnMissingBean (types: org.springframework.boot.actuate.audit.AuditEventRepository; SearchStrategy: all) found no beans"</span></span><br><span class="line">            &#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;, </span><br><span class="line">    <span class="attr">"negativeMatches"</span>: &#123;</span><br><span class="line">        <span class="attr">"CacheStatisticsAutoConfiguration"</span>: [</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">"condition"</span>: <span class="string">"OnBeanCondition"</span>, </span><br><span class="line">                <span class="attr">"message"</span>: <span class="string">"@ConditionalOnBean (types: org.springframework.cache.CacheManager; SearchStrategy: all) found no beans"</span></span><br><span class="line">            &#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="configprops"><a href="#configprops" class="headerlink" title="/configprops"></a>/configprops</h3><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"management.health.status.CONFIGURATION_PROPERTIES"</span>: &#123;</span><br><span class="line">        <span class="attr">"prefix"</span>: <span class="string">"management.health.status"</span>, </span><br><span class="line">        <span class="attr">"properties"</span>: &#123;</span><br><span class="line">            <span class="attr">"order"</span>: <span class="literal">null</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, </span><br><span class="line">    <span class="attr">"multipart.CONFIGURATION_PROPERTIES"</span>: &#123;</span><br><span class="line">        <span class="attr">"prefix"</span>: <span class="string">"multipart"</span>, </span><br><span class="line">        <span class="attr">"properties"</span>: &#123;</span><br><span class="line">            <span class="attr">"enabled"</span>: <span class="literal">false</span>, </span><br><span class="line">            <span class="attr">"maxRequestSize"</span>: <span class="string">"10Mb"</span>, </span><br><span class="line">            <span class="attr">"location"</span>: <span class="literal">null</span>, </span><br><span class="line">            <span class="attr">"fileSizeThreshold"</span>: <span class="string">"0"</span>, </span><br><span class="line">            <span class="attr">"maxFileSize"</span>: <span class="string">"1Mb"</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;, </span><br><span class="line">    <span class="attr">"environmentEndpoint"</span>: &#123;</span><br><span class="line">        <span class="attr">"prefix"</span>: <span class="string">"endpoints.env"</span>, </span><br><span class="line">        <span class="attr">"properties"</span>: &#123;</span><br><span class="line">            <span class="attr">"id"</span>: <span class="string">"env"</span>, </span><br><span class="line">            <span class="attr">"enabled"</span>: <span class="literal">true</span>, </span><br><span class="line">            <span class="attr">"sensitive"</span>: <span class="literal">true</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="beans"><a href="#beans" class="headerlink" title="/beans"></a>/beans</h3><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="attr">"context"</span>: <span class="string">"application:8080"</span>, </span><br><span class="line">        <span class="attr">"parent"</span>: <span class="literal">null</span>, </span><br><span class="line">        <span class="attr">"beans"</span>: [</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">"bean"</span>: <span class="string">"appMain"</span>, </span><br><span class="line">                <span class="attr">"scope"</span>: <span class="string">"singleton"</span>, </span><br><span class="line">                <span class="attr">"type"</span>: <span class="string">"com.xixicat.AppMain$$EnhancerBySpringCGLIB$$29382b14"</span>, </span><br><span class="line">                <span class="attr">"resource"</span>: <span class="string">"null"</span>, </span><br><span class="line">                <span class="attr">"dependencies"</span>: [ ]</span><br><span class="line">            &#125;, </span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">"bean"</span>: <span class="string">"videoInfoMapper"</span>, </span><br><span class="line">                <span class="attr">"scope"</span>: <span class="string">"singleton"</span>, </span><br><span class="line">                <span class="attr">"type"</span>: <span class="string">"com.xixicat.dao.VideoInfoMapper"</span>, </span><br><span class="line">                <span class="attr">"resource"</span>: <span class="string">"file [/Users/xixicat/workspace/video-uber/target/classes/com/xixicat/dao/VideoInfoMapper.class]"</span>, </span><br><span class="line">                <span class="attr">"dependencies"</span>: [</span><br><span class="line">                    <span class="string">"sqlSessionFactory"</span></span><br><span class="line">                ]</span><br><span class="line">            &#125;</span><br><span class="line">        ]</span><br><span class="line">    &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<h3 id="dump"><a href="#dump" class="headerlink" title="/dump"></a>/dump</h3><figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="attr">"threadName"</span>: <span class="string">"Signal Dispatcher"</span>, </span><br><span class="line">        <span class="attr">"threadId"</span>: <span class="number">4</span>, </span><br><span class="line">        <span class="attr">"blockedTime"</span>: <span class="number">-1</span>, </span><br><span class="line">        <span class="attr">"blockedCount"</span>: <span class="number">0</span>, </span><br><span class="line">        <span class="attr">"waitedTime"</span>: <span class="number">-1</span>, </span><br><span class="line">        <span class="attr">"waitedCount"</span>: <span class="number">0</span>, </span><br><span class="line">        <span class="attr">"lockName"</span>: <span class="literal">null</span>, </span><br><span class="line">        <span class="attr">"lockOwnerId"</span>: <span class="number">-1</span>, </span><br><span class="line">        <span class="attr">"lockOwnerName"</span>: <span class="literal">null</span>, </span><br><span class="line">        <span class="attr">"inNative"</span>: <span class="literal">false</span>, </span><br><span class="line">        <span class="attr">"suspended"</span>: <span class="literal">false</span>, </span><br><span class="line">        <span class="attr">"threadState"</span>: <span class="string">"RUNNABLE"</span>, </span><br><span class="line">        <span class="attr">"stackTrace"</span>: [ ], </span><br><span class="line">        <span class="attr">"lockedMonitors"</span>: [ ], </span><br><span class="line">        <span class="attr">"lockedSynchronizers"</span>: [ ], </span><br><span class="line">        <span class="attr">"lockInfo"</span>: <span class="literal">null</span></span><br><span class="line">    &#125;, </span><br><span class="line">    &#123;</span><br><span class="line">        <span class="attr">"threadName"</span>: <span class="string">"Reference Handler"</span>, </span><br><span class="line">        <span class="attr">"threadId"</span>: <span class="number">2</span>, </span><br><span class="line">        <span class="attr">"blockedTime"</span>: <span class="number">-1</span>, </span><br><span class="line">        <span class="attr">"blockedCount"</span>: <span class="number">217</span>, </span><br><span class="line">        <span class="attr">"waitedTime"</span>: <span class="number">-1</span>, </span><br><span class="line">        <span class="attr">"waitedCount"</span>: <span class="number">9</span>, </span><br><span class="line">        <span class="attr">"lockName"</span>: <span class="string">"java.lang.ref.Reference$Lock@45de945"</span>, </span><br><span class="line">        <span class="attr">"lockOwnerId"</span>: <span class="number">-1</span>, </span><br><span class="line">        <span class="attr">"lockOwnerName"</span>: <span class="literal">null</span>, </span><br><span class="line">        <span class="attr">"inNative"</span>: <span class="literal">false</span>, </span><br><span class="line">        <span class="attr">"suspended"</span>: <span class="literal">false</span>, </span><br><span class="line">        <span class="attr">"threadState"</span>: <span class="string">"WAITING"</span>, </span><br><span class="line">        <span class="attr">"stackTrace"</span>: [</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">"methodName"</span>: <span class="string">"wait"</span>, </span><br><span class="line">                <span class="attr">"fileName"</span>: <span class="string">"Object.java"</span>, </span><br><span class="line">                <span class="attr">"lineNumber"</span>: <span class="number">-2</span>, </span><br><span class="line">                <span class="attr">"className"</span>: <span class="string">"java.lang.Object"</span>, </span><br><span class="line">                <span class="attr">"nativeMethod"</span>: <span class="literal">true</span></span><br><span class="line">            &#125;, </span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">"methodName"</span>: <span class="string">"wait"</span>, </span><br><span class="line">                <span class="attr">"fileName"</span>: <span class="string">"Object.java"</span>, </span><br><span class="line">                <span class="attr">"lineNumber"</span>: <span class="number">503</span>, </span><br><span class="line">                <span class="attr">"className"</span>: <span class="string">"java.lang.Object"</span>, </span><br><span class="line">                <span class="attr">"nativeMethod"</span>: <span class="literal">false</span></span><br><span class="line">            &#125;, </span><br><span class="line">            &#123;</span><br><span class="line">                <span class="attr">"methodName"</span>: <span class="string">"run"</span>, </span><br><span class="line">                <span class="attr">"fileName"</span>: <span class="string">"Reference.java"</span>, </span><br><span class="line">                <span class="attr">"lineNumber"</span>: <span class="number">133</span>, </span><br><span class="line">                <span class="attr">"className"</span>: <span class="string">"java.lang.ref.Reference$ReferenceHandler"</span>, </span><br><span class="line">                <span class="attr">"nativeMethod"</span>: <span class="literal">false</span></span><br><span class="line">            &#125;</span><br><span class="line">        ], </span><br><span class="line">        <span class="attr">"lockedMonitors"</span>: [ ], </span><br><span class="line">        <span class="attr">"lockedSynchronizers"</span>: [ ], </span><br><span class="line">        <span class="attr">"lockInfo"</span>: &#123;</span><br><span class="line">            <span class="attr">"className"</span>: <span class="string">"java.lang.ref.Reference$Lock"</span>, </span><br><span class="line">            <span class="attr">"identityHashCode"</span>: <span class="number">73263429</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure>
+
+<h3 id="env"><a href="#env" class="headerlink" title="/env"></a>/env</h3><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  profiles: [],</span><br><span class="line">  server.ports: &#123;</span><br><span class="line">    local.server.port: 8080</span><br><span class="line">  &#125;,</span><br><span class="line">  servletContextInitParams: &#123;&#125;,</span><br><span class="line">  systemProperties: &#123;</span><br><span class="line">    java.runtime.name: "Java(TM) SE Runtime Environment",</span><br><span class="line">      sun.boot.library.path: "/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib",</span><br><span class="line">      java.vm.version: "24.79-b02",</span><br><span class="line">      gopherProxySet: "false",</span><br><span class="line">      maven.multiModuleProjectDirectory: "/Users/xixicat/workspace/video-uber",</span><br><span class="line">      java.vm.vendor: "Oracle Corporation",</span><br><span class="line">      java.vendor.url: "http://java.oracle.com/",</span><br><span class="line">      guice.disable.misplaced.annotation.check: "true",</span><br><span class="line">      path.separator: ":",</span><br><span class="line">      java.vm.name: "Java HotSpot(TM) 64-Bit Server VM",</span><br><span class="line">      file.encoding.pkg: "sun.io",</span><br><span class="line">      user.country: "CN",</span><br><span class="line">      sun.java.launcher: "SUN_STANDARD",</span><br><span class="line">      sun.os.patch.level: "unknown",</span><br><span class="line">      PID: "763",</span><br><span class="line">      java.vm.specification.name: "Java Virtual Machine Specification",</span><br><span class="line">      user.dir: "/Users/xixicat/workspace/video-uber",</span><br><span class="line">      java.runtime.version: "1.7.0_79-b15",</span><br><span class="line">      java.awt.graphicsenv: "sun.awt.CGraphicsEnvironment",</span><br><span class="line">      java.endorsed.dirs: "/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib/endorsed",</span><br><span class="line">      os.arch: "x86_64",</span><br><span class="line">      java.io.tmpdir: "/var/folders/tl/xkf4nr61033gd6lk5d3llz080000gn/T/",</span><br><span class="line">      line.separator: " ",</span><br><span class="line">      java.vm.specification.vendor: "Oracle Corporation",</span><br><span class="line">      os.name: "Mac OS X",</span><br><span class="line">      classworlds.conf: "/Users/xixicat/devtool/maven-3.3.3/bin/m2.conf",</span><br><span class="line">      sun.jnu.encoding: "UTF-8",</span><br><span class="line">      spring.beaninfo.ignore: "true",</span><br><span class="line">      java.library.path: "/Users/xixicat/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.",</span><br><span class="line">      java.specification.name: "Java Platform API Specification",</span><br><span class="line">      java.class.version: "51.0",</span><br><span class="line">      sun.management.compiler: "HotSpot 64-Bit Tiered Compilers",</span><br><span class="line">      os.version: "10.10.5",</span><br><span class="line">      user.home: "/Users/xixicat",</span><br><span class="line">      user.timezone: "Asia/Shanghai",</span><br><span class="line">      java.awt.printerjob: "sun.lwawt.macosx.CPrinterJob",</span><br><span class="line">      file.encoding: "UTF-8",</span><br><span class="line">      java.specification.version: "1.7",</span><br><span class="line">      java.class.path: "/Users/xixicat/devtool/maven-3.3.3/boot/plexus-classworlds-2.5.2.jar",</span><br><span class="line">      user.name: "xixicat",</span><br><span class="line">      java.vm.specification.version: "1.7",</span><br><span class="line">      sun.java.command: "org.codehaus.plexus.classworlds.launcher.Launcher spring-boot:run",</span><br><span class="line">      java.home: "/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre",</span><br><span class="line">      sun.arch.data.model: "64",</span><br><span class="line">      user.language: "zh",</span><br><span class="line">      java.specification.vendor: "Oracle Corporation",</span><br><span class="line">      awt.toolkit: "sun.lwawt.macosx.LWCToolkit",</span><br><span class="line">      java.vm.info: "mixed mode",</span><br><span class="line">      java.version: "1.7.0_79",</span><br><span class="line">      java.ext.dirs: "/Users/xixicat/Library/Java/Extensions:/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib/ext:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java",</span><br><span class="line">      sun.boot.class.path: "/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib/resources.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib/rt.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib/sunrsasign.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib/jsse.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib/jce.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib/charsets.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/lib/jfr.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home/jre/classes",</span><br><span class="line">      java.awt.headless: "true",</span><br><span class="line">      java.vendor: "Oracle Corporation",</span><br><span class="line">      maven.home: "/Users/xixicat/devtool/maven-3.3.3",</span><br><span class="line">      file.separator: "/",</span><br><span class="line">      LOG_EXCEPTION_CONVERSION_WORD: "%wEx",</span><br><span class="line">      java.vendor.url.bug: "http://bugreport.sun.com/bugreport/",</span><br><span class="line">      sun.io.unicode.encoding: "UnicodeBig",</span><br><span class="line">      sun.cpu.endian: "little",</span><br><span class="line">      sun.cpu.isalist: ""</span><br><span class="line">  &#125;,</span><br><span class="line">  systemEnvironment: &#123;</span><br><span class="line">    TERM: "xterm-256color",</span><br><span class="line">    ZSH: "/Users/xixicat/.oh-my-zsh",</span><br><span class="line">    GVM_BROKER_SERVICE: "http://release.gvm.io",</span><br><span class="line">    GRIFFON_HOME: "/Users/xixicat/.gvm/griffon/current",</span><br><span class="line">    JAVA_MAIN_CLASS_763: "org.codehaus.plexus.classworlds.launcher.Launcher",</span><br><span class="line">    JAVA_HOME: "/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home",</span><br><span class="line">    SHLVL: "1",</span><br><span class="line">    MAVEN_CMD_LINE_ARGS: " spring-boot:run",</span><br><span class="line">    __CF_USER_TEXT_ENCODING: "0x1F5:0x19:0x34",</span><br><span class="line">    GROOVY_HOME: "/Users/xixicat/.gvm/groovy/current",</span><br><span class="line">    XPC_FLAGS: "0x0",</span><br><span class="line">    GVM_INIT: "true",</span><br><span class="line">    JBAKE_HOME: "/Users/xixicat/.gvm/jbake/current",</span><br><span class="line">    PWD: "/Users/xixicat/workspace/video-uber",</span><br><span class="line">    GVM_DIR: "/Users/xixicat/.gvm",</span><br><span class="line">    GVM_VERSION: "2.4.3",</span><br><span class="line">    MAVEN_PROJECTBASEDIR: "/Users/xixicat/workspace/video-uber",</span><br><span class="line">    LOGNAME: "xixicat",</span><br><span class="line">    SSH_AUTH_SOCK: "/private/tmp/com.apple.launchd.93xr1duECQ/Listeners",</span><br><span class="line">    SPRINGBOOT_HOME: "/Users/xixicat/.gvm/springboot/current",</span><br><span class="line">    GAIDEN_HOME: "/Users/xixicat/.gvm/gaiden/current",</span><br><span class="line">    LAZYBONES_HOME: "/Users/xixicat/.gvm/lazybones/current",</span><br><span class="line">    OLDPWD: "/Users/xixicat/workspace/video-uber",</span><br><span class="line">    SHELL: "/bin/zsh",</span><br><span class="line">    JBOSSFORGE_HOME: "/Users/xixicat/.gvm/jbossforge/current",</span><br><span class="line">    LC_CTYPE: "zh_CN.UTF-8",</span><br><span class="line">    TMPDIR: "/var/folders/tl/xkf4nr61033gd6lk5d3llz080000gn/T/",</span><br><span class="line">    GVM_SERVICE: "http://api.gvmtool.net",</span><br><span class="line">    GVM_PLATFORM: "Darwin",</span><br><span class="line">    CLASSPATH: ".:/Users/xixicat/.m2/repository/co/paralleluniverse/quasar-core/0.7.2/quasar-core-0.7.2.jar",</span><br><span class="line">    GLIDE_HOME: "/Users/xixicat/.gvm/glide/current",</span><br><span class="line">    PATH: "/Users/xixicat/.gvm/vertx/current/bin:/Users/xixicat/.gvm/springboot/current/bin:/Users/xixicat/.gvm/lazybones/current/bin:/Users/xixicat/.gvm/jbossforge/current/bin:/Users/xixicat/.gvm/jbake/current/bin:/Users/xixicat/.gvm/groovyserv/current/bin:/Users/xixicat/.gvm/groovy/current/bin:/Users/xixicat/.gvm/griffon/current/bin:/Users/xixicat/.gvm/grails/current/bin:/Users/xixicat/.gvm/gradle/current/bin:/Users/xixicat/.gvm/glide/current/bin:/Users/xixicat/.gvm/gaiden/current/bin:/Users/xixicat/.gvm/crash/current/bin:/Users/xixicat/.gvm/asciidoctorj/current/bin:/Users/xixicat/bin:/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/git/bin:/Users/xixicat/devtool/maven-3.3.3/bin:/Users/xixicat/devtool/gradle-2.6/bin:/Users/xixicat/devtool/android-sdk/platform-tools",</span><br><span class="line">    GRADLE_HOME: "/Users/xixicat/.gvm/gradle/current",</span><br><span class="line">    GROOVYSERV_HOME: "/Users/xixicat/.gvm/groovyserv/current",</span><br><span class="line">    GRAILS_HOME: "/Users/xixicat/.gvm/grails/current",</span><br><span class="line">    USER: "xixicat",</span><br><span class="line">    LESS: "-R",</span><br><span class="line">    PAGER: "less",</span><br><span class="line">    HOME: "/Users/xixicat",</span><br><span class="line">    CRASH_HOME: "/Users/xixicat/.gvm/crash/current",</span><br><span class="line">    XPC_SERVICE_NAME: "0",</span><br><span class="line">    VERTX_HOME: "/Users/xixicat/.gvm/vertx/current",</span><br><span class="line">    GVM_BROADCAST_SERVICE: "http://cast.gvm.io",</span><br><span class="line">    Apple_PubSub_Socket_Render: "/private/tmp/com.apple.launchd.y6fNwP8Sk6/Render",</span><br><span class="line">    LSCOLORS: "Gxfxcxdxbxegedabagacad",</span><br><span class="line">    ASCIIDOCTORJ_HOME: "/Users/xixicat/.gvm/asciidoctorj/current"</span><br><span class="line">  &#125;,</span><br><span class="line">  applicationConfig: [classpath: /application.properties]: &#123;</span><br><span class="line">    pool.acquireIncrement: "1",</span><br><span class="line">    pool.minPoolSize: "5",</span><br><span class="line">    pool.initialPoolSize: "1",</span><br><span class="line">    database.username: "root",</span><br><span class="line">    pool.maxIdleTime: "60",</span><br><span class="line">    database.url: "jdbc:mysql://127.0.0.1:3307/video_uber?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;zeroDateTimeBehavior=convertToNull",</span><br><span class="line">    spring.jackson.dateFormat: "yyyy-MM-dd'T'HH:mm:ss",</span><br><span class="line">    database.slave.username: "root",</span><br><span class="line">    spring.jackson.serialization.write - dates - as - timestamps: "false",</span><br><span class="line">    pool.idleTimeout: "30000",</span><br><span class="line">    database.slave.url: "jdbc:mysql://127.0.0.1:3307/demo?autoReconnect=true&amp;useUnicode=true&amp;characterEncoding=UTF-8&amp;zeroDateTimeBehavior=convertToNull",</span><br><span class="line">    server.port: "8080",</span><br><span class="line">    database.slave.password: "******",</span><br><span class="line">    database.password: "******",</span><br><span class="line">    database.driverClassName: "com.mysql.jdbc.Driver",</span><br><span class="line">    pool.maxPoolSize: "50",</span><br><span class="line">    database.dataSourceClassName: "com.mysql.jdbc.jdbc2.optional.MysqlDataSource"</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="health"><a href="#health" class="headerlink" title="/health"></a>/health</h3><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  status: "UP",</span><br><span class="line">  diskSpace: &#123;</span><br><span class="line">    status: "UP",</span><br><span class="line">    total: 249779191808,</span><br><span class="line">    free: 193741590528,</span><br><span class="line">    threshold: 10485760</span><br><span class="line">  &#125;,</span><br><span class="line">  db: &#123;</span><br><span class="line">    status: "UP",</span><br><span class="line">    database: "MySQL",</span><br><span class="line">    hello: 1</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="info"><a href="#info" class="headerlink" title="/info"></a>/info</h3><p>需要自己在application.properties里头添加信息，比如</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">info:</span><br><span class="line">  contact:</span><br><span class="line">    email: xixicat@gmail.com</span><br><span class="line">    phone: 0755-82890987</span><br></pre></td></tr></table></figure>
+
+<p>然后请求就可以出来了</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  <span class="attr">"contact"</span>: &#123;</span><br><span class="line">     <span class="attr">"phone"</span>: <span class="string">"0755-82890987"</span>,</span><br><span class="line">     <span class="attr">"email"</span>: <span class="string">"xixicat@gmail.com"</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="mappings"><a href="#mappings" class="headerlink" title="/mappings"></a>/mappings</h3><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">   &#123;</span><br><span class="line">     [/metrics || /metrics.json], methods = [GET], produces = [application / json]</span><br><span class="line">   &#125;: &#123;</span><br><span class="line">     bean: "endpointHandlerMapping",</span><br><span class="line">     method: "public java.lang.Object org.springframework.boot.actuate.endpoint.mvc.EndpointMvcAdapter.invoke()"</span><br><span class="line">   &#125;, &#123;</span><br><span class="line">     [/beans || /beans.json], methods = [GET], produces = [application / json]</span><br><span class="line">   &#125;: &#123;</span><br><span class="line">     bean: "endpointHandlerMapping",</span><br><span class="line">     method: "public java.lang.Object org.springframework.boot.actuate.endpoint.mvc.EndpointMvcAdapter.invoke()"</span><br><span class="line">   &#125;, &#123;</span><br><span class="line">     [/health || /health.json], produces = [application / json]</span><br><span class="line">   &#125;: &#123;</span><br><span class="line">     bean: "endpointHandlerMapping",</span><br><span class="line">     method: "public java.lang.Object org.springframework.boot.actuate.endpoint.mvc.HealthMvcEndpoint.invoke(java.security.Principal)"</span><br><span class="line">   &#125;, &#123;</span><br><span class="line">     [/info || /info.json], methods = [GET], produces = [application / json]</span><br><span class="line">   &#125;: &#123;</span><br><span class="line">     bean: "endpointHandlerMapping",</span><br><span class="line">     method: "public java.lang.Object org.springframework.boot.actuate.endpoint.mvc.EndpointMvcAdapter.invoke()"</span><br><span class="line">   &#125;, &#123;</span><br><span class="line">     [/trace || /trace.json], methods = [GET], produces = [application / json]</span><br><span class="line">   &#125;: &#123;</span><br><span class="line">     bean: "endpointHandlerMapping",</span><br><span class="line">     method: "public java.lang.Object org.springframework.boot.actuate.endpoint.mvc.EndpointMvcAdapter.invoke()"</span><br><span class="line">   &#125;, &#123;</span><br><span class="line">     [/autoconfig || /autoconfig.json], methods = [GET], produces = [application / json]</span><br><span class="line">   &#125;: &#123;</span><br><span class="line">     bean: "endpointHandlerMapping",</span><br><span class="line">     method: "public java.lang.Object org.springframework.boot.actuate.endpoint.mvc.EndpointMvcAdapter.invoke()"</span><br><span class="line">   &#125;</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="metrics"><a href="#metrics" class="headerlink" title="/metrics"></a>/metrics</h3><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">mem: 499404,</span><br><span class="line">mem.free: 257591,</span><br><span class="line">processors: 8,</span><br><span class="line">instance.uptime: 4284997,</span><br><span class="line">uptime: 4294909,</span><br><span class="line">systemload.average: 1.84521484375,</span><br><span class="line">heap.committed: 437248,</span><br><span class="line">heap.init: 262144,</span><br><span class="line">heap.used: 179656,</span><br><span class="line">heap: 3728384,</span><br><span class="line">nonheap.committed: 62848,</span><br><span class="line">nonheap.init: 24000,</span><br><span class="line">nonheap.used: 62156,</span><br><span class="line">nonheap: 133120,</span><br><span class="line">threads.peak: 18,</span><br><span class="line">threads.daemon: 6,</span><br><span class="line">threads.totalStarted: 176,</span><br><span class="line">threads: 16,</span><br><span class="line">classes: 10294,</span><br><span class="line">classes.loaded: 10294,</span><br><span class="line">classes.unloaded: 0,</span><br><span class="line">gc.ps_scavenge.count: 11,</span><br><span class="line">gc.ps_scavenge.time: 405,</span><br><span class="line">gc.ps_marksweep.count: 0,</span><br><span class="line">gc.ps_marksweep.time: 0,</span><br><span class="line">datasource.primary.active: 0,</span><br><span class="line">datasource.primary.usage: 0,</span><br><span class="line">counter.status.200.autoconfig: 1,</span><br><span class="line">counter.status.200.beans: 1,</span><br><span class="line">counter.status.200.configprops: 1,</span><br><span class="line">counter.status.200.dump: 1,</span><br><span class="line">counter.status.200.env: 1,</span><br><span class="line">counter.status.200.health: 1,</span><br><span class="line">counter.status.200.info: 1,</span><br><span class="line">counter.status.200.mappings: 1,</span><br><span class="line">gauge.response.autoconfig: 81,</span><br><span class="line">gauge.response.beans: 15,</span><br><span class="line">gauge.response.configprops: 105,</span><br><span class="line">gauge.response.dump: 76,</span><br><span class="line">gauge.response.env: 4,</span><br><span class="line">gauge.response.health: 43,</span><br><span class="line">gauge.response.info: 1,</span><br><span class="line">gauge.response.mappings: 4</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="shutdown"><a href="#shutdown" class="headerlink" title="/shutdown"></a>/shutdown</h3><p>要真正生效，得配置文件开启</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">endpoints.shutdown.enabled: true</span><br></pre></td></tr></table></figure>
+
+<h3 id="trace"><a href="#trace" class="headerlink" title="/trace"></a>/trace</h3><p>记录最近100个请求的信息</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line">[&#123;</span><br><span class="line">  <span class="attr">"timestamp"</span>: <span class="number">1452955704922</span>,</span><br><span class="line">  <span class="attr">"info"</span>: &#123;</span><br><span class="line">    <span class="attr">"method"</span>: <span class="string">"GET"</span>,</span><br><span class="line">    <span class="attr">"path"</span>: <span class="string">"/metrics"</span>,</span><br><span class="line">    <span class="attr">"headers"</span>: &#123;</span><br><span class="line">      <span class="attr">"request"</span>: &#123;</span><br><span class="line">        <span class="attr">"Accept - Encoding"</span>: <span class="string">"gzip, deflate, sdch"</span>,</span><br><span class="line">          <span class="attr">"Upgrade - Insecure - Requests"</span>: <span class="string">"1"</span>,</span><br><span class="line">          <span class="attr">"Accept - Language"</span>: <span class="string">"zh-CN,zh;q=0.8,en;q=0.6"</span>,</span><br><span class="line">          <span class="attr">"User - Agent"</span>: <span class="string">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36"</span>,</span><br><span class="line">          <span class="attr">"Accept"</span>: <span class="string">"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"</span>,</span><br><span class="line">          <span class="attr">"Connection"</span>: <span class="string">"keep-alive"</span>,</span><br><span class="line">          <span class="attr">"Host"</span>: <span class="string">"localhost:8080"</span></span><br><span class="line">      &#125;,</span><br><span class="line">      <span class="attr">"response"</span>: &#123;</span><br><span class="line">        <span class="attr">"Content - Type"</span>: <span class="string">"application/json; charset=UTF-8"</span>,</span><br><span class="line">          <span class="attr">"X - Application - Context"</span>: <span class="string">"application:8080"</span>,</span><br><span class="line">          <span class="attr">"Date"</span>: <span class="string">"Sat, 16 Jan 2016 14:48:24 GMT"</span>,</span><br><span class="line">          <span class="attr">"status"</span>: <span class="string">"200"</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;, &#123;</span><br><span class="line">  <span class="attr">"timestamp"</span>: <span class="number">1452951489549</span>,</span><br><span class="line">  <span class="attr">"info"</span>: &#123;</span><br><span class="line">    <span class="attr">"method"</span>: <span class="string">"GET"</span>,</span><br><span class="line">    <span class="attr">"path"</span>: <span class="string">"/autoconfig"</span>,</span><br><span class="line">    <span class="attr">"headers"</span>: &#123;</span><br><span class="line">      <span class="attr">"request"</span>: &#123;</span><br><span class="line">        <span class="attr">"Accept - Encoding"</span>: <span class="string">"gzip, deflate, sdch"</span>,</span><br><span class="line">          <span class="attr">"Upgrade - Insecure - Requests"</span>: <span class="string">"1"</span>,</span><br><span class="line">          <span class="attr">"Accept - Language"</span>: <span class="string">"zh-CN,zh;q=0.8,en;q=0.6"</span>,</span><br><span class="line">          <span class="attr">"User - Agent"</span>: <span class="string">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.111 Safari/537.36"</span>,</span><br><span class="line">          <span class="attr">"Accept"</span>: <span class="string">"text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"</span>,</span><br><span class="line">          <span class="attr">"Connection"</span>: <span class="string">"keep-alive"</span>,</span><br><span class="line">          <span class="attr">"Host"</span>: <span class="string">"localhost:8080"</span></span><br><span class="line">      &#125;,</span><br><span class="line">      <span class="attr">"response"</span>: &#123;</span><br><span class="line">        <span class="attr">"Content - Type"</span>: <span class="string">"application/json; charset=UTF-8"</span>,</span><br><span class="line">          <span class="attr">"X - Application - Context"</span>: <span class="string">"application:8080"</span>,</span><br><span class="line">          <span class="attr">"Date"</span>: <span class="string">"Sat, 16 Jan 2016 13:38:09 GMT"</span>,</span><br><span class="line">          <span class="attr">"status"</span>: <span class="string">"200"</span></span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;]</span><br></pre></td></tr></table></figure>
+<h2 id="安全设置"><a href="#安全设置" class="headerlink" title="安全设置"></a>安全设置</h2><p>actuator暴露的health接口权限是由两个配置： <code>management.security.enabled</code> 和 <code>endpoints.health.sensitive</code>组合的结果进行返回的。</p>
+<table>
+<thead>
+<tr>
+<th>management.security.enabled</th>
+<th>endpoints.health.sensitive</th>
+<th>Unauthenticated</th>
+<th>Authenticated (with right role)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>false</td>
+<td>*</td>
+<td>Full content</td>
+<td>Full content</td>
+</tr>
+<tr>
+<td>true</td>
+<td><strong>false</strong></td>
+<td>Status only</td>
+<td>Full content</td>
+</tr>
+<tr>
+<td>true</td>
+<td>true</td>
+<td>No content</td>
+<td>Full content</td>
+</tr>
+</tbody></table>
+<h2 id="常用配置"><a href="#常用配置" class="headerlink" title="常用配置"></a>常用配置</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">management.security.enabled: false  # 是否启用安全认证</span><br><span class="line">management.context-path: &#x2F;actuator  # actuator url base路径</span><br></pre></td></tr></table></figure>
+
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a href="https://docs.spring.io/spring-boot/docs/current/reference/html/production-ready-endpoints.html" target="_blank" rel="noopener">官方文档</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Actuator/" rel="tag"># Actuator</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/SparkContext%E5%88%9D%E5%A7%8B%E5%8C%96%E8%BF%87%E7%A8%8B/" rel="prev" title="SparkContext初始化过程">
+      <i class="fa fa-chevron-left"></i> SparkContext初始化过程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/06/04/spring/%E6%B5%8B%E8%AF%95/%E4%BD%BF%E7%94%A8mock%E6%B5%8B%E8%AF%95/" rel="next" title="mock测试">
+      mock测试 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#SpringBoot四大神器之-Actuator"><span class="nav-number">1.</span> <span class="nav-text">SpringBoot四大神器之 Actuator</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#序"><span class="nav-number">1.1.</span> <span class="nav-text">序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用actuator"><span class="nav-number">1.2.</span> <span class="nav-text">使用actuator</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#主要暴露的功能"><span class="nav-number">1.3.</span> <span class="nav-text">主要暴露的功能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#autoconfig"><span class="nav-number">1.3.1.</span> <span class="nav-text">&#x2F;autoconfig</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#configprops"><span class="nav-number">1.3.2.</span> <span class="nav-text">&#x2F;configprops</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#beans"><span class="nav-number">1.3.3.</span> <span class="nav-text">&#x2F;beans</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#dump"><span class="nav-number">1.3.4.</span> <span class="nav-text">&#x2F;dump</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#env"><span class="nav-number">1.3.5.</span> <span class="nav-text">&#x2F;env</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#health"><span class="nav-number">1.3.6.</span> <span class="nav-text">&#x2F;health</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#info"><span class="nav-number">1.3.7.</span> <span class="nav-text">&#x2F;info</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#mappings"><span class="nav-number">1.3.8.</span> <span class="nav-text">&#x2F;mappings</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#metrics"><span class="nav-number">1.3.9.</span> <span class="nav-text">&#x2F;metrics</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#shutdown"><span class="nav-number">1.3.10.</span> <span class="nav-text">&#x2F;shutdown</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#trace"><span class="nav-number">1.3.11.</span> <span class="nav-text">&#x2F;trace</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安全设置"><span class="nav-number">1.4.</span> <span class="nav-text">安全设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#常用配置"><span class="nav-number">1.5.</span> <span class="nav-text">常用配置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">1.6.</span> <span class="nav-text">参考资料</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2018/06/04/spring/%E7%9B%91%E6%8E%A7/actuator/",
+            identifier: "2018/06/04/spring/监控/actuator/",
+            title: "Actuator"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="启动Driver前面介绍了从命令行提交任务开始，至Master注册Driver的流程。接下来是 Master将注册的Driver信息发送到Worker，在Worker节点启动Driver。 一、Master发送LaunchDriver消息上一节讲到 Master(org.apache.spark.deploy.master.Master) 接收 ClientEndPoint发送的注册Driver的">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spark2-启动Driver">
+<meta property="og:url" content="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/2_%E5%90%AF%E5%8A%A8driver/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="启动Driver前面介绍了从命令行提交任务开始，至Master注册Driver的流程。接下来是 Master将注册的Driver信息发送到Worker，在Worker节点启动Driver。 一、Master发送LaunchDriver消息上一节讲到 Master(org.apache.spark.deploy.master.Master) 接收 ClientEndPoint发送的注册Driver的">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBjb250ZW50U2NyaXB0VHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCIgY29udGVudFN0eWxlVHlwZT0idGV4dC9jc3MiIGhlaWdodD0iNjUxcHgiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiIHN0eWxlPSJ3aWR0aDo2MTJweDtoZWlnaHQ6NjUxcHg7IiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA2MTIgNjUxIiB3aWR0aD0iNjEycHgiIHpvb21BbmRQYW49Im1hZ25pZnkiPjxkZWZzPjxmaWx0ZXIgaGVpZ2h0PSIzMDAlIiBpZD0iZjY1ZjJ0MGt5bzF4aCIgd2lkdGg9IjMwMCUiIHg9Ii0xIiB5PSItMSI+PGZlR2F1c3NpYW5CbHVyIHJlc3VsdD0iYmx1ck91dCIgc3RkRGV2aWF0aW9uPSIyLjAiLz48ZmVDb2xvck1hdHJpeCBpbj0iYmx1ck91dCIgcmVzdWx0PSJibHVyT3V0MiIgdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIC40IDAiLz48ZmVPZmZzZXQgZHg9IjQuMCIgZHk9IjQuMCIgaW49ImJsdXJPdXQyIiByZXN1bHQ9ImJsdXJPdXQzIi8+PGZlQmxlbmQgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iYmx1ck91dDMiIG1vZGU9Im5vcm1hbCIvPjwvZmlsdGVyPjwvZGVmcz48Zz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxODciIHg9IjIxMi41IiB5PSIyNi43MDgiPm1hc3RlcuWQr+WKqGRyaXZlcuiKgueCuTwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNS4wLDUuMDsiIHgxPSIxMTAiIHgyPSIxMTAiIHkxPSI3My4yNSIgeTI9IjYxMS4yNDIyIi8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IHN0cm9rZS1kYXNoYXJyYXk6IDUuMCw1LjA7IiB4MT0iMjcwIiB4Mj0iMjcwIiB5MT0iNzMuMjUiIHkyPSI2MTEuMjQyMiIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjM4NCIgeDI9IjM4NCIgeTE9IjczLjI1IiB5Mj0iNjExLjI0MjIiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNS4wLDUuMDsiIHgxPSI1MTAiIHgyPSI1MTAiIHkxPSI3My4yNSIgeTI9IjYxMS4yNDIyIi8+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjYxIiB4PSI3OCIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjQ3IiB4PSI4NSIgeT0iNTcuOTQ4MiI+TWFzdGVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI2MSIgeD0iNzgiIHk9IjYxMC4yNDIyIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDciIHg9Ijg1IiB5PSI2MzAuMjM3MyI+TWFzdGVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI2MyIgeD0iMjM3IiB5PSIzNy45NTMxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDkiIHg9IjI0NCIgeT0iNTcuOTQ4MiI+V29ya2VyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI2MyIgeD0iMjM3IiB5PSI2MTAuMjQyMiIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjQ5IiB4PSIyNDQiIHk9IjYzMC4yMzczIj5Xb3JrZXI8L3RleHQ+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjEwNSIgeD0iMzMwIiB5PSIzNy45NTMxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iOTEiIHg9IjMzNyIgeT0iNTcuOTQ4MiI+RHJpdmVyUnVubmVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMDUiIHg9IjMzMCIgeT0iNjEwLjI0MjIiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI5MSIgeD0iMzM3IiB5PSI2MzAuMjM3MyI+RHJpdmVyUnVubmVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMTgiIHg9IjQ0OSIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEwNCIgeD0iNDU2IiB5PSI1Ny45NDgyIj5Qcm9jZXNzQnVpbGRlcjwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjY1ZjJ0MGt5bzF4aCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTE4IiB4PSI0NDkiIHk9IjYxMC4yNDIyIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTA0IiB4PSI0NTYiIHk9IjYzMC4yMzczIj5Qcm9jZXNzQnVpbGRlcjwvdGV4dD48cGF0aCBkPSJNOCw4OC4yNSBMOCwxMjguMjUgTDIwOSwxMjguMjUgTDIwOSw5OC4yNSBMMTk5LDg4LjI1IEw4LDg4LjI1ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTk5LDg4LjI1IEwxOTksOTguMjUgTDIwOSw5OC4yNSBMMTk5LDg4LjI1ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTA1IiB4PSIxNCIgeT0iMTA1LjMxNjkiPnJlY2VpdmVBbmRSZXBseTwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxODAiIHg9IjE0IiB5PSIxMjAuNDQ5NyI+KGNhc2UgUmVxdXNldFN1Ym1pdERyaXZlcik8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTEwLjUiIHgyPSIxNTIuNSIgeTE9IjE1OC42NDg0IiB5Mj0iMTU4LjY0ODQiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSIxNTIuNSIgeDI9IjE1Mi41IiB5MT0iMTU4LjY0ODQiIHkyPSIxNzEuNjQ4NCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjExMS41IiB4Mj0iMTUyLjUiIHkxPSIxNzEuNjQ4NCIgeTI9IjE3MS42NDg0Ii8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIxMjEuNSwxNjcuNjQ4NCwxMTEuNSwxNzEuNjQ4NCwxMjEuNSwxNzUuNjQ4NCwxMTcuNSwxNzEuNjQ4NCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjExNy41IiB5PSIxNTMuNTgyNSI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik02OSwxODQuNjQ4NCBMNjksMjA5LjY0ODQgTDE0NywyMDkuNjQ4NCBMMTQ3LDE5NC42NDg0IEwxMzcsMTg0LjY0ODQgTDY5LDE4NC42NDg0ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTM3LDE4NC42NDg0IEwxMzcsMTk0LjY0ODQgTDE0NywxOTQuNjQ4NCBMMTM3LDE4NC42NDg0ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNTciIHg9Ijc1IiB5PSIyMDEuNzE1MyI+c2NoZWR1bGU8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTEwLjUiIHgyPSIxNTIuNSIgeTE9IjIzOS45MTQxIiB5Mj0iMjM5LjkxNDEiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSIxNTIuNSIgeDI9IjE1Mi41IiB5MT0iMjM5LjkxNDEiIHkyPSIyNTIuOTE0MSIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjExMS41IiB4Mj0iMTUyLjUiIHkxPSIyNTIuOTE0MSIgeTI9IjI1Mi45MTQxIi8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIxMjEuNSwyNDguOTE0MSwxMTEuNSwyNTIuOTE0MSwxMjEuNSwyNTYuOTE0MSwxMTcuNSwyNTIuOTE0MSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjExNy41IiB5PSIyMzQuODQ4MSI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik01OCwyNjUuOTE0MSBMNTgsMjkwLjkxNDEgTDE1OSwyOTAuOTE0MSBMMTU5LDI3NS45MTQxIEwxNDksMjY1LjkxNDEgTDU4LDI2NS45MTQxICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTQ5LDI2NS45MTQxIEwxNDksMjc1LjkxNDEgTDE1OSwyNzUuOTE0MSBMMTQ5LDI2NS45MTQxICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODAiIHg9IjY0IiB5PSIyODIuOTgxIj5sYXVuY2hEcml2ZXI8L3RleHQ+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIyNTguNSwzMTcuMTc5NywyNjguNSwzMjEuMTc5NywyNTguNSwzMjUuMTc5NywyNjIuNSwzMjEuMTc5NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTEwLjUiIHgyPSIyNjQuNSIgeTE9IjMyMS4xNzk3IiB5Mj0iMzIxLjE3OTciLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMzYiIHg9IjExNy41IiB5PSIzMTYuMTEzOCI+5Y+R6YCBTGF1bmNoRHJpdmVy5raI5oGvPC90ZXh0PjxwYXRoIGQ9Ik0xOTQsMzM0LjE3OTcgTDE5NCwzNzQuMTc5NyBMMzQzLDM3NC4xNzk3IEwzNDMsMzQ0LjE3OTcgTDMzMywzMzQuMTc5NyBMMTk0LDMzNC4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMzMzLDMzNC4xNzk3IEwzMzMsMzQ0LjE3OTcgTDM0MywzNDQuMTc5NyBMMzMzLDMzNC4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDYiIHg9IjIwMCIgeT0iMzUxLjI0NjYiPnJlY2VpdmU8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTI4IiB4PSIyMDAiIHk9IjM2Ni4zNzk0Ij4oY2FzZSBMYXVuY2hEcml2ZXIpPC90ZXh0Pjxwb2x5Z29uIGZpbGw9IiNBODAwMzYiIHBvaW50cz0iMzcyLjUsNDAwLjU3ODEsMzgyLjUsNDA0LjU3ODEsMzcyLjUsNDA4LjU3ODEsMzc2LjUsNDA0LjU3ODEiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjI3MC41IiB4Mj0iMzc4LjUiIHkxPSI0MDQuNTc4MSIgeTI9IjQwNC41NzgxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iOTAiIHg9IjI3Ny41IiB5PSIzOTkuNTEyMiI+5ZCv5YqoRHJpdmVy5ZG95LukPC90ZXh0PjxwYXRoIGQ9Ik0zNTcsNDE3LjU3ODEgTDM1Nyw0NDIuNTc4MSBMNDA4LDQ0Mi41NzgxIEw0MDgsNDI3LjU3ODEgTDM5OCw0MTcuNTc4MSBMMzU3LDQxNy41NzgxICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMzk4LDQxNy41NzgxIEwzOTgsNDI3LjU3ODEgTDQwOCw0MjcuNTc4MSBMMzk4LDQxNy41NzgxICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMzAiIHg9IjM2MyIgeT0iNDM0LjY0NSI+c3RhcnQ8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMzg0LjUiIHgyPSI0MjYuNSIgeTE9IjQ3Mi44NDM4IiB5Mj0iNDcyLjg0MzgiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSI0MjYuNSIgeDI9IjQyNi41IiB5MT0iNDcyLjg0MzgiIHkyPSI0ODUuODQzOCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjM4NS41IiB4Mj0iNDI2LjUiIHkxPSI0ODUuODQzOCIgeTI9IjQ4NS44NDM4Ii8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIzOTUuNSw0ODEuODQzOCwzODUuNSw0ODUuODQzOCwzOTUuNSw0ODkuODQzOCwzOTEuNSw0ODUuODQzOCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjM5MS41IiB5PSI0NjcuNzc3OCI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik0zMzIsNDk4Ljg0MzggTDMzMiw1MjMuODQzOCBMNDMzLDUyMy44NDM4IEw0MzMsNTA4Ljg0MzggTDQyMyw0OTguODQzOCBMMzMyLDQ5OC44NDM4ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNDIzLDQ5OC44NDM4IEw0MjMsNTA4Ljg0MzggTDQzMyw1MDguODQzOCBMNDIzLDQ5OC44NDM4ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODAiIHg9IjMzOCIgeT0iNTE1LjkxMDYiPmxhdW5jaERyaXZlcjwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjQ5OCw1NTAuMTA5NCw1MDgsNTU0LjEwOTQsNDk4LDU1OC4xMDk0LDUwMiw1NTQuMTA5NCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMzg0LjUiIHgyPSI1MDQiIHkxPSI1NTQuMTA5NCIgeTI9IjU1NC4xMDk0Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjM5MS41IiB5PSI1NDkuMDQzNSI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik00MTUsNTY3LjEwOTQgTDQxNSw1OTIuMTA5NCBMNjAwLDU5Mi4xMDk0IEw2MDAsNTc3LjEwOTQgTDU5MCw1NjcuMTA5NCBMNDE1LDU2Ny4xMDk0ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNTkwLDU2Ny4xMDk0IEw1OTAsNTc3LjEwOTQgTDYwMCw1NzcuMTA5NCBMNTkwLDU2Ny4xMDk0ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTY0IiB4PSI0MjEiIHk9IjU4NC4xNzYzIj7mi7zoo4UgamF2YSDlkK/liqjlkb3ku6TvvIzlubbmiafooYw8L3RleHQ+PCEtLU1ENT1bMmJkZTYzZTUxNTdiMGNlYmJlOGQ3NmEwNGE4ZjFjY2NdCkBzdGFydHVtbA0KdGl0bGU6bWFzdGVy5ZCv5YqoZHJpdmVy6IqC54K5DQoNCm5vdGUgb3ZlciBNYXN0ZXI6IHJlY2VpdmVBbmRSZXBseVxuKGNhc2UgUmVxdXNldFN1Ym1pdERyaXZlcikNCk1hc3RlciAtPiBNYXN0ZXI6IOiwg+eUqA0Kbm90ZSBvdmVyIE1hc3Rlcjogc2NoZWR1bGUNCk1hc3RlciAtPiBNYXN0ZXI6IOiwg+eUqA0Kbm90ZSBvdmVyIE1hc3RlcjogbGF1bmNoRHJpdmVyDQpNYXN0ZXIgLT4gV29ya2VyOiDlj5HpgIFMYXVuY2hEcml2ZXLmtojmga8NCm5vdGUgb3ZlciBXb3JrZXI6IHJlY2VpdmVcbihjYXNlIExhdW5jaERyaXZlcikNCldvcmtlciAtPiBEcml2ZXJSdW5uZXI6IOWQr+WKqERyaXZlcuWRveS7pA0Kbm90ZSBvdmVyIERyaXZlclJ1bm5lcjogc3RhcnQNCkRyaXZlclJ1bm5lciAtPiBEcml2ZXJSdW5uZXI66LCD55SoIA0Kbm90ZSBvdmVyIERyaXZlclJ1bm5lcjogbGF1bmNoRHJpdmVyDQpEcml2ZXJSdW5uZXIgLT4gUHJvY2Vzc0J1aWxkZXI6IOiwg+eUqA0Kbm90ZSBvdmVyIFByb2Nlc3NCdWlsZGVyOiDmi7zoo4UgamF2YSDlkK/liqjlkb3ku6TvvIzlubbmiafooYwNCkBlbmR1bWwNCgpQbGFudFVNTCB2ZXJzaW9uIDEuMjAyMC4wMmJldGE1KFVua25vd24gY29tcGlsZSB0aW1lKQooR1BMIHNvdXJjZSBkaXN0cmlidXRpb24pCkphdmEgUnVudGltZTogSmF2YShUTSkgU0UgUnVudGltZSBFbnZpcm9ubWVudApKVk06IEphdmEgSG90U3BvdChUTSkgNjQtQml0IFNlcnZlciBWTQpKYXZhIFZlcnNpb246IDEuNy4wXzI1LWIxNQpPcGVyYXRpbmcgU3lzdGVtOiBMaW51eApEZWZhdWx0IEVuY29kaW5nOiBVVEYtOApMYW5ndWFnZTogZW4KQ291bnRyeTogVVMKLS0+PC9nPjwvc3ZnPg==">
+<meta property="article:published_time" content="2018-06-04T15:22:02.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.857Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="spark">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBjb250ZW50U2NyaXB0VHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCIgY29udGVudFN0eWxlVHlwZT0idGV4dC9jc3MiIGhlaWdodD0iNjUxcHgiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiIHN0eWxlPSJ3aWR0aDo2MTJweDtoZWlnaHQ6NjUxcHg7IiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA2MTIgNjUxIiB3aWR0aD0iNjEycHgiIHpvb21BbmRQYW49Im1hZ25pZnkiPjxkZWZzPjxmaWx0ZXIgaGVpZ2h0PSIzMDAlIiBpZD0iZjY1ZjJ0MGt5bzF4aCIgd2lkdGg9IjMwMCUiIHg9Ii0xIiB5PSItMSI+PGZlR2F1c3NpYW5CbHVyIHJlc3VsdD0iYmx1ck91dCIgc3RkRGV2aWF0aW9uPSIyLjAiLz48ZmVDb2xvck1hdHJpeCBpbj0iYmx1ck91dCIgcmVzdWx0PSJibHVyT3V0MiIgdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIC40IDAiLz48ZmVPZmZzZXQgZHg9IjQuMCIgZHk9IjQuMCIgaW49ImJsdXJPdXQyIiByZXN1bHQ9ImJsdXJPdXQzIi8+PGZlQmxlbmQgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iYmx1ck91dDMiIG1vZGU9Im5vcm1hbCIvPjwvZmlsdGVyPjwvZGVmcz48Zz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxODciIHg9IjIxMi41IiB5PSIyNi43MDgiPm1hc3RlcuWQr+WKqGRyaXZlcuiKgueCuTwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNS4wLDUuMDsiIHgxPSIxMTAiIHgyPSIxMTAiIHkxPSI3My4yNSIgeTI9IjYxMS4yNDIyIi8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IHN0cm9rZS1kYXNoYXJyYXk6IDUuMCw1LjA7IiB4MT0iMjcwIiB4Mj0iMjcwIiB5MT0iNzMuMjUiIHkyPSI2MTEuMjQyMiIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjM4NCIgeDI9IjM4NCIgeTE9IjczLjI1IiB5Mj0iNjExLjI0MjIiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNS4wLDUuMDsiIHgxPSI1MTAiIHgyPSI1MTAiIHkxPSI3My4yNSIgeTI9IjYxMS4yNDIyIi8+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjYxIiB4PSI3OCIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjQ3IiB4PSI4NSIgeT0iNTcuOTQ4MiI+TWFzdGVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI2MSIgeD0iNzgiIHk9IjYxMC4yNDIyIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDciIHg9Ijg1IiB5PSI2MzAuMjM3MyI+TWFzdGVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI2MyIgeD0iMjM3IiB5PSIzNy45NTMxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDkiIHg9IjI0NCIgeT0iNTcuOTQ4MiI+V29ya2VyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI2MyIgeD0iMjM3IiB5PSI2MTAuMjQyMiIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjQ5IiB4PSIyNDQiIHk9IjYzMC4yMzczIj5Xb3JrZXI8L3RleHQ+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjEwNSIgeD0iMzMwIiB5PSIzNy45NTMxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iOTEiIHg9IjMzNyIgeT0iNTcuOTQ4MiI+RHJpdmVyUnVubmVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMDUiIHg9IjMzMCIgeT0iNjEwLjI0MjIiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI5MSIgeD0iMzM3IiB5PSI2MzAuMjM3MyI+RHJpdmVyUnVubmVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMTgiIHg9IjQ0OSIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEwNCIgeD0iNDU2IiB5PSI1Ny45NDgyIj5Qcm9jZXNzQnVpbGRlcjwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjY1ZjJ0MGt5bzF4aCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTE4IiB4PSI0NDkiIHk9IjYxMC4yNDIyIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTA0IiB4PSI0NTYiIHk9IjYzMC4yMzczIj5Qcm9jZXNzQnVpbGRlcjwvdGV4dD48cGF0aCBkPSJNOCw4OC4yNSBMOCwxMjguMjUgTDIwOSwxMjguMjUgTDIwOSw5OC4yNSBMMTk5LDg4LjI1IEw4LDg4LjI1ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTk5LDg4LjI1IEwxOTksOTguMjUgTDIwOSw5OC4yNSBMMTk5LDg4LjI1ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTA1IiB4PSIxNCIgeT0iMTA1LjMxNjkiPnJlY2VpdmVBbmRSZXBseTwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxODAiIHg9IjE0IiB5PSIxMjAuNDQ5NyI+KGNhc2UgUmVxdXNldFN1Ym1pdERyaXZlcik8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTEwLjUiIHgyPSIxNTIuNSIgeTE9IjE1OC42NDg0IiB5Mj0iMTU4LjY0ODQiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSIxNTIuNSIgeDI9IjE1Mi41IiB5MT0iMTU4LjY0ODQiIHkyPSIxNzEuNjQ4NCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjExMS41IiB4Mj0iMTUyLjUiIHkxPSIxNzEuNjQ4NCIgeTI9IjE3MS42NDg0Ii8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIxMjEuNSwxNjcuNjQ4NCwxMTEuNSwxNzEuNjQ4NCwxMjEuNSwxNzUuNjQ4NCwxMTcuNSwxNzEuNjQ4NCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjExNy41IiB5PSIxNTMuNTgyNSI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik02OSwxODQuNjQ4NCBMNjksMjA5LjY0ODQgTDE0NywyMDkuNjQ4NCBMMTQ3LDE5NC42NDg0IEwxMzcsMTg0LjY0ODQgTDY5LDE4NC42NDg0ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTM3LDE4NC42NDg0IEwxMzcsMTk0LjY0ODQgTDE0NywxOTQuNjQ4NCBMMTM3LDE4NC42NDg0ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNTciIHg9Ijc1IiB5PSIyMDEuNzE1MyI+c2NoZWR1bGU8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTEwLjUiIHgyPSIxNTIuNSIgeTE9IjIzOS45MTQxIiB5Mj0iMjM5LjkxNDEiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSIxNTIuNSIgeDI9IjE1Mi41IiB5MT0iMjM5LjkxNDEiIHkyPSIyNTIuOTE0MSIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjExMS41IiB4Mj0iMTUyLjUiIHkxPSIyNTIuOTE0MSIgeTI9IjI1Mi45MTQxIi8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIxMjEuNSwyNDguOTE0MSwxMTEuNSwyNTIuOTE0MSwxMjEuNSwyNTYuOTE0MSwxMTcuNSwyNTIuOTE0MSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjExNy41IiB5PSIyMzQuODQ4MSI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik01OCwyNjUuOTE0MSBMNTgsMjkwLjkxNDEgTDE1OSwyOTAuOTE0MSBMMTU5LDI3NS45MTQxIEwxNDksMjY1LjkxNDEgTDU4LDI2NS45MTQxICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTQ5LDI2NS45MTQxIEwxNDksMjc1LjkxNDEgTDE1OSwyNzUuOTE0MSBMMTQ5LDI2NS45MTQxICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODAiIHg9IjY0IiB5PSIyODIuOTgxIj5sYXVuY2hEcml2ZXI8L3RleHQ+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIyNTguNSwzMTcuMTc5NywyNjguNSwzMjEuMTc5NywyNTguNSwzMjUuMTc5NywyNjIuNSwzMjEuMTc5NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTEwLjUiIHgyPSIyNjQuNSIgeTE9IjMyMS4xNzk3IiB5Mj0iMzIxLjE3OTciLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMzYiIHg9IjExNy41IiB5PSIzMTYuMTEzOCI+5Y+R6YCBTGF1bmNoRHJpdmVy5raI5oGvPC90ZXh0PjxwYXRoIGQ9Ik0xOTQsMzM0LjE3OTcgTDE5NCwzNzQuMTc5NyBMMzQzLDM3NC4xNzk3IEwzNDMsMzQ0LjE3OTcgTDMzMywzMzQuMTc5NyBMMTk0LDMzNC4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMzMzLDMzNC4xNzk3IEwzMzMsMzQ0LjE3OTcgTDM0MywzNDQuMTc5NyBMMzMzLDMzNC4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDYiIHg9IjIwMCIgeT0iMzUxLjI0NjYiPnJlY2VpdmU8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTI4IiB4PSIyMDAiIHk9IjM2Ni4zNzk0Ij4oY2FzZSBMYXVuY2hEcml2ZXIpPC90ZXh0Pjxwb2x5Z29uIGZpbGw9IiNBODAwMzYiIHBvaW50cz0iMzcyLjUsNDAwLjU3ODEsMzgyLjUsNDA0LjU3ODEsMzcyLjUsNDA4LjU3ODEsMzc2LjUsNDA0LjU3ODEiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjI3MC41IiB4Mj0iMzc4LjUiIHkxPSI0MDQuNTc4MSIgeTI9IjQwNC41NzgxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iOTAiIHg9IjI3Ny41IiB5PSIzOTkuNTEyMiI+5ZCv5YqoRHJpdmVy5ZG95LukPC90ZXh0PjxwYXRoIGQ9Ik0zNTcsNDE3LjU3ODEgTDM1Nyw0NDIuNTc4MSBMNDA4LDQ0Mi41NzgxIEw0MDgsNDI3LjU3ODEgTDM5OCw0MTcuNTc4MSBMMzU3LDQxNy41NzgxICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMzk4LDQxNy41NzgxIEwzOTgsNDI3LjU3ODEgTDQwOCw0MjcuNTc4MSBMMzk4LDQxNy41NzgxICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMzAiIHg9IjM2MyIgeT0iNDM0LjY0NSI+c3RhcnQ8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMzg0LjUiIHgyPSI0MjYuNSIgeTE9IjQ3Mi44NDM4IiB5Mj0iNDcyLjg0MzgiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSI0MjYuNSIgeDI9IjQyNi41IiB5MT0iNDcyLjg0MzgiIHkyPSI0ODUuODQzOCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjM4NS41IiB4Mj0iNDI2LjUiIHkxPSI0ODUuODQzOCIgeTI9IjQ4NS44NDM4Ii8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIzOTUuNSw0ODEuODQzOCwzODUuNSw0ODUuODQzOCwzOTUuNSw0ODkuODQzOCwzOTEuNSw0ODUuODQzOCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjM5MS41IiB5PSI0NjcuNzc3OCI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik0zMzIsNDk4Ljg0MzggTDMzMiw1MjMuODQzOCBMNDMzLDUyMy44NDM4IEw0MzMsNTA4Ljg0MzggTDQyMyw0OTguODQzOCBMMzMyLDQ5OC44NDM4ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNDIzLDQ5OC44NDM4IEw0MjMsNTA4Ljg0MzggTDQzMyw1MDguODQzOCBMNDIzLDQ5OC44NDM4ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODAiIHg9IjMzOCIgeT0iNTE1LjkxMDYiPmxhdW5jaERyaXZlcjwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjQ5OCw1NTAuMTA5NCw1MDgsNTU0LjEwOTQsNDk4LDU1OC4xMDk0LDUwMiw1NTQuMTA5NCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMzg0LjUiIHgyPSI1MDQiIHkxPSI1NTQuMTA5NCIgeTI9IjU1NC4xMDk0Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjM5MS41IiB5PSI1NDkuMDQzNSI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik00MTUsNTY3LjEwOTQgTDQxNSw1OTIuMTA5NCBMNjAwLDU5Mi4xMDk0IEw2MDAsNTc3LjEwOTQgTDU5MCw1NjcuMTA5NCBMNDE1LDU2Ny4xMDk0ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNTkwLDU2Ny4xMDk0IEw1OTAsNTc3LjEwOTQgTDYwMCw1NzcuMTA5NCBMNTkwLDU2Ny4xMDk0ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTY0IiB4PSI0MjEiIHk9IjU4NC4xNzYzIj7mi7zoo4UgamF2YSDlkK/liqjlkb3ku6TvvIzlubbmiafooYw8L3RleHQ+PCEtLU1ENT1bMmJkZTYzZTUxNTdiMGNlYmJlOGQ3NmEwNGE4ZjFjY2NdCkBzdGFydHVtbA0KdGl0bGU6bWFzdGVy5ZCv5YqoZHJpdmVy6IqC54K5DQoNCm5vdGUgb3ZlciBNYXN0ZXI6IHJlY2VpdmVBbmRSZXBseVxuKGNhc2UgUmVxdXNldFN1Ym1pdERyaXZlcikNCk1hc3RlciAtPiBNYXN0ZXI6IOiwg+eUqA0Kbm90ZSBvdmVyIE1hc3Rlcjogc2NoZWR1bGUNCk1hc3RlciAtPiBNYXN0ZXI6IOiwg+eUqA0Kbm90ZSBvdmVyIE1hc3RlcjogbGF1bmNoRHJpdmVyDQpNYXN0ZXIgLT4gV29ya2VyOiDlj5HpgIFMYXVuY2hEcml2ZXLmtojmga8NCm5vdGUgb3ZlciBXb3JrZXI6IHJlY2VpdmVcbihjYXNlIExhdW5jaERyaXZlcikNCldvcmtlciAtPiBEcml2ZXJSdW5uZXI6IOWQr+WKqERyaXZlcuWRveS7pA0Kbm90ZSBvdmVyIERyaXZlclJ1bm5lcjogc3RhcnQNCkRyaXZlclJ1bm5lciAtPiBEcml2ZXJSdW5uZXI66LCD55SoIA0Kbm90ZSBvdmVyIERyaXZlclJ1bm5lcjogbGF1bmNoRHJpdmVyDQpEcml2ZXJSdW5uZXIgLT4gUHJvY2Vzc0J1aWxkZXI6IOiwg+eUqA0Kbm90ZSBvdmVyIFByb2Nlc3NCdWlsZGVyOiDmi7zoo4UgamF2YSDlkK/liqjlkb3ku6TvvIzlubbmiafooYwNCkBlbmR1bWwNCgpQbGFudFVNTCB2ZXJzaW9uIDEuMjAyMC4wMmJldGE1KFVua25vd24gY29tcGlsZSB0aW1lKQooR1BMIHNvdXJjZSBkaXN0cmlidXRpb24pCkphdmEgUnVudGltZTogSmF2YShUTSkgU0UgUnVudGltZSBFbnZpcm9ubWVudApKVk06IEphdmEgSG90U3BvdChUTSkgNjQtQml0IFNlcnZlciBWTQpKYXZhIFZlcnNpb246IDEuNy4wXzI1LWIxNQpPcGVyYXRpbmcgU3lzdGVtOiBMaW51eApEZWZhdWx0IEVuY29kaW5nOiBVVEYtOApMYW5ndWFnZTogZW4KQ291bnRyeTogVVMKLS0+PC9nPjwvc3ZnPg==">
+
+<link rel="canonical" href="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/2_%E5%90%AF%E5%8A%A8driver/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>spark2-启动Driver | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/2_%E5%90%AF%E5%8A%A8driver/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          spark2-启动Driver
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-04 23:22:02" itemprop="dateCreated datePublished" datetime="2018-06-04T23:22:02+08:00">2018-06-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/" itemprop="url" rel="index">
+                    <span itemprop="name">spark</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index">
+                    <span itemprop="name">源码解析</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/2_%E5%90%AF%E5%8A%A8driver/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/06/04/spark/Spark执行逻辑/2_启动driver/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="启动Driver"><a href="#启动Driver" class="headerlink" title="启动Driver"></a>启动Driver</h1><p>前面介绍了从命令行提交任务开始，至Master注册Driver的流程。接下来是 Master将注册的Driver信息发送到Worker，在Worker节点启动Driver。</p>
+<h2 id="一、Master发送LaunchDriver消息"><a href="#一、Master发送LaunchDriver消息" class="headerlink" title="一、Master发送LaunchDriver消息"></a>一、Master发送LaunchDriver消息</h2><p>上一节讲到 Master(<code>org.apache.spark.deploy.master.Master</code>) 接收 ClientEndPoint发送的注册Driver的信息。接下来调用schedule()方法，启动Driver和Executor</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">receiveAndReply</span></span>(context: <span class="type">RpcCallContext</span>): <span class="type">PartialFunction</span>[<span class="type">Any</span>, <span class="type">Unit</span>] = &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="type">RequestSubmitDriver</span>(description) =&gt;</span><br><span class="line">      <span class="keyword">if</span> (state != <span class="type">RecoveryState</span>.<span class="type">ALIVE</span>) &#123;</span><br><span class="line">        <span class="keyword">val</span> msg = <span class="string">s"<span class="subst">$&#123;Utils.BACKUP_STANDALONE_MASTER_PREFIX&#125;</span>: <span class="subst">$state</span>. "</span> +</span><br><span class="line">          <span class="string">"Can only accept driver submissions in ALIVE state."</span></span><br><span class="line">        context.reply(<span class="type">SubmitDriverResponse</span>(self, <span class="literal">false</span>, <span class="type">None</span>, msg))</span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        logInfo(<span class="string">"Driver submitted "</span> + description.command.mainClass)</span><br><span class="line">        <span class="keyword">val</span> driver = createDriver(description)</span><br><span class="line">        <span class="comment">// 持久化Driver 用于master recovery 时恢复Driver</span></span><br><span class="line">        persistenceEngine.addDriver(driver)</span><br><span class="line">        <span class="comment">// 注册 Driver</span></span><br><span class="line">        waitingDrivers += driver</span><br><span class="line">        drivers.add(driver)</span><br><span class="line">        <span class="comment">// launch Driver 和 Executor</span></span><br><span class="line">        schedule()</span><br><span class="line">        context.reply(<span class="type">SubmitDriverResponse</span>(self, <span class="literal">true</span>, <span class="type">Some</span>(driver.id),</span><br><span class="line">          <span class="string">s"Driver successfully submitted as <span class="subst">$&#123;driver.id&#125;</span>"</span>))</span><br><span class="line">      &#125;</span><br><span class="line">    <span class="comment">//忽略</span></span><br><span class="line">    ...</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>schedule() 方法</strong></p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">schedule</span></span>(): <span class="type">Unit</span> = &#123;</span><br><span class="line">  <span class="keyword">if</span> (state != <span class="type">RecoveryState</span>.<span class="type">ALIVE</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span></span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 打乱Worker顺序，避免Driver过度集中</span></span><br><span class="line">  <span class="keyword">val</span> shuffledAliveWorkers = <span class="type">Random</span>.shuffle(workers.toSeq.filter(_.state == <span class="type">WorkerState</span>.<span class="type">ALIVE</span>))</span><br><span class="line">  <span class="keyword">val</span> numWorkersAlive = shuffledAliveWorkers.size</span><br><span class="line">  <span class="keyword">var</span> curPos = <span class="number">0</span></span><br><span class="line">  <span class="comment">// 变量Worker如果Work节点剩余内存和core足够，启动Driver</span></span><br><span class="line">  <span class="keyword">for</span> (driver &lt;- waitingDrivers.toList) &#123; <span class="comment">// iterate over a copy of waitingDrivers</span></span><br><span class="line">    <span class="keyword">var</span> launched = <span class="literal">false</span></span><br><span class="line">    <span class="keyword">var</span> numWorkersVisited = <span class="number">0</span></span><br><span class="line">    <span class="keyword">while</span> (numWorkersVisited &lt; numWorkersAlive &amp;&amp; !launched) &#123;</span><br><span class="line">      <span class="keyword">val</span> worker = shuffledAliveWorkers(curPos)</span><br><span class="line">      numWorkersVisited += <span class="number">1</span></span><br><span class="line">      <span class="keyword">if</span> (worker.memoryFree &gt;= driver.desc.mem &amp;&amp; worker.coresFree &gt;= driver.desc.cores) &#123;</span><br><span class="line">        <span class="comment">//发送LauncherDriver消息给Worker节点  </span></span><br><span class="line">        launchDriver(worker, driver)</span><br><span class="line">        waitingDrivers -= driver</span><br><span class="line">        launched = <span class="literal">true</span></span><br><span class="line">      &#125;</span><br><span class="line">      curPos = (curPos + <span class="number">1</span>) % numWorkersAlive</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="comment">// 在work节点启动Executor，该内容在《spark4-启动Executor》讲解</span></span><br><span class="line">  startExecutorsOnWorkers()</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>schedule中调用<strong>launchDriver(worker, driver)</strong>方法</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">launchDriver</span></span>(worker: <span class="type">WorkerInfo</span>, driver: <span class="type">DriverInfo</span>) &#123;</span><br><span class="line">    logInfo(<span class="string">"Launching driver "</span> + driver.id + <span class="string">" on worker "</span> + worker.id)</span><br><span class="line">    worker.addDriver(driver)</span><br><span class="line">    driver.worker = <span class="type">Some</span>(worker)</span><br><span class="line">    <span class="comment">// 调用RpcEndPointRef，发送LauncherDriver消息给Worker节点</span></span><br><span class="line">    <span class="comment">// 此Work是 schedule 随机选择的</span></span><br><span class="line">    worker.endpoint.send(<span class="type">LaunchDriver</span>(driver.id, driver.desc))</span><br><span class="line">    driver.state = <span class="type">DriverState</span>.<span class="type">RUNNING</span></span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、Worker节点启动Driver"><a href="#二、Worker节点启动Driver" class="headerlink" title="二、Worker节点启动Driver"></a>二、Worker节点启动Driver</h2><p>Worker(<code>org.apache.spark.deploy.worker.Worker</code>)的receive方法接收并处理<strong>LaunchDriver</strong>信息，如下 </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">receive</span></span>: <span class="type">PartialFunction</span>[<span class="type">Any</span>, <span class="type">Unit</span>] = synchronized &#123;</span><br><span class="line">   <span class="comment">// 忽略</span></span><br><span class="line">   <span class="comment">//...</span></span><br><span class="line">   <span class="keyword">case</span> <span class="type">LaunchDriver</span>(driverId, driverDesc) =&gt;</span><br><span class="line">     logInfo(<span class="string">s"Asked to launch driver <span class="subst">$driverId</span>"</span>)</span><br><span class="line">     <span class="comment">//封装Driver信息为DriverRunner</span></span><br><span class="line">     <span class="keyword">val</span> driver = <span class="keyword">new</span> <span class="type">DriverRunner</span>(</span><br><span class="line">       conf,</span><br><span class="line">       driverId,</span><br><span class="line">       workDir,</span><br><span class="line">       sparkHome,</span><br><span class="line">       driverDesc.copy(command = <span class="type">Worker</span>.maybeUpdateSSLSettings(driverDesc.command, conf)),</span><br><span class="line">       self,</span><br><span class="line">       workerUri,</span><br><span class="line">       securityMgr)</span><br><span class="line">     drivers(driverId) = driver</span><br><span class="line">     <span class="comment">//启动Driver</span></span><br><span class="line">     driver.start()</span><br><span class="line"></span><br><span class="line">     coresUsed += driverDesc.cores</span><br><span class="line">     memoryUsed += driverDesc.mem</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<p>查看DriverRunner的start方法</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/** 启动一个线程，去运行 这个driver. */</span></span><br><span class="line"> <span class="keyword">private</span>[worker] <span class="function"><span class="keyword">def</span> <span class="title">start</span></span>() = &#123;</span><br><span class="line">   <span class="keyword">new</span> <span class="type">Thread</span>(<span class="string">"DriverRunner for "</span> + driverId) &#123;</span><br><span class="line">     <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>() &#123;</span><br><span class="line">       <span class="keyword">var</span> shutdownHook: <span class="type">AnyRef</span> = <span class="literal">null</span></span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">         shutdownHook = <span class="type">ShutdownHookManager</span>.addShutdownHook &#123; () =&gt;</span><br><span class="line">           logInfo(<span class="string">s"Worker shutting down, killing driver <span class="subst">$driverId</span>"</span>)</span><br><span class="line">           kill()</span><br><span class="line">         &#125;</span><br><span class="line"></span><br><span class="line">         <span class="comment">// 从其他环境中下载driver的jars 并在本地运行 driver</span></span><br><span class="line">         <span class="keyword">val</span> exitCode = prepareAndRunDriver()</span><br><span class="line"></span><br><span class="line">         <span class="comment">// 根据exitCode，设置 finalState </span></span><br><span class="line">         finalState = <span class="keyword">if</span> (exitCode == <span class="number">0</span>) &#123;</span><br><span class="line">           <span class="type">Some</span>(<span class="type">DriverState</span>.<span class="type">FINISHED</span>)</span><br><span class="line">         &#125; <span class="keyword">else</span> <span class="keyword">if</span> (killed) &#123;</span><br><span class="line">           <span class="type">Some</span>(<span class="type">DriverState</span>.<span class="type">KILLED</span>)</span><br><span class="line">         &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">           <span class="type">Some</span>(<span class="type">DriverState</span>.<span class="type">FAILED</span>)</span><br><span class="line">         &#125;</span><br><span class="line">       &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">         <span class="keyword">case</span> e: <span class="type">Exception</span> =&gt;</span><br><span class="line">           kill()</span><br><span class="line">           finalState = <span class="type">Some</span>(<span class="type">DriverState</span>.<span class="type">ERROR</span>)</span><br><span class="line">           finalException = <span class="type">Some</span>(e)</span><br><span class="line">       &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">         <span class="keyword">if</span> (shutdownHook != <span class="literal">null</span>) &#123;</span><br><span class="line">           <span class="type">ShutdownHookManager</span>.removeShutdownHook(shutdownHook)</span><br><span class="line">         &#125;</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">// 一旦Driver运行完毕, </span></span><br><span class="line">       <span class="comment">// work会 执行org.apache.spark.deploy.worker.Worker中的 handleDriverStateChanged()</span></span><br><span class="line">       <span class="comment">//  </span></span><br><span class="line">       <span class="comment">// - work会向Master发送消息driverStateChanged</span></span><br><span class="line">       <span class="comment">// - 释放相关资源</span></span><br><span class="line">       worker.send(<span class="type">DriverStateChanged</span>(driverId, finalState.get, finalException))</span><br><span class="line">     &#125;</span><br><span class="line">   &#125;.start()</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[worker] <span class="function"><span class="keyword">def</span> <span class="title">prepareAndRunDriver</span></span>(): <span class="type">Int</span> = &#123;</span><br><span class="line">  <span class="comment">// 下载Driver jar 到Worker本地，即本示例中的 /path/to/examples.jar</span></span><br><span class="line">  <span class="keyword">val</span> driverDir = createWorkingDirectory()</span><br><span class="line">  <span class="keyword">val</span> localJarFilename = downloadUserJar(driverDir)</span><br><span class="line">  <span class="comment">// 替换参数中的workerUrl和localJarFilename</span></span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">substituteVariables</span></span>(argument: <span class="type">String</span>): <span class="type">String</span> = argument <span class="keyword">match</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"&#123;&#123;WORKER_URL&#125;&#125;"</span> =&gt; workerUrl</span><br><span class="line">    <span class="keyword">case</span> <span class="string">"&#123;&#123;USER_JAR&#125;&#125;"</span> =&gt; localJarFilename</span><br><span class="line">    <span class="keyword">case</span> other =&gt; other</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 将Driver中的参数组织为Linux命令</span></span><br><span class="line">  <span class="comment">// 通过java执行组织好的命令</span></span><br><span class="line">  <span class="keyword">val</span> builder = <span class="type">CommandUtils</span>.buildProcessBuilder(driverDesc.command, securityManager,</span><br><span class="line">    driverDesc.mem, sparkHome.getAbsolutePath, substituteVariables)</span><br><span class="line">  <span class="comment">// 这一步就是启动Driver，即执行 /parh/to/examples.jar中的main方法.</span></span><br><span class="line">  runDriver(builder, driverDir, driverDesc.supervise)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>执行步骤如上图注释，最终使用Java中的<strong>java.lang.ProcessBuilder</strong>类执行Linux命令的方式启动Driver，Linux命令大致如下 </p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">java -cp <span class="variable">$SPARK_ASSEMBLY_JAR</span> \</span><br><span class="line">  -Xms1024M -Xmx1024M -Dakka.loglevel=WARNING \</span><br><span class="line">  -Dspark.executor.memory=512m \</span><br><span class="line">  -Dspark.driver.supervise=<span class="literal">false</span> \</span><br><span class="line">  -Dspark.submit.deployMode=cluster \</span><br><span class="line">  -Dspark.app.name=org.apache.spark.examples.SparkPi \</span><br><span class="line">  -Dspark.rpc.askTimeout=10 \</span><br><span class="line">  -Dspark.master=<span class="variable">$MasterUrl</span> -XX:MaxPermSize=256m \</span><br><span class="line">  org.apache.spark.deploy.worker.DriverWrapper \</span><br><span class="line">  <span class="variable">$WorkerUrl</span> \</span><br><span class="line">  /path/to/example.jar \</span><br><span class="line">  org.apache.spark.examples.SparkPi \</span><br><span class="line">  1000</span><br></pre></td></tr></table></figure>
+
+<p>到这里，通过spark-submit上传的<strong>/path/to/examples.jar</strong>，通过<strong>java -cp</strong>命令在Worker节点开始运行了，即Launch Driver，所谓的Driver就是<strong>/path/to/examples.jar</strong>。<br>最后，将Driver的执行状态返回给Master。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>介绍了Master将Driver发送到Worker，及在Worker节点启动Driver的流程，如下 </p>
+<img src='data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBjb250ZW50U2NyaXB0VHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCIgY29udGVudFN0eWxlVHlwZT0idGV4dC9jc3MiIGhlaWdodD0iNjUxcHgiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiIHN0eWxlPSJ3aWR0aDo2MTJweDtoZWlnaHQ6NjUxcHg7IiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA2MTIgNjUxIiB3aWR0aD0iNjEycHgiIHpvb21BbmRQYW49Im1hZ25pZnkiPjxkZWZzPjxmaWx0ZXIgaGVpZ2h0PSIzMDAlIiBpZD0iZjY1ZjJ0MGt5bzF4aCIgd2lkdGg9IjMwMCUiIHg9Ii0xIiB5PSItMSI+PGZlR2F1c3NpYW5CbHVyIHJlc3VsdD0iYmx1ck91dCIgc3RkRGV2aWF0aW9uPSIyLjAiLz48ZmVDb2xvck1hdHJpeCBpbj0iYmx1ck91dCIgcmVzdWx0PSJibHVyT3V0MiIgdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIC40IDAiLz48ZmVPZmZzZXQgZHg9IjQuMCIgZHk9IjQuMCIgaW49ImJsdXJPdXQyIiByZXN1bHQ9ImJsdXJPdXQzIi8+PGZlQmxlbmQgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iYmx1ck91dDMiIG1vZGU9Im5vcm1hbCIvPjwvZmlsdGVyPjwvZGVmcz48Zz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxODciIHg9IjIxMi41IiB5PSIyNi43MDgiPm1hc3RlcuWQr+WKqGRyaXZlcuiKgueCuTwvdGV4dD48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNS4wLDUuMDsiIHgxPSIxMTAiIHgyPSIxMTAiIHkxPSI3My4yNSIgeTI9IjYxMS4yNDIyIi8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IHN0cm9rZS1kYXNoYXJyYXk6IDUuMCw1LjA7IiB4MT0iMjcwIiB4Mj0iMjcwIiB5MT0iNzMuMjUiIHkyPSI2MTEuMjQyMiIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjM4NCIgeDI9IjM4NCIgeTE9IjczLjI1IiB5Mj0iNjExLjI0MjIiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNS4wLDUuMDsiIHgxPSI1MTAiIHgyPSI1MTAiIHkxPSI3My4yNSIgeTI9IjYxMS4yNDIyIi8+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjYxIiB4PSI3OCIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjQ3IiB4PSI4NSIgeT0iNTcuOTQ4MiI+TWFzdGVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI2MSIgeD0iNzgiIHk9IjYxMC4yNDIyIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDciIHg9Ijg1IiB5PSI2MzAuMjM3MyI+TWFzdGVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI2MyIgeD0iMjM3IiB5PSIzNy45NTMxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDkiIHg9IjI0NCIgeT0iNTcuOTQ4MiI+V29ya2VyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI2MyIgeD0iMjM3IiB5PSI2MTAuMjQyMiIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjQ5IiB4PSIyNDQiIHk9IjYzMC4yMzczIj5Xb3JrZXI8L3RleHQ+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjEwNSIgeD0iMzMwIiB5PSIzNy45NTMxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iOTEiIHg9IjMzNyIgeT0iNTcuOTQ4MiI+RHJpdmVyUnVubmVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMDUiIHg9IjMzMCIgeT0iNjEwLjI0MjIiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSI5MSIgeD0iMzM3IiB5PSI2MzAuMjM3MyI+RHJpdmVyUnVubmVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNjVmMnQwa3lvMXhoKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMTgiIHg9IjQ0OSIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEwNCIgeD0iNDU2IiB5PSI1Ny45NDgyIj5Qcm9jZXNzQnVpbGRlcjwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjY1ZjJ0MGt5bzF4aCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTE4IiB4PSI0NDkiIHk9IjYxMC4yNDIyIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTA0IiB4PSI0NTYiIHk9IjYzMC4yMzczIj5Qcm9jZXNzQnVpbGRlcjwvdGV4dD48cGF0aCBkPSJNOCw4OC4yNSBMOCwxMjguMjUgTDIwOSwxMjguMjUgTDIwOSw5OC4yNSBMMTk5LDg4LjI1IEw4LDg4LjI1ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTk5LDg4LjI1IEwxOTksOTguMjUgTDIwOSw5OC4yNSBMMTk5LDg4LjI1ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTA1IiB4PSIxNCIgeT0iMTA1LjMxNjkiPnJlY2VpdmVBbmRSZXBseTwvdGV4dD48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxODAiIHg9IjE0IiB5PSIxMjAuNDQ5NyI+KGNhc2UgUmVxdXNldFN1Ym1pdERyaXZlcik8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTEwLjUiIHgyPSIxNTIuNSIgeTE9IjE1OC42NDg0IiB5Mj0iMTU4LjY0ODQiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSIxNTIuNSIgeDI9IjE1Mi41IiB5MT0iMTU4LjY0ODQiIHkyPSIxNzEuNjQ4NCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjExMS41IiB4Mj0iMTUyLjUiIHkxPSIxNzEuNjQ4NCIgeTI9IjE3MS42NDg0Ii8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIxMjEuNSwxNjcuNjQ4NCwxMTEuNSwxNzEuNjQ4NCwxMjEuNSwxNzUuNjQ4NCwxMTcuNSwxNzEuNjQ4NCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjExNy41IiB5PSIxNTMuNTgyNSI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik02OSwxODQuNjQ4NCBMNjksMjA5LjY0ODQgTDE0NywyMDkuNjQ4NCBMMTQ3LDE5NC42NDg0IEwxMzcsMTg0LjY0ODQgTDY5LDE4NC42NDg0ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTM3LDE4NC42NDg0IEwxMzcsMTk0LjY0ODQgTDE0NywxOTQuNjQ4NCBMMTM3LDE4NC42NDg0ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNTciIHg9Ijc1IiB5PSIyMDEuNzE1MyI+c2NoZWR1bGU8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTEwLjUiIHgyPSIxNTIuNSIgeTE9IjIzOS45MTQxIiB5Mj0iMjM5LjkxNDEiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSIxNTIuNSIgeDI9IjE1Mi41IiB5MT0iMjM5LjkxNDEiIHkyPSIyNTIuOTE0MSIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjExMS41IiB4Mj0iMTUyLjUiIHkxPSIyNTIuOTE0MSIgeTI9IjI1Mi45MTQxIi8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIxMjEuNSwyNDguOTE0MSwxMTEuNSwyNTIuOTE0MSwxMjEuNSwyNTYuOTE0MSwxMTcuNSwyNTIuOTE0MSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjExNy41IiB5PSIyMzQuODQ4MSI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik01OCwyNjUuOTE0MSBMNTgsMjkwLjkxNDEgTDE1OSwyOTAuOTE0MSBMMTU5LDI3NS45MTQxIEwxNDksMjY1LjkxNDEgTDU4LDI2NS45MTQxICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMTQ5LDI2NS45MTQxIEwxNDksMjc1LjkxNDEgTDE1OSwyNzUuOTE0MSBMMTQ5LDI2NS45MTQxICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODAiIHg9IjY0IiB5PSIyODIuOTgxIj5sYXVuY2hEcml2ZXI8L3RleHQ+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIyNTguNSwzMTcuMTc5NywyNjguNSwzMjEuMTc5NywyNTguNSwzMjUuMTc5NywyNjIuNSwzMjEuMTc5NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMTEwLjUiIHgyPSIyNjQuNSIgeTE9IjMyMS4xNzk3IiB5Mj0iMzIxLjE3OTciLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMzYiIHg9IjExNy41IiB5PSIzMTYuMTEzOCI+5Y+R6YCBTGF1bmNoRHJpdmVy5raI5oGvPC90ZXh0PjxwYXRoIGQ9Ik0xOTQsMzM0LjE3OTcgTDE5NCwzNzQuMTc5NyBMMzQzLDM3NC4xNzk3IEwzNDMsMzQ0LjE3OTcgTDMzMywzMzQuMTc5NyBMMTk0LDMzNC4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMzMzLDMzNC4xNzk3IEwzMzMsMzQ0LjE3OTcgTDM0MywzNDQuMTc5NyBMMzMzLDMzNC4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iNDYiIHg9IjIwMCIgeT0iMzUxLjI0NjYiPnJlY2VpdmU8L3RleHQ+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTI4IiB4PSIyMDAiIHk9IjM2Ni4zNzk0Ij4oY2FzZSBMYXVuY2hEcml2ZXIpPC90ZXh0Pjxwb2x5Z29uIGZpbGw9IiNBODAwMzYiIHBvaW50cz0iMzcyLjUsNDAwLjU3ODEsMzgyLjUsNDA0LjU3ODEsMzcyLjUsNDA4LjU3ODEsMzc2LjUsNDA0LjU3ODEiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjI3MC41IiB4Mj0iMzc4LjUiIHkxPSI0MDQuNTc4MSIgeTI9IjQwNC41NzgxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iOTAiIHg9IjI3Ny41IiB5PSIzOTkuNTEyMiI+5ZCv5YqoRHJpdmVy5ZG95LukPC90ZXh0PjxwYXRoIGQ9Ik0zNTcsNDE3LjU3ODEgTDM1Nyw0NDIuNTc4MSBMNDA4LDQ0Mi41NzgxIEw0MDgsNDI3LjU3ODEgTDM5OCw0MTcuNTc4MSBMMzU3LDQxNy41NzgxICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNMzk4LDQxNy41NzgxIEwzOTgsNDI3LjU3ODEgTDQwOCw0MjcuNTc4MSBMMzk4LDQxNy41NzgxICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMzAiIHg9IjM2MyIgeT0iNDM0LjY0NSI+c3RhcnQ8L3RleHQ+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMzg0LjUiIHgyPSI0MjYuNSIgeTE9IjQ3Mi44NDM4IiB5Mj0iNDcyLjg0MzgiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiIHgxPSI0MjYuNSIgeDI9IjQyNi41IiB5MT0iNDcyLjg0MzgiIHkyPSI0ODUuODQzOCIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjM4NS41IiB4Mj0iNDI2LjUiIHkxPSI0ODUuODQzOCIgeTI9IjQ4NS44NDM4Ii8+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIzOTUuNSw0ODEuODQzOCwzODUuNSw0ODUuODQzOCwzOTUuNSw0ODkuODQzOCwzOTEuNSw0ODUuODQzOCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjM5MS41IiB5PSI0NjcuNzc3OCI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik0zMzIsNDk4Ljg0MzggTDMzMiw1MjMuODQzOCBMNDMzLDUyMy44NDM4IEw0MzMsNTA4Ljg0MzggTDQyMyw0OTguODQzOCBMMzMyLDQ5OC44NDM4ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNDIzLDQ5OC44NDM4IEw0MjMsNTA4Ljg0MzggTDQzMyw1MDguODQzOCBMNDIzLDQ5OC44NDM4ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODAiIHg9IjMzOCIgeT0iNTE1LjkxMDYiPmxhdW5jaERyaXZlcjwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjQ5OCw1NTAuMTA5NCw1MDgsNTU0LjEwOTQsNDk4LDU1OC4xMDk0LDUwMiw1NTQuMTA5NCIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMzg0LjUiIHgyPSI1MDQiIHkxPSI1NTQuMTA5NCIgeTI9IjU1NC4xMDk0Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjM5MS41IiB5PSI1NDkuMDQzNSI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik00MTUsNTY3LjEwOTQgTDQxNSw1OTIuMTA5NCBMNjAwLDU5Mi4xMDk0IEw2MDAsNTc3LjEwOTQgTDU5MCw1NjcuMTA5NCBMNDE1LDU2Ny4xMDk0ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2NWYydDBreW8xeGgpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNTkwLDU2Ny4xMDk0IEw1OTAsNTc3LjEwOTQgTDYwMCw1NzcuMTA5NCBMNTkwLDU2Ny4xMDk0ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTY0IiB4PSI0MjEiIHk9IjU4NC4xNzYzIj7mi7zoo4UgamF2YSDlkK/liqjlkb3ku6TvvIzlubbmiafooYw8L3RleHQ+PCEtLU1ENT1bMmJkZTYzZTUxNTdiMGNlYmJlOGQ3NmEwNGE4ZjFjY2NdCkBzdGFydHVtbA0KdGl0bGU6bWFzdGVy5ZCv5YqoZHJpdmVy6IqC54K5DQoNCm5vdGUgb3ZlciBNYXN0ZXI6IHJlY2VpdmVBbmRSZXBseVxuKGNhc2UgUmVxdXNldFN1Ym1pdERyaXZlcikNCk1hc3RlciAtPiBNYXN0ZXI6IOiwg+eUqA0Kbm90ZSBvdmVyIE1hc3Rlcjogc2NoZWR1bGUNCk1hc3RlciAtPiBNYXN0ZXI6IOiwg+eUqA0Kbm90ZSBvdmVyIE1hc3RlcjogbGF1bmNoRHJpdmVyDQpNYXN0ZXIgLT4gV29ya2VyOiDlj5HpgIFMYXVuY2hEcml2ZXLmtojmga8NCm5vdGUgb3ZlciBXb3JrZXI6IHJlY2VpdmVcbihjYXNlIExhdW5jaERyaXZlcikNCldvcmtlciAtPiBEcml2ZXJSdW5uZXI6IOWQr+WKqERyaXZlcuWRveS7pA0Kbm90ZSBvdmVyIERyaXZlclJ1bm5lcjogc3RhcnQNCkRyaXZlclJ1bm5lciAtPiBEcml2ZXJSdW5uZXI66LCD55SoIA0Kbm90ZSBvdmVyIERyaXZlclJ1bm5lcjogbGF1bmNoRHJpdmVyDQpEcml2ZXJSdW5uZXIgLT4gUHJvY2Vzc0J1aWxkZXI6IOiwg+eUqA0Kbm90ZSBvdmVyIFByb2Nlc3NCdWlsZGVyOiDmi7zoo4UgamF2YSDlkK/liqjlkb3ku6TvvIzlubbmiafooYwNCkBlbmR1bWwNCgpQbGFudFVNTCB2ZXJzaW9uIDEuMjAyMC4wMmJldGE1KFVua25vd24gY29tcGlsZSB0aW1lKQooR1BMIHNvdXJjZSBkaXN0cmlidXRpb24pCkphdmEgUnVudGltZTogSmF2YShUTSkgU0UgUnVudGltZSBFbnZpcm9ubWVudApKVk06IEphdmEgSG90U3BvdChUTSkgNjQtQml0IFNlcnZlciBWTQpKYXZhIFZlcnNpb246IDEuNy4wXzI1LWIxNQpPcGVyYXRpbmcgU3lzdGVtOiBMaW51eApEZWZhdWx0IEVuY29kaW5nOiBVVEYtOApMYW5ndWFnZTogZW4KQ291bnRyeTogVVMKLS0+PC9nPjwvc3ZnPg=='>
+
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="http://www.louisvv.com/archives/1366.html" target="_blank" rel="noopener">Spark源码阅读:Driver的注册与启动</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spark/" rel="tag"># spark</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/1_%E6%8F%90%E4%BA%A4%20driver/" rel="prev" title="spark1-提交Driver过程">
+      <i class="fa fa-chevron-left"></i> spark1-提交Driver过程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/3_%E5%90%AF%E5%8A%A8%E7%94%A8%E6%88%B7%E7%BC%96%E5%86%99%E7%9A%84App/" rel="next" title="spark3-启动用户编写的App">
+      spark3-启动用户编写的App <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#启动Driver"><span class="nav-number">1.</span> <span class="nav-text">启动Driver</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、Master发送LaunchDriver消息"><span class="nav-number">1.1.</span> <span class="nav-text">一、Master发送LaunchDriver消息</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、Worker节点启动Driver"><span class="nav-number">1.2.</span> <span class="nav-text">二、Worker节点启动Driver</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">1.3.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">1.4.</span> <span class="nav-text">参考</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/2_%E5%90%AF%E5%8A%A8driver/",
+            identifier: "2018/06/04/spark/Spark执行逻辑/2_启动driver/",
+            title: "spark2-启动Driver"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="一、权限分类：系统权限：系统规定用户使用数据库的权限。（系统权限是对用户而言)。实体权限：某种权限用户对其它用户的表或视图的存取权限。（是针对表或视图而言的）。 二、系统权限管理：1、系统权限分类： DBA:       拥有全部特权，是系统最高权限，只有DBA才可以创建数据库结构。 RESOURCE:  拥有Resource权限的用户只可以创建实体，不可以创建数据库结构。 CONNECT:">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Oracle用户、权限、角色管理">
+<meta property="og:url" content="https://longzl2015.github.io/2017/01/04/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E7%94%A8%E6%88%B7%E3%80%81%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="一、权限分类：系统权限：系统规定用户使用数据库的权限。（系统权限是对用户而言)。实体权限：某种权限用户对其它用户的表或视图的存取权限。（是针对表或视图而言的）。 二、系统权限管理：1、系统权限分类： DBA:       拥有全部特权，是系统最高权限，只有DBA才可以创建数据库结构。 RESOURCE:  拥有Resource权限的用户只可以创建实体，不可以创建数据库结构。 CONNECT:">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-01-04T19:30:09.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.788Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="oracle">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://longzl2015.github.io/2017/01/04/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E7%94%A8%E6%88%B7%E3%80%81%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>Oracle用户、权限、角色管理 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2017/01/04/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E7%94%A8%E6%88%B7%E3%80%81%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Oracle用户、权限、角色管理
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-01-05 03:30:09" itemprop="dateCreated datePublished" datetime="2017-01-05T03:30:09+08:00">2017-01-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/" itemprop="url" rel="index">
+                    <span itemprop="name">rdbms</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/" itemprop="url" rel="index">
+                    <span itemprop="name">oracle</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2017/01/04/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E7%94%A8%E6%88%B7%E3%80%81%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2017/01/04/4数据库/rdbms/oracle/用户、权限管理/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="一、权限分类："><a href="#一、权限分类：" class="headerlink" title="一、权限分类："></a>一、权限分类：</h2><p>系统权限：系统规定用户使用数据库的权限。（系统权限是对用户而言)。<br>实体权限：某种权限用户对其它用户的表或视图的存取权限。（是针对表或视图而言的）。</p>
+<h2 id="二、系统权限管理："><a href="#二、系统权限管理：" class="headerlink" title="二、系统权限管理："></a>二、系统权限管理：</h2><h3 id="1、系统权限分类："><a href="#1、系统权限分类：" class="headerlink" title="1、系统权限分类："></a>1、系统权限分类：</h3><ul>
+<li>DBA:       拥有全部特权，是系统最高权限，只有DBA才可以创建数据库结构。</li>
+<li>RESOURCE:  拥有Resource权限的用户只可以创建实体，不可以创建数据库结构。</li>
+<li>CONNECT:   拥有Connect权限的用户只可以登录Oracle，不可以创建实体，不可以创建数据库结构。</li>
+</ul>
+<p>对于普通用户：授予connect, resource权限。<br>对于DBA管理用户：授予connect，resource, dba权限。</p>
+<p>###2、系统权限授权命令：</p>
+<p>系统权限只能由DBA用户授出：sys, system(最开始只能是这两个用户)</p>
+<p>授权命令：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grant connect, resource, dba to 用户名1,用户名2;</span><br></pre></td></tr></table></figure>
+
+<p>普通用户通过授权可以具有与system相同的用户权限，但永远不能达到与sys用户相同的权限，system用户的权限也可以被回收。</p>
+<p>创建用户：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">connect system&#x2F;manager</span><br><span class="line">Create user user50 identified by user50;</span><br><span class="line">grant connect, resource to user50;</span><br></pre></td></tr></table></figure>
+
+<p>查询用户拥有哪里权限：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">select * from dba_role_privs;</span><br><span class="line">select * from dba_sys_privs;</span><br><span class="line">select * from role_sys_privs;</span><br></pre></td></tr></table></figure>
+
+<p>删除用户：<br>加上cascade则将用户连同其创建的东西全部删除</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drop user 用户名 cascade;</span><br></pre></td></tr></table></figure>
+
+<p>###3、系统权限传递：</p>
+<p>增加 WITH ADMIN OPTION 选项，则得到的权限可以传递。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grant connect, resorce to user50 with admin option;</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="4、系统权限回收：系统权限只能由DBA用户回收"><a href="#4、系统权限回收：系统权限只能由DBA用户回收" class="headerlink" title="4、系统权限回收：系统权限只能由DBA用户回收"></a>4、系统权限回收：系统权限只能由DBA用户回收</h3><p>命令：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Revoke connect, resource from user50;</span><br></pre></td></tr></table></figure>
+
+<p>说明：</p>
+<p>1）如果使用 WITH ADMIN OPTION 为某个用户授予系统权限，那么对于被这个用户授予相同权限的所有用户来说，取消该用户的系统权限并不会级联取消这些用户的相同权限。</p>
+<p>2）系统权限无级联，即A授予B权限，B授予C权限，如果A收回B的权限，C的权限不受影响；系统权限可以跨用户回收，即A可以直接收回C用户的权限。</p>
+<h2 id="三、实体权限管理"><a href="#三、实体权限管理" class="headerlink" title="三、实体权限管理"></a>三、实体权限管理</h2><p>###1、实体权限分类</p>
+<p>具体权限有： select, update, insert, alter, index, delete, all , execute</p>
+<p>注：all  包括所有权限 ；  execute  执行存储过程权限</p>
+<p>user01:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">grant select, update, insert on product to user02;</span><br><span class="line">grant all on product to user02;</span><br></pre></td></tr></table></figure>
+
+<p>user02:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from user01.product;</span><br></pre></td></tr></table></figure>
+
+<p>此时user02查user_tables，不包括user01.product这个表，但如果查all_tables则可以查到，因为他可以访问。</p>
+<h3 id="2-将表的操作权限授予全体用户："><a href="#2-将表的操作权限授予全体用户：" class="headerlink" title="2. 将表的操作权限授予全体用户："></a>2. 将表的操作权限授予全体用户：</h3><p>public表示是所有的用户，这里的all权限不包括drop。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grant all on product to public;</span><br></pre></td></tr></table></figure>
+
+<p><strong>实体权限数据字典</strong>:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">-- 用户可以查询的表</span><br><span class="line">select owner, table_name from all_tables; </span><br><span class="line">-- 用户创建的表</span><br><span class="line">select table_name from user_tables;  </span><br><span class="line">-- 获权可以存取的表（被授权的）</span><br><span class="line">select grantor, table_schema, table_name, privilege from all_tab_privs; </span><br><span class="line">-- 授出权限的表(授出的权限)</span><br><span class="line">select grantee, owner, table_name, privilege from user_tab_privs;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-DBA用户可以操作全体用户的任意基表-无需授权，包括删除-：DBA用户："><a href="#3-DBA用户可以操作全体用户的任意基表-无需授权，包括删除-：DBA用户：" class="headerlink" title="3. DBA用户可以操作全体用户的任意基表(无需授权，包括删除)：DBA用户："></a>3. DBA用户可以操作全体用户的任意基表(无需授权，包括删除)：DBA用户：</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Create table stud02.product(</span><br><span class="line">id number(10),</span><br><span class="line">name varchar2(20));</span><br><span class="line">drop table stud02.emp;</span><br><span class="line"></span><br><span class="line">create table stud02.employee</span><br><span class="line">as</span><br><span class="line">select * from scott.emp;</span><br></pre></td></tr></table></figure>
+
+<h3 id="4-实体权限传递-with-grant-option-：user01"><a href="#4-实体权限传递-with-grant-option-：user01" class="headerlink" title="4. 实体权限传递(with grant option)：user01:"></a>4. 实体权限传递(with grant option)：user01:</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grant select, update on product to user02 with grant option;</span><br></pre></td></tr></table></figure>
+
+<h3 id="5-实体权限回收：user01"><a href="#5-实体权限回收：user01" class="headerlink" title="5. 实体权限回收：user01:"></a>5. 实体权限回收：user01:</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-- 传递的权限将全部丢失。</span><br><span class="line">Revoke select, update on product from user02;</span><br></pre></td></tr></table></figure>
+
+<p>说明</p>
+<p>1）如果取消某个用户的对象权限，那么对于这个用户使用WITH GRANT OPTION授予权限的用户来说，同样还会取消这些用户的相同权限，也就是说取消授权时级联的。</p>
+<p>##四、Oracle 用户管理<br>###1. 创建用户的Profile文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">-- student为资源文件名</span><br><span class="line"> create profile student limit  </span><br><span class="line">-- 指定锁定用户的登录失败次数</span><br><span class="line"> FAILED_LOGIN_ATTEMPTS  3  </span><br><span class="line">-- 指定用户被锁定天数</span><br><span class="line"> PASSWORD_LOCK_TIME 5  </span><br><span class="line">-- 指定口令可用天数</span><br><span class="line"> PASSWORD_LIFE_TIME 30</span><br></pre></td></tr></table></figure>
+
+<p>###2. 创建用户</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Create User username</span><br><span class="line">Identified by password</span><br><span class="line">Default Tablespace tablespace</span><br><span class="line">Temporary Tablespace tablespace</span><br><span class="line">Profile profile</span><br><span class="line">Quota integer&#x2F;unlimited on tablespace;</span><br></pre></td></tr></table></figure>
+
+<p>例:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">Create user acc01</span><br><span class="line">-- 如果密码是数字，请用双引号括起来</span><br><span class="line">identified by acc01   </span><br><span class="line">default tablespace account</span><br><span class="line">temporary tablespace temp</span><br><span class="line">profile default</span><br><span class="line">quota 50m on account;</span><br><span class="line">grant connect, resource to acc01;</span><br></pre></td></tr></table></figure>
+
+<p>查询用户缺省表空间、临时表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select username, default_tablespace, temporary_tablespace from dba_users;</span><br></pre></td></tr></table></figure>
+
+<p>查询系统资源文件名：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from dba_profiles;</span><br></pre></td></tr></table></figure>
+
+<p>资源文件类似表，一旦创建就会保存在数据库中。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">select username, profile, default_tablespace, temporary_tablespace from dba_users;</span><br><span class="line"></span><br><span class="line">create profile common limit</span><br><span class="line">failed_login_attempts 5</span><br><span class="line">idle_time 5;</span><br><span class="line">Alter user acc01 profile common;</span><br></pre></td></tr></table></figure>
+
+<p>###3. 修改用户：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Alter User 用户名</span><br><span class="line">Identified 口令</span><br><span class="line">Default Tablespace tablespace</span><br><span class="line">Temporary Tablespace tablespace</span><br><span class="line">Profile profile</span><br><span class="line">Quota integer&#x2F;unlimited on tablespace;</span><br></pre></td></tr></table></figure>
+
+<p>1、修改口令字：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Alter user acc01 identified by &quot;12345&quot;;</span><br></pre></td></tr></table></figure>
+
+<p>2、修改用户缺省表空间：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Alter user acc01 default tablespace users;</span><br></pre></td></tr></table></figure>
+
+<p>3、修改用户临时表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Alter user acc01 temporary tablespace temp_data;</span><br></pre></td></tr></table></figure>
+
+<p>4、强制用户修改口令字：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Alter user acc01 password expire;</span><br></pre></td></tr></table></figure>
+
+<p>5、将用户加锁</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">Alter user acc01 account lock;  &#x2F;&#x2F; 加锁</span><br><span class="line">Alter user acc01 account unlock;  &#x2F;&#x2F; 解锁</span><br></pre></td></tr></table></figure>
+
+
+<p>###4. 删除用户</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">-- 用户没有建任何实体</span><br><span class="line">drop user 用户名;  </span><br><span class="line">-- 将用户及其所建实体全部删除</span><br><span class="line">drop user 用户名 CASCADE;</span><br></pre></td></tr></table></figure>
+
+<p>当前正连接的用户不得删除。</p>
+<p>###5. 监视用户：</p>
+<p>1、查询用户会话信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select username, sid, serial#, machine from v$session;</span><br></pre></td></tr></table></figure>
+
+<p>2、删除用户会话信息：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Alter system kill session &#39;sid, serial#&#39;;</span><br></pre></td></tr></table></figure>
+
+
+<p>3、查询用户SQL语句：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select user_name, sql_text from v$open_cursor;</span><br></pre></td></tr></table></figure>
+
+<p>##五、Oracle 角色管理<br>###1. 何为角色<br>角色是一组权限的集合，将角色赋给一个用户，这个用户就拥有了这个角色中的所有权限。</p>
+<p>###2. 系统预定义角色　　<br>预定义角色是在数据库安装后，系统自动创建的一些常用的角色。下介简单的介绍一下这些预定角色。<br>角色所包含的权限可以用以下语句查询：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from role_sys_privs where role&#x3D;&#39;角色名&#39;;</span><br></pre></td></tr></table></figure>
+
+
+<p>1．CONNECT, RESOURCE, DBA</p>
+<blockquote>
+<p>这些预定义角色主要是为了向后兼容。其主要是用于数据库管理。oracle建议用户自己设计数据库管理和安全的权限规划，而不要简单的使用这些预定角色。将来的版本中这些角色可能不会作为预定义角色。</p>
+</blockquote>
+<p>2．DELETE_CATALOG_ROLE， EXECUTE_CATALOG_ROLE， SELECT_CATALOG_ROLE</p>
+<blockquote>
+<p>这些角色主要用于访问数据字典视图和包。</p>
+</blockquote>
+<p>3．EXP_FULL_DATABASE， IMP_FULL_DATABASE</p>
+<blockquote>
+<p>这两个角色用于数据导入导出工具的使用。</p>
+</blockquote>
+<p>4．AQ_USER_ROLE， AQ_ADMINISTRATOR_ROLE</p>
+<blockquote>
+<p>AQ:Advanced Query。这两个角色用于oracle高级查询功能。</p>
+</blockquote>
+<p>5． SNMPAGENT</p>
+<blockquote>
+<p>用于oracle enterprise manager和Intelligent Agent</p>
+</blockquote>
+<p>6．RECOVERY_CATALOG_OWNER</p>
+<blockquote>
+<p>用于创建拥有恢复库的用户。关于恢复库的信息，参考oracle文档《Oracle9i User-Managed Backup and Recovery Guide》</p>
+</blockquote>
+<p>7．HS_ADMIN_ROLE</p>
+<blockquote>
+<p>A DBA using Oracle’s heterogeneous services feature needs this role to access appropriate tables in the data dictionary.</p>
+</blockquote>
+<p>###3. 管理角色<br>1.建一个角色</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">create role role1;</span><br></pre></td></tr></table></figure>
+
+<p>2.授权给角色</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grant create any table,create procedure to role1;</span><br></pre></td></tr></table></figure>
+
+<p>3.授予角色给用户</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">grant role1 to user1;</span><br></pre></td></tr></table></figure>
+
+<p>4.查看角色所包含的权限</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from role_sys_privs;</span><br></pre></td></tr></table></figure>
+
+
+<p>5.创建带有口令以角色(在生效带有口令的角色时必须提供口令)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">create role role1 identified by password1;</span><br></pre></td></tr></table></figure>
+
+<p>6.修改角色：是否需要口令</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">alter role role1 not identified;</span><br><span class="line">alter role role1 identified by password1;</span><br></pre></td></tr></table></figure>
+
+<p>7.设置当前用户要生效的角色<br>(注：角色的生效是一个什么概念呢？假设用户a有b1,b2,b3三个角色，那么如果b1未生效，则b1所包含的权限对于a来讲是不拥有的，只有角色生效了，角色内的权限才作用于用户，最大可生效角色数由参数MAX_ENABLED_ROLES设定；在用户登录后，oracle将所有直接赋给用户的权限和用户默认角色中的权限赋给用户。）</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">set role role1;&#x2F;&#x2F;使role1生效</span><br><span class="line">set role role,role2;&#x2F;&#x2F;使role1,role2生效</span><br><span class="line">set role role1 identified by password1;&#x2F;&#x2F;使用带有口令的role1生效</span><br><span class="line">set role all;&#x2F;&#x2F;使用该用户的所有角色生效</span><br><span class="line">set role none;&#x2F;&#x2F;设置所有角色失效</span><br><span class="line">set role all except role1;&#x2F;&#x2F;除role1外的该用户的所有其它角色生效。</span><br><span class="line">select * from SESSION_ROLES;&#x2F;&#x2F;查看当前用户的生效的角色。</span><br></pre></td></tr></table></figure>
+
+
+<p>8.修改指定用户，设置其默认角色</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">alter user user1 default role role1;</span><br><span class="line">alter user user1 default role all except role1;</span><br></pre></td></tr></table></figure>
+
+<p>详见oracle参考文档</p>
+<p>9.删除角色</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">drop role role1;</span><br></pre></td></tr></table></figure>
+
+<p>角色删除后，原来拥用该角色的用户就不再拥有该角色了，相应的权限也就没有了。</p>
+<p>说明:</p>
+<p>1)无法使用WITH GRANT OPTION为角色授予对象权限</p>
+<p>2)可以使用WITH ADMIN OPTION 为角色授予系统权限,取消时不是级联</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/oracle/" rel="tag"># oracle</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2016/08/04/9%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/1%20%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F-%E6%80%BB%E8%A7%88/" rel="prev" title="设计模式知识点整理">
+      <i class="fa fa-chevron-left"></i> 设计模式知识点整理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2017/01/04/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E5%A4%84%E7%90%867%E5%A4%A9%E5%AF%86%E7%A0%81%E8%BF%87%E6%9C%9F%E9%97%AE%E9%A2%98/" rel="next" title="处理天密码过期">
+      处理天密码过期 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、权限分类："><span class="nav-number">1.</span> <span class="nav-text">一、权限分类：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、系统权限管理："><span class="nav-number">2.</span> <span class="nav-text">二、系统权限管理：</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1、系统权限分类："><span class="nav-number">2.1.</span> <span class="nav-text">1、系统权限分类：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4、系统权限回收：系统权限只能由DBA用户回收"><span class="nav-number">2.2.</span> <span class="nav-text">4、系统权限回收：系统权限只能由DBA用户回收</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、实体权限管理"><span class="nav-number">3.</span> <span class="nav-text">三、实体权限管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-将表的操作权限授予全体用户："><span class="nav-number">3.1.</span> <span class="nav-text">2. 将表的操作权限授予全体用户：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-DBA用户可以操作全体用户的任意基表-无需授权，包括删除-：DBA用户："><span class="nav-number">3.2.</span> <span class="nav-text">3. DBA用户可以操作全体用户的任意基表(无需授权，包括删除)：DBA用户：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-实体权限传递-with-grant-option-：user01"><span class="nav-number">3.3.</span> <span class="nav-text">4. 实体权限传递(with grant option)：user01:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-实体权限回收：user01"><span class="nav-number">3.4.</span> <span class="nav-text">5. 实体权限回收：user01:</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2017/01/04/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E7%94%A8%E6%88%B7%E3%80%81%E6%9D%83%E9%99%90%E7%AE%A1%E7%90%86/",
+            identifier: "2017/01/04/4数据库/rdbms/oracle/用户、权限管理/",
+            title: "Oracle用户、权限、角色管理"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="在本教程中，我们将学习如何通过 gitolite 和 gitweb 工具来安装一个git服务器，该服务器可通过 ssh 和 http 协议进行访问。Gitolite 工具能够实现用户管理功能。gitweb 工具提供一个仓库列表的 web 界面。apache 工具提供智能 http 服务(smart http)，用于连接git服务器。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="搭建git服务器-http访问">
+<meta property="og:url" content="https://longzl2015.github.io/2015/09/01/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/git/%E6%90%AD%E5%BB%BAgit%E6%9C%8D%E5%8A%A1%E5%99%A8(2)/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="在本教程中，我们将学习如何通过 gitolite 和 gitweb 工具来安装一个git服务器，该服务器可通过 ssh 和 http 协议进行访问。Gitolite 工具能够实现用户管理功能。gitweb 工具提供一个仓库列表的 web 界面。apache 工具提供智能 http 服务(smart http)，用于连接git服务器。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://i.imgur.com/Cf8jJVi.jpg">
+<meta property="article:published_time" content="2015-09-01T01:09:28.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.726Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="git">
+<meta property="article:tag" content="git服务器">
+<meta property="article:tag" content="gitolite">
+<meta property="article:tag" content="gitweb">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://i.imgur.com/Cf8jJVi.jpg">
+
+<link rel="canonical" href="https://longzl2015.github.io/2015/09/01/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/git/%E6%90%AD%E5%BB%BAgit%E6%9C%8D%E5%8A%A1%E5%99%A8(2)/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>搭建git服务器-http访问 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2015/09/01/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/git/%E6%90%AD%E5%BB%BAgit%E6%9C%8D%E5%8A%A1%E5%99%A8(2)/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          搭建git服务器-http访问
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2015-09-01 09:09:28" itemprop="dateCreated datePublished" datetime="2015-09-01T09:09:28+08:00">2015-09-01</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/" itemprop="url" rel="index">
+                    <span itemprop="name">开发软件</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/git/" itemprop="url" rel="index">
+                    <span itemprop="name">git</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2015/09/01/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/git/%E6%90%AD%E5%BB%BAgit%E6%9C%8D%E5%8A%A1%E5%99%A8(2)/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2015/09/01/1开发软件/git/搭建git服务器(2)/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在本教程中，我们将学习如何通过 gitolite 和 gitweb 工具来安装一个git服务器，该服务器可通过 ssh 和 http 协议进行访问。<br>Gitolite 工具能够实现用户管理功能。<br>gitweb 工具提供一个仓库列表的 web 界面。<br>apache 工具提供智能 http 服务(smart http)，用于连接git服务器。</p>
+<a id="more"></a>
+
+<blockquote>
+<p>注：该文章是从其他文字转过来的，具体出处记不住了。</p>
+</blockquote>
+<h2 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h2><p><strong>Git 项目网站:</strong> <a href="http://git-scm.com/" target="_blank" rel="noopener">http://git-scm.com/</a></p>
+<h3 id="服务器配置"><a href="#服务器配置" class="headerlink" title="服务器配置"></a>服务器配置</h3><ul>
+<li>Arch: i686 / x86_64</li>
+<li>Packages : Gitolite and Gitweb</li>
+<li>Git server ip address : 10.82.59.55</li>
+</ul>
+<p>note:如果能进行域名解析，你也可以使用 git 服务器主机名。</p>
+<h3 id="摘要"><a href="#摘要" class="headerlink" title="摘要:"></a>摘要:</h3><p>搭建一个私有 git 服务器。该服务器能通过ssh和http链接。这里，gitweb用于浏览仓库细节。Gitolite 用于git服务器的用户/组管理。</p>
+<p>Note: 该文章中，# 表示 root用户。$ 表示 git 用户。</p>
+<h2 id="配置本机PC，非git服务器"><a href="#配置本机PC，非git服务器" class="headerlink" title="配置本机PC，非git服务器"></a>配置本机PC，非git服务器</h2><p>搭建步骤如下:</p>
+<p>首先从你的PC开始，<strong>注意不是你的git服务器</strong>。</p>
+<p>创建 RSA key 。</p>
+<h3 id="Step-A"><a href="#Step-A" class="headerlink" title="Step A:"></a>Step A:</h3><p>登陆你的PC主机，该机用于远程管理git服务器。</p>
+<p>如果你的主目录下不存在 .ssh 目录，说明你的 SSH 公钥/私钥对尚未创建。可以用这个命令创建：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa -C <span class="string">"Git-Admin"</span></span><br></pre></td></tr></table></figure>
+
+<p>该命令会在用户主目录下创建 .ssh 目录，并在其中创建两个文件：</p>
+<ul>
+<li>id_rsa 私钥文件。</li>
+</ul>
+<p>是基于 RSA 算法创建。该私钥文件要妥善保管，不要泄漏。</p>
+<ul>
+<li>id_rsa.pub 公钥文件。</li>
+</ul>
+<p>和 id_rsa 文件是一对儿，该文件作为公钥文件，可以公开。</p>
+<p>Note：Git-Admin 为你的pc客户端的git用户名。</p>
+<h3 id="Step-B"><a href="#Step-B" class="headerlink" title="Step B:"></a>Step B:</h3><p>使用 scp 将 id_rsa.pub 复制到 git服务器上。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ scp ~/.ssh/id_rsa.pub root@ip-address-of-git-server:~</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置git服务器"><a href="#配置git服务器" class="headerlink" title="配置git服务器"></a>配置git服务器</h2><p>以 root 登陆 git 服务器。</p>
+<h3 id="Step-1"><a href="#Step-1" class="headerlink" title="Step 1:"></a>Step 1:</h3><p>安装 git http 和 perl 依赖。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum -y install git httpd perl-Time-HiRes perl-Data-Dumper</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-2"><a href="#Step-2" class="headerlink" title="Step 2:"></a>Step 2:</h3><p>创建 git 用户，并更改它的 gid 和 uid</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">useradd git</span><br><span class="line">usermod -u 600 git</span><br><span class="line">groupmod -g 600 git</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step3"><a href="#Step3" class="headerlink" title="Step3:"></a>Step3:</h3><p>将得到的 id_rsa.pub 改为 Git-Admin.pub。同时将其 mv 到 /home/git 。将它的用户/组更改为git。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mv /root/id_rsa.pub /home/git/Git-Admin.pub ; chown git:git /home/git/Git-Admin.pub</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-4"><a href="#Step-4" class="headerlink" title="Step 4:"></a>Step 4:</h3><p>登陆git用户，从 github.com 克隆 gitolite。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">su -l git</span><br><span class="line"></span><br><span class="line">whoami</span><br><span class="line">(The <span class="built_in">command</span> will show you <span class="built_in">log</span> <span class="keyword">in</span> with <span class="built_in">which</span> user)</span><br><span class="line"></span><br><span class="line"><span class="built_in">echo</span> <span class="variable">$HOME</span></span><br><span class="line">(The <span class="built_in">command</span> will show what is your home directory)</span><br><span class="line"></span><br><span class="line">git <span class="built_in">clone</span> git://github.com/sitaramc/gitolite</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-5"><a href="#Step-5" class="headerlink" title="Step 5:"></a>Step 5:</h3><p>创建 bin 目录和设置 Git-Admin 账户</p>
+<p>Note: 将 id_rsa.pub 改为 Git-Admin.pub 的原因是：<br>the Gitolite will provide same name of user in gitolite.conf file as the name of .pub file.<br>for eg. if I use only id_rsa.pub then “id_rsa” user will be created.</p>
+<p>因此，当你需要通过 ssh 添加一个 git 服务器的用户时，你需要将该用户的 id_rsa.pub 重命名为 user-name.pub。比如，joe的 rsa file 应该被改为 joe.pub (id_rsa.pub –rename–joe.pub)</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /home/git/bin</span><br><span class="line">gitolite/install -ln</span><br><span class="line">gitolite setup -pk Git-Admin.pub</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-6"><a href="#Step-6" class="headerlink" title="Step 6:"></a>Step 6:</h3><p>退出 git 用户。登陆 root 。核对一下 suexec 的默认值。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">exit</span></span><br><span class="line">(<span class="built_in">logout</span> from git user)</span><br></pre></td></tr></table></figure>
+
+<p>我的git服务器 suexec 细节.</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">[root@gitserver ~]<span class="comment"># suexec -V</span></span><br><span class="line"> -D AP_DOC_ROOT=<span class="string">"/var/www"</span></span><br><span class="line"> -D AP_GID_MIN=100</span><br><span class="line"> -D AP_HTTPD_USER=<span class="string">"apache"</span></span><br><span class="line"> -D AP_LOG_EXEC=<span class="string">"/var/log/httpd/suexec.log"</span></span><br><span class="line"> -D AP_SAFE_PATH=<span class="string">"/usr/local/bin:/usr/bin:/bin"</span></span><br><span class="line"> -D AP_UID_MIN=500</span><br><span class="line"> -D AP_USERDIR_SUFFIX=<span class="string">"public_html"</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-7"><a href="#Step-7" class="headerlink" title="Step 7:"></a>Step 7:</h3><p>创建 bin 目录 （in /var/www ）<br>(Why /var/www ? because I got the detail from suexec -V,see parameter AP_DOC_ROOT)</p>
+<p>下面的命令将创建一个 /var/www/bin 文件夹（with permission 0755 and owner &amp;group is git）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">install -d -m 0755 -o git -g git /var/www/bin</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-8"><a href="#Step-8" class="headerlink" title="Step 8:"></a>Step 8:</h3><p>在 /var/www/bin/ 创建一个 gitolite-suexec-wrapper.sh 。然后保存退出。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">vi /var/www/bin/gitolite-suexec-wrapper.sh</span><br><span class="line"></span><br><span class="line">    <span class="comment">#!/bin/bash</span></span><br><span class="line">    <span class="comment">#</span></span><br><span class="line">    <span class="comment"># Suexec wrapper for gitolite-shell</span></span><br><span class="line">    <span class="comment">#</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">export</span> GIT_PROJECT_ROOT=<span class="string">"/home/git/repositories"</span></span><br><span class="line">    <span class="built_in">export</span> GITOLITE_HTTP_HOME=<span class="string">"/home/git"</span></span><br><span class="line"></span><br><span class="line">    <span class="built_in">exec</span> <span class="variable">$&#123;GITOLITE_HTTP_HOME&#125;</span>/gitolite/src/gitolite-shell</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-9"><a href="#Step-9" class="headerlink" title="Step 9:"></a>Step 9:</h3><p>修改 /var/www/bin 和 gitolite-suexec-wrapper.sh 的权限</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">chown -R git:git /var/www/bin</span><br><span class="line">chmod 750 /var/www/bin/gitolite-suexec-wrapper.sh</span><br><span class="line">chmod 755 /var/www/bin</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-10"><a href="#Step-10" class="headerlink" title="Step 10:"></a>Step 10:</h3><p>将 /home/git/.gitolite.rc 里的 UMASK 0077 修改为 UMASK =0027</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vi /home/git/.gitolite.rc</span><br><span class="line"></span><br><span class="line">    UMASK =&gt; 0027,</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-11"><a href="#Step-11" class="headerlink" title="Step 11:"></a>Step 11:</h3><p>安装 GitWeb</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install gitweb</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-12"><a href="#Step-12" class="headerlink" title="Step 12:"></a>Step 12:</h3><p>默认情况下，gitweb 会安装在 /var/www/git 目录。（目录下包含 gitweb.cgi 文件）<br>修改 /var/www/git 目录。如下所示：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mv /var/www/git /var/www/html/gitweb</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-13"><a href="#Step-13" class="headerlink" title="Step 13:"></a>Step 13:</h3><p>修改 /var/www/html/gitweb 所有者</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">chown -R git:git /var/www/html/gitweb</span><br></pre></td></tr></table></figure>
+
+<p>下面是我服务器的细节：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">[root@gitserver html]<span class="comment"># chown -R git:git gitweb/</span></span><br><span class="line">[root@gitserver html]<span class="comment"># ls -ld gitweb/</span></span><br><span class="line">drwxr-xr-x 2 git git 4096 Jun  1 12:36 gitweb/</span><br><span class="line">[root@gitserver html]<span class="comment"># ls -la gitweb/</span></span><br><span class="line">total 252</span><br><span class="line">drwxr-xr-x 2 git  git    4096 Jun  1 12:36 .</span><br><span class="line">drwxr-xr-x 3 root root   4096 Jun  1 12:34 ..</span><br><span class="line">-rw-r--r-- 1 git  git     115 Apr 24  2010 git-favicon.png</span><br><span class="line">-rw-r--r-- 1 git  git     207 Apr 24  2010 git-logo.png</span><br><span class="line">-rwxr-xr-x 1 git  git  204754 Jun  1 12:36 gitweb.cgi</span><br><span class="line">-rw-r--r-- 1 git  git    8379 Apr 24  2010 gitweb.css</span><br><span class="line">-rw-r--r-- 1 git  git   24142 Apr 24  2010 gitweb.js</span><br><span class="line">[root@gitserver html]<span class="comment">#</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-14"><a href="#Step-14" class="headerlink" title="Step 14:"></a>Step 14:</h3><p>编辑文件 /etc/gitweb.conf  修改其中的两个变量:<br> <code>$projectroot</code> 和 <code>$projects_list</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/gitweb.conf</span><br><span class="line"></span><br><span class="line">    our <span class="variable">$projectroot</span> = <span class="string">"/home/git/repositories/"</span>;</span><br><span class="line">    our <span class="variable">$projects_list</span> = <span class="string">"/home/git/projects.list"</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-15"><a href="#Step-15" class="headerlink" title="Step 15:"></a>Step 15:</h3><p>修改文件 /var/www/html/gitweb/gitweb.cgi 并修改其中的两个变量:<br> <code>$projectroot</code> 和 <code>$projects_list</code></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vi /var/www/html/gitweb/gitweb.cgi</span><br><span class="line"></span><br><span class="line">    our <span class="variable">$projectroot</span> = <span class="string">"/home/git/repositories"</span>;</span><br><span class="line">    our <span class="variable">$projects_list</span> = <span class="string">"/home/git/projects.list"</span>;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-16"><a href="#Step-16" class="headerlink" title="Step 16:"></a>Step 16:</h3><p>创建一个虚假文件夹（dummy folder git）。注意加上 permissions,owner and group限制。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">install -d -m 0755 -o apache -g apache /var/www/git  (This is dummy one)</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-17"><a href="#Step-17" class="headerlink" title="Step 17:"></a>Step 17:</h3><p>打开 /etc/httpd/conf/httpd.conf 。<br>在最后一行加上 VirtualHost 配置。</p>
+<p>Note: 如果你的 git 服务器有使用主机名和 FQDN，你就可以将 ServerName 和 ServerAlias 前的 # 去掉。然后，写上你的主机信息。ServerAdmin表示管理员的联系邮箱。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">&lt;VirtualHost *:80&gt;</span><br><span class="line">    </span><br><span class="line"># You can comment out the below 3 lines and put correct value as per your server information</span><br><span class="line">#  ServerName        gitserver.example.com</span><br><span class="line">#  ServerAlias       gitserver</span><br><span class="line">    </span><br><span class="line">ServerAdmin       youremailid@example.com</span><br><span class="line">    </span><br><span class="line">DocumentRoot &#x2F;var&#x2F;www&#x2F;git</span><br><span class="line">&lt;Directory &#x2F;var&#x2F;www&#x2F;git&gt;</span><br><span class="line">    Options       None</span><br><span class="line">    AllowOverride none</span><br><span class="line">    Order         allow,deny</span><br><span class="line">    Allow         from all</span><br><span class="line">    </span><br><span class="line">&lt;&#x2F;Directory&gt;</span><br><span class="line">    </span><br><span class="line">SuexecUserGroup git git</span><br><span class="line">ScriptAlias &#x2F;git&#x2F; &#x2F;var&#x2F;www&#x2F;bin&#x2F;gitolite-suexec-wrapper.sh&#x2F;</span><br><span class="line">ScriptAlias &#x2F;gitmob&#x2F; &#x2F;var&#x2F;www&#x2F;bin&#x2F;gitolite-suexec-wrapper.sh&#x2F;</span><br><span class="line">    </span><br><span class="line">&lt;Location &#x2F;git&gt;</span><br><span class="line">    AuthType Basic</span><br><span class="line">    AuthName &quot;Git Access&quot;</span><br><span class="line">    Require valid-user</span><br><span class="line">    AuthUserFile &#x2F;etc&#x2F;httpd&#x2F;conf&#x2F;git.passwd</span><br><span class="line">&lt;&#x2F;Location&gt;</span><br><span class="line">&lt;&#x2F;VirtualHost&gt;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Step-18"><a href="#Step-18" class="headerlink" title="Step 18:"></a>Step 18:</h3><p>修改 /etc/httpd/conf.d/git.conf 。该文件在安装 gitweb 时自动创建。<br>下面我将对 Git Server 进行部分修改。重点！不能落下一步。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">vi /etc/httpd/conf.d/git.conf</span><br><span class="line"></span><br><span class="line">    Alias /gitweb /var/www/html/gitweb</span><br><span class="line">    </span><br><span class="line">    &lt;Directory /var/www/html/gitweb&gt;</span><br><span class="line">      Options +ExecCGI</span><br><span class="line">      AddHandler cgi-script .cgi</span><br><span class="line">      DirectoryIndex gitweb.cgi</span><br><span class="line">    &lt;/Directory&gt;</span><br><span class="line">    &lt;Location /gitweb&gt;</span><br><span class="line">       AuthType Basic</span><br><span class="line">       AuthName <span class="string">"Git Access"</span></span><br><span class="line">       Require valid-user</span><br><span class="line">       AuthUserFile /etc/httpd/conf/git.passwd</span><br><span class="line">    &lt;/Location&gt;</span><br><span class="line">``` </span><br><span class="line"></span><br><span class="line"><span class="comment">### Step 19:</span></span><br><span class="line">下面我们将创建 apcahe 的管理员的用户密码。</span><br><span class="line">当你第一次创建用户时，我们需要使用 -c 符号。-c 表示创建一个新的文件。详细参见htpasswd的man帮助。</span><br><span class="line"></span><br><span class="line">```bash</span><br><span class="line">htpasswd -c /etc/httpd/conf/git.passwd admin</span><br></pre></td></tr></table></figure>
+
+<p>对于添加一个用户或者修改存在的用户密码，不需要添加 -c</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">htpasswd /etc/httpd/conf/git.passwd  user1</span><br><span class="line">htpasswd /etc/httpd/conf/git.passwd  testuser</span><br></pre></td></tr></table></figure>
+<p>当你设置一个 htpasswd user 或 passwd时，需要重启或重载 apache 。<br>chkconfig 命令使 apache 服务开机启动。设置为 runelevel 3 and 5</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">### On CentOS 6.x / RHEL 6.x</span></span><br><span class="line">/etc/init.d/httpd restart;chkconfig httpd on</span><br><span class="line"></span><br><span class="line"><span class="comment">### On CentOS 7.x / RHEL 7.x</span></span><br><span class="line">systemctl restart httpd ; systemctl <span class="built_in">enable</span> httpd</span><br></pre></td></tr></table></figure>
+
+<p>所有配置已完成，可以使用 git 服务器了。</p>
+<h2 id="使用-git-服务器"><a href="#使用-git-服务器" class="headerlink" title="使用 git 服务器"></a>使用 git 服务器</h2><h3 id="GitWeb-webpage"><a href="#GitWeb-webpage" class="headerlink" title="GitWeb webpage"></a>GitWeb webpage</h3><p>使用以下格式访问（网页会要求你输入你设置的 htpasswd 的用户和密码）</p>
+<pre><code>http://ip-address-of-git-server/gitweb/</code></pre><h3 id="以-http方式-克隆仓库"><a href="#以-http方式-克隆仓库" class="headerlink" title="以 http方式 克隆仓库"></a>以 http方式 克隆仓库</h3><p>使用命令（网页会要求你输入你设置的 htpasswd 的用户和密码）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">git <span class="built_in">clone</span> http://ip-address-of-git-server-OR-FQDN/git/repo-name.git</span><br></pre></td></tr></table></figure>
+
+<p>上面两个命令的不同之处，</p>
+<ul>
+<li>克隆 git 仓库时在url中使用 git</li>
+<li>访问网页时，使用 gitweb</li>
+</ul>
+<p>Note: 如果你想要学习为什么使用 git 或 gitweb，请打开 git.conf 和 httpd.conf 文件。</p>
+<ul>
+<li><p>git.conf中 “Alias /gitweb /var/www/html/gitweb”</p>
+</li>
+<li><p>httpd.conf中 “ScriptAlias /git/ /var/www/bin/gitolite-suexec-wrapper.sh/”</p>
+</li>
+</ul>
+<p>然后将testing.git克隆到桌面上或其他目录</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> ~/Desktop</span><br><span class="line">git <span class="built_in">clone</span> http://ip-address-of-git-server-OR-FQDN/git/testing.git</span><br></pre></td></tr></table></figure>
+
+<h3 id="管理-git-服务器的用户和用户组"><a href="#管理-git-服务器的用户和用户组" class="headerlink" title="管理 git 服务器的用户和用户组"></a>管理 git 服务器的用户和用户组</h3><p>为了管理 git 服务器的用户和用户组，你需要克隆 gitolite-admin 到你的pc上。<strong>注意，该PC必须是你在 Step A 和 Step B中使用的PC。</strong></p>
+<p>这里我将复制 gitolite-admin 到桌面。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> ~/Desktop</span><br><span class="line">git config --global user.name <span class="string">"Git-Admin"</span></span><br><span class="line">git config --global user.email <span class="string">"youremailid@example.com"</span></span><br><span class="line">git <span class="built_in">clone</span> git@GitServerIP-or-FQDN:gitolite-admin.git</span><br></pre></td></tr></table></figure>
+
+<p>通过配置 gitolite.conf 文件来管理访问 git 服务器的用户和用户组。<br>当你对 gitolite.conf 文件进行了如何修改，你都需要进行** git push **操作</p>
+<p>下面是我电脑的配置参考</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">sharad@mypc:~/Desktop/gitolite-admin/conf$ <span class="built_in">pwd</span></span><br><span class="line">/home/sharad/Desktop/gitolite-admin/conf</span><br><span class="line"></span><br><span class="line">sharad@sharad-sapplica:~/Desktop/gitolite-admin/conf$ cat gitolite.conf</span><br><span class="line"></span><br><span class="line">    repo gitolite-admin</span><br><span class="line">        RW+     =   Git-Admin</span><br><span class="line">   </span><br><span class="line">    repo testing</span><br><span class="line">        RW+     =   @all</span><br><span class="line">        R       =   git daemon</span><br><span class="line"></span><br><span class="line">sharad@mypc:~/Desktop/gitolite-admin/conf$</span><br></pre></td></tr></table></figure>
+
+<p>这里 R 和 W 的意义：</p>
+<ul>
+<li>R = Read</li>
+<li>W = Write</li>
+</ul>
+<p>现在将这些修改 push 到 git服务器上。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> ~/Desktop/gitolite-admin/conf</span><br><span class="line">ls -l gitolite.conf</span><br><span class="line"></span><br><span class="line">git add gitolite.conf</span><br><span class="line">git commit -m <span class="string">"first commit"</span></span><br><span class="line">git push origin master</span><br></pre></td></tr></table></figure>
+
+<h3 id="在-git-服务器中创建仓库"><a href="#在-git-服务器中创建仓库" class="headerlink" title="在 git 服务器中创建仓库"></a>在 git 服务器中创建仓库</h3><p>我们创建一个 “linux” 仓库</p>
+<ol>
+<li>以 root 方式登陆 git 服务器，然后切换到 git 用户</li>
+</ol>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">su -l git</span><br><span class="line"><span class="built_in">cd</span> repositories</span><br><span class="line">mkdir linux.git</span><br><span class="line"><span class="built_in">cd</span> linux.git</span><br><span class="line">git --bare init</span><br><span class="line">git update-server-info</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>Update projects.list 文件</li>
+</ol>
+<p>更新 projects.list 文件。在该文件中添加你刚刚新建的 git 仓库名。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vi /home/git/projects.list</span><br><span class="line">	</span><br><span class="line">	testing.git</span><br><span class="line">	linux.git</span><br></pre></td></tr></table></figure>
+
+
+<p>完成 update 操作后，你就可以在 gitWeb 上看到新的 repository 了。</p>
+<p>如下图所示</p>
+<p><img src="http://i.imgur.com/Cf8jJVi.jpg" alt="git_server"></p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><ol>
+<li>当 gitweb 出现 404 – No projects found 时，需要关闭 SElinux 。</li>
+</ol>
+<h3 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h3><p><a href="http://sharadchhetri.com/2013/06/01/how-to-install-own-git-server-with-ssh-and-http-access-by-using-gitolite-and-gitweb-in-centos/" target="_blank" rel="noopener">How to install own git server with ssh and http access by using gitolite and gitweb in CentOS</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/git/" rel="tag"># git</a>
+              <a href="/tags/git%E6%9C%8D%E5%8A%A1%E5%99%A8/" rel="tag"># git服务器</a>
+              <a href="/tags/gitolite/" rel="tag"># gitolite</a>
+              <a href="/tags/gitweb/" rel="tag"># gitweb</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2015/08/31/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/git/%E6%90%AD%E5%BB%BAgit%E6%9C%8D%E5%8A%A1%E5%99%A8/" rel="prev" title="从源代码安装git">
+      <i class="fa fa-chevron-left"></i> 从源代码安装git
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2015/09/02/mybatis/mybatis%E7%94%9F%E6%88%90%E5%99%A8/" rel="next" title="mybatis生成器">
+      mybatis生成器 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#准备"><span class="nav-number">1.</span> <span class="nav-text">准备</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#服务器配置"><span class="nav-number">1.1.</span> <span class="nav-text">服务器配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#摘要"><span class="nav-number">1.2.</span> <span class="nav-text">摘要:</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置本机PC，非git服务器"><span class="nav-number">2.</span> <span class="nav-text">配置本机PC，非git服务器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-A"><span class="nav-number">2.1.</span> <span class="nav-text">Step A:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-B"><span class="nav-number">2.2.</span> <span class="nav-text">Step B:</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置git服务器"><span class="nav-number">3.</span> <span class="nav-text">配置git服务器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-1"><span class="nav-number">3.1.</span> <span class="nav-text">Step 1:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-2"><span class="nav-number">3.2.</span> <span class="nav-text">Step 2:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step3"><span class="nav-number">3.3.</span> <span class="nav-text">Step3:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-4"><span class="nav-number">3.4.</span> <span class="nav-text">Step 4:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-5"><span class="nav-number">3.5.</span> <span class="nav-text">Step 5:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-6"><span class="nav-number">3.6.</span> <span class="nav-text">Step 6:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-7"><span class="nav-number">3.7.</span> <span class="nav-text">Step 7:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-8"><span class="nav-number">3.8.</span> <span class="nav-text">Step 8:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-9"><span class="nav-number">3.9.</span> <span class="nav-text">Step 9:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-10"><span class="nav-number">3.10.</span> <span class="nav-text">Step 10:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-11"><span class="nav-number">3.11.</span> <span class="nav-text">Step 11:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-12"><span class="nav-number">3.12.</span> <span class="nav-text">Step 12:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-13"><span class="nav-number">3.13.</span> <span class="nav-text">Step 13:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-14"><span class="nav-number">3.14.</span> <span class="nav-text">Step 14:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-15"><span class="nav-number">3.15.</span> <span class="nav-text">Step 15:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-16"><span class="nav-number">3.16.</span> <span class="nav-text">Step 16:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-17"><span class="nav-number">3.17.</span> <span class="nav-text">Step 17:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Step-18"><span class="nav-number">3.18.</span> <span class="nav-text">Step 18:</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#使用-git-服务器"><span class="nav-number">4.</span> <span class="nav-text">使用 git 服务器</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#GitWeb-webpage"><span class="nav-number">4.1.</span> <span class="nav-text">GitWeb webpage</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#以-http方式-克隆仓库"><span class="nav-number">4.2.</span> <span class="nav-text">以 http方式 克隆仓库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#管理-git-服务器的用户和用户组"><span class="nav-number">4.3.</span> <span class="nav-text">管理 git 服务器的用户和用户组</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#在-git-服务器中创建仓库"><span class="nav-number">4.4.</span> <span class="nav-text">在 git 服务器中创建仓库</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#小结"><span class="nav-number">5.</span> <span class="nav-text">小结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#参考"><span class="nav-number">5.1.</span> <span class="nav-text">参考</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2015/09/01/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/git/%E6%90%AD%E5%BB%BAgit%E6%9C%8D%E5%8A%A1%E5%99%A8(2)/",
+            identifier: "2015/09/01/1开发软件/git/搭建git服务器(2)/",
+            title: "搭建git服务器-http访问"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

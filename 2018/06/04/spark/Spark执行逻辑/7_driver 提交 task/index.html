@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="概要本篇博客是Spark 任务调度概述详细流程中的第七部分，介绍Driver发送task到Executor的过程。 执行用户编写代码Spark 任务调度之Register App中介绍了Driver中初始化SparkContext对象及注册APP的流程，SparkContext初始化完毕后，执行用户编写代码，仍以SparkPi为例，如下  1234567891011121314151617obje">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spark7-driver提交task">
+<meta property="og:url" content="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/7_driver%20%E6%8F%90%E4%BA%A4%20task/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="概要本篇博客是Spark 任务调度概述详细流程中的第七部分，介绍Driver发送task到Executor的过程。 执行用户编写代码Spark 任务调度之Register App中介绍了Driver中初始化SparkContext对象及注册APP的流程，SparkContext初始化完毕后，执行用户编写代码，仍以SparkPi为例，如下  1234567891011121314151617obje">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/7_driver%20%E6%8F%90%E4%BA%A4%20task/7_driver%E6%8F%90%E4%BA%A4task/SouthEast.png">
+<meta property="article:published_time" content="2018-06-04T15:22:07.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.859Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="spark">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/7_driver%20%E6%8F%90%E4%BA%A4%20task/7_driver%E6%8F%90%E4%BA%A4task/SouthEast.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/7_driver%20%E6%8F%90%E4%BA%A4%20task/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>spark7-driver提交task | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/7_driver%20%E6%8F%90%E4%BA%A4%20task/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          spark7-driver提交task
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-04 23:22:07" itemprop="dateCreated datePublished" datetime="2018-06-04T23:22:07+08:00">2018-06-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/" itemprop="url" rel="index">
+                    <span itemprop="name">spark</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index">
+                    <span itemprop="name">源码解析</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/7_driver%20%E6%8F%90%E4%BA%A4%20task/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/06/04/spark/Spark执行逻辑/7_driver 提交 task/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="概要"><a href="#概要" class="headerlink" title="概要"></a>概要</h1><p>本篇博客是<a href="http://blog.csdn.net/u011564172/article/details/65653617" target="_blank" rel="noopener">Spark 任务调度概述</a>详细流程中的第七部分，介绍Driver发送task到Executor的过程。</p>
+<h1 id="执行用户编写代码"><a href="#执行用户编写代码" class="headerlink" title="执行用户编写代码"></a>执行用户编写代码</h1><p><a href="http://blog.csdn.net/u011564172/article/details/69062339" target="_blank" rel="noopener">Spark 任务调度之Register App</a>中介绍了Driver中初始化SparkContext对象及注册APP的流程，SparkContext初始化完毕后，执行用户编写代码，仍以SparkPi为例，如下 </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">object</span> <span class="title">SparkPi</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">def</span> <span class="title">main</span></span>(args: <span class="type">Array</span>[<span class="type">String</span>]) &#123;</span><br><span class="line">    <span class="keyword">val</span> spark = <span class="type">SparkSession</span></span><br><span class="line">      .builder</span><br><span class="line">      .appName(<span class="string">"Spark Pi"</span>)</span><br><span class="line">      .getOrCreate()</span><br><span class="line">    <span class="keyword">val</span> slices = <span class="keyword">if</span> (args.length &gt; <span class="number">0</span>) args(<span class="number">0</span>).toInt <span class="keyword">else</span> <span class="number">2</span></span><br><span class="line">    <span class="keyword">val</span> n = math.min(<span class="number">100000</span>L * slices, <span class="type">Int</span>.<span class="type">MaxValue</span>).toInt <span class="comment">// avoid overflow</span></span><br><span class="line">    <span class="keyword">val</span> count = spark.sparkContext.parallelize(<span class="number">1</span> until n, slices).map &#123; i =&gt;</span><br><span class="line">      <span class="keyword">val</span> x = random * <span class="number">2</span> - <span class="number">1</span></span><br><span class="line">      <span class="keyword">val</span> y = random * <span class="number">2</span> - <span class="number">1</span></span><br><span class="line">      <span class="keyword">if</span> (x*x + y*y &lt;= <span class="number">1</span>) <span class="number">1</span> <span class="keyword">else</span> <span class="number">0</span></span><br><span class="line">    &#125;.reduce(_ + _)</span><br><span class="line">    println(<span class="string">s"Pi is roughly <span class="subst">$&#123;4.0 * count / (n - 1)&#125;</span>"</span>)</span><br><span class="line">    spark.stop()</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>如上图，SparkPi中调用RDD的<strong>reduce</strong>，reduce中<br>调用SparkContext.runJob方法提交任务，SparkContext.runJob方法调用DAGScheduler.runJob方法，如下</p>
+ <figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">reduce</span></span>(f: (<span class="type">T</span>, <span class="type">T</span>) =&gt; <span class="type">T</span>): <span class="type">T</span> = withScope &#123;</span><br><span class="line">   <span class="keyword">val</span> cleanF = sc.clean(f)</span><br><span class="line">   <span class="keyword">val</span> reducePartition: <span class="type">Iterator</span>[<span class="type">T</span>] =&gt; <span class="type">Option</span>[<span class="type">T</span>] = iter =&gt; &#123;</span><br><span class="line">     <span class="keyword">if</span> (iter.hasNext) &#123;</span><br><span class="line">       <span class="type">Some</span>(iter.reduceLeft(cleanF))</span><br><span class="line">     &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">       <span class="type">None</span></span><br><span class="line">     &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   <span class="keyword">var</span> jobResult: <span class="type">Option</span>[<span class="type">T</span>] = <span class="type">None</span></span><br><span class="line">   <span class="keyword">val</span> mergeResult = (index: <span class="type">Int</span>, taskResult: <span class="type">Option</span>[<span class="type">T</span>]) =&gt; &#123;</span><br><span class="line">     <span class="keyword">if</span> (taskResult.isDefined) &#123;</span><br><span class="line">       jobResult = jobResult <span class="keyword">match</span> &#123;</span><br><span class="line">         <span class="keyword">case</span> <span class="type">Some</span>(value) =&gt; <span class="type">Some</span>(f(value, taskResult.get))</span><br><span class="line">         <span class="keyword">case</span> <span class="type">None</span> =&gt; taskResult</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;</span><br><span class="line">   &#125;</span><br><span class="line">   sc.runJob(<span class="keyword">this</span>, reducePartition, mergeResult)</span><br><span class="line">   <span class="comment">// Get the final result out of our Option, or throw an exception if the RDD was empty</span></span><br><span class="line">   jobResult.getOrElse(<span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">UnsupportedOperationException</span>(<span class="string">"empty collection"</span>))</span><br><span class="line"> &#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">runJob</span></span>[<span class="type">T</span>, <span class="type">U</span>: <span class="type">ClassTag</span>](</span><br><span class="line">      rdd: <span class="type">RDD</span>[<span class="type">T</span>],</span><br><span class="line">      func: (<span class="type">TaskContext</span>, <span class="type">Iterator</span>[<span class="type">T</span>]) =&gt; <span class="type">U</span>,</span><br><span class="line">      partitions: <span class="type">Seq</span>[<span class="type">Int</span>],</span><br><span class="line">      resultHandler: (<span class="type">Int</span>, <span class="type">U</span>) =&gt; <span class="type">Unit</span>): <span class="type">Unit</span> = &#123;</span><br><span class="line">    <span class="keyword">if</span> (stopped.get()) &#123;</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> <span class="type">IllegalStateException</span>(<span class="string">"SparkContext has been shutdown"</span>)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">val</span> callSite = getCallSite</span><br><span class="line">    <span class="keyword">val</span> cleanedFunc = clean(func)</span><br><span class="line">    logInfo(<span class="string">"Starting job: "</span> + callSite.shortForm)</span><br><span class="line">    <span class="keyword">if</span> (conf.getBoolean(<span class="string">"spark.logLineage"</span>, <span class="literal">false</span>)) &#123;</span><br><span class="line">      logInfo(<span class="string">"RDD's recursive dependencies:\n"</span> + rdd.toDebugString)</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//生成task并提交</span></span><br><span class="line">    dagScheduler.runJob(rdd, cleanedFunc, partitions, callSite, resultHandler, localProperties.get)</span><br><span class="line">    progressBar.foreach(_.finishAll())</span><br><span class="line">    rdd.doCheckpoint()</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h1 id="DAGScheduler生成task"><a href="#DAGScheduler生成task" class="headerlink" title="DAGScheduler生成task"></a>DAGScheduler生成task</h1><p>DAGScheduler中，根据rdd的<a href="http://blog.csdn.net/u011564172/article/details/54312200" target="_blank" rel="noopener">Dependency</a>生成stage，stage分为ShuffleMapStage和ResultStage两种类型，根据stage类型生成对应的task，分别是ShuffleMapTask、ResultTask，最后调用TaskScheduler提交任务</p>
+<h1 id="TaskScheduler提交task"><a href="#TaskScheduler提交task" class="headerlink" title="TaskScheduler提交task"></a>TaskScheduler提交task</h1><p>TaskScheduler中使用<strong>TaskSetManager</strong>管理TaskSet，submitTasks方法最终调用<strong>CoarseGrainedSchedulerBackend</strong>的launchTasks方法将task发送到Executor，如下 </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">launchTasks</span></span>(tasks: <span class="type">Seq</span>[<span class="type">Seq</span>[<span class="type">TaskDescription</span>]]) &#123;</span><br><span class="line">      <span class="keyword">for</span> (task &lt;- tasks.flatten) &#123;</span><br><span class="line">        <span class="keyword">val</span> serializedTask = <span class="type">TaskDescription</span>.encode(task)</span><br><span class="line">        <span class="keyword">if</span> (serializedTask.limit() &gt;= maxRpcMessageSize) &#123;</span><br><span class="line">          scheduler.taskIdToTaskSetManager.get(task.taskId).foreach &#123; taskSetMgr =&gt;</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">              <span class="keyword">var</span> msg = <span class="string">"Serialized task %s:%d was %d bytes, which exceeds max allowed: "</span> +</span><br><span class="line">                <span class="string">"spark.rpc.message.maxSize (%d bytes). Consider increasing "</span> +</span><br><span class="line">                <span class="string">"spark.rpc.message.maxSize or using broadcast variables for large values."</span></span><br><span class="line">              msg = msg.format(task.taskId, task.index, serializedTask.limit(), maxRpcMessageSize)</span><br><span class="line">              taskSetMgr.abort(msg)</span><br><span class="line">            &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">              <span class="keyword">case</span> e: <span class="type">Exception</span> =&gt; logError(<span class="string">"Exception in error callback"</span>, e)</span><br><span class="line">            &#125;</span><br><span class="line">          &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> &#123;</span><br><span class="line">          <span class="comment">// executorDataMap 保存Executor的连接方式</span></span><br><span class="line">          <span class="keyword">val</span> executorData = executorDataMap(task.executorId)</span><br><span class="line">          executorData.freeCores -= scheduler.<span class="type">CPUS_PER_TASK</span></span><br><span class="line"></span><br><span class="line">          logDebug(<span class="string">s"Launching task <span class="subst">$&#123;task.taskId&#125;</span> on executor id: <span class="subst">$&#123;task.executorId&#125;</span> hostname: "</span> +</span><br><span class="line">            <span class="string">s"<span class="subst">$&#123;executorData.executorHost&#125;</span>."</span>)</span><br><span class="line"></span><br><span class="line">          executorData.executorEndpoint.send(<span class="type">LaunchTask</span>(<span class="keyword">new</span> <span class="type">SerializableBuffer</span>(serializedTask)))</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>executorDataMap</strong>中保存了Executor的连接方式，关于Executor如何注册到<strong>executorDataMap</strong>中，参考<a href="http://blog.csdn.net/u011564172/article/details/69922241" target="_blank" rel="noopener">Spark 任务调度之创建Executor</a>。</p>
+<h1 id="Executor接收Task"><a href="#Executor接收Task" class="headerlink" title="Executor接收Task"></a>Executor接收Task</h1><p>Worker节点的<strong>CoarseGrainedExecutorBackend</strong>进程接收Driver发送的task，交给Executor对象处理，如下 </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> <span class="type">LaunchTask</span>(data) =&gt;</span><br><span class="line">    <span class="keyword">if</span> (executor == <span class="literal">null</span>) &#123;</span><br><span class="line">      exitExecutor(<span class="number">1</span>, <span class="string">"Received LaunchTask command but executor was null"</span>)</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">      <span class="keyword">val</span> taskDesc = <span class="type">TaskDescription</span>.decode(data.value)</span><br><span class="line">      logInfo(<span class="string">"Got assigned task "</span> + taskDesc.taskId)</span><br><span class="line">      executor.launchTask(<span class="keyword">this</span>, taskDesc)</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>Executor的创建过程请参考<a href="http://blog.csdn.net/u011564172/article/details/69922241" target="_blank" rel="noopener">Spark 任务调度之创建Executor</a>。</p>
+<p>至此从RDD的action开始，至Executor对象接收任务的流程就结束了。</p>
+<h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>介绍了从RDD的action开始，到Executor接收到task的流程，其中省略了DAG相关的部分，后续单独介绍，整理流程大致如下 </p>
+<p><img src="7_driver%E6%8F%90%E4%BA%A4task/SouthEast.png" alt="img"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spark/" rel="tag"># spark</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/6_%E5%88%9B%E5%BB%BAexecutor%E8%BF%87%E7%A8%8B/" rel="prev" title="spark6-创建executor 过程">
+      <i class="fa fa-chevron-left"></i> spark6-创建executor 过程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/8_Executor%20%E6%89%A7%E8%A1%8Ctask%E5%B9%B6%E8%BF%94%E5%9B%9E%E7%BB%93%E6%9E%9C/" rel="next" title="spark8-executor执行task比返回结果">
+      spark8-executor执行task比返回结果 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#概要"><span class="nav-number">1.</span> <span class="nav-text">概要</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#执行用户编写代码"><span class="nav-number">2.</span> <span class="nav-text">执行用户编写代码</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#DAGScheduler生成task"><span class="nav-number">3.</span> <span class="nav-text">DAGScheduler生成task</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#TaskScheduler提交task"><span class="nav-number">4.</span> <span class="nav-text">TaskScheduler提交task</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Executor接收Task"><span class="nav-number">5.</span> <span class="nav-text">Executor接收Task</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#总结"><span class="nav-number">6.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/7_driver%20%E6%8F%90%E4%BA%A4%20task/",
+            identifier: "2018/06/04/spark/Spark执行逻辑/7_driver 提交 task/",
+            title: "spark7-driver提交task"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

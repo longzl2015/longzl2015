@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="DevTools 为我们提供的支持 Spring Boot应用热部署的功能，无需手动重启Spring Boot应用，可以极大提高开发效率。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="springboot-热部署原理-转">
+<meta property="og:url" content="https://longzl2015.github.io/2019/10/14/spring/spring-boot/springboot-%E7%83%AD%E9%83%A8%E7%BD%B2%E5%8E%9F%E7%90%86-%E8%BD%AC/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="DevTools 为我们提供的支持 Spring Boot应用热部署的功能，无需手动重启Spring Boot应用，可以极大提高开发效率。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-10-14T01:00:06.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.880Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="springboot">
+<meta property="article:tag" content="热启动">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://longzl2015.github.io/2019/10/14/spring/spring-boot/springboot-%E7%83%AD%E9%83%A8%E7%BD%B2%E5%8E%9F%E7%90%86-%E8%BD%AC/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>springboot-热部署原理-转 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2019/10/14/spring/spring-boot/springboot-%E7%83%AD%E9%83%A8%E7%BD%B2%E5%8E%9F%E7%90%86-%E8%BD%AC/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          springboot-热部署原理-转
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-10-14 09:00:06" itemprop="dateCreated datePublished" datetime="2019-10-14T09:00:06+08:00">2019-10-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index">
+                    <span itemprop="name">spring</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/springboot/" itemprop="url" rel="index">
+                    <span itemprop="name">springboot</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2019/10/14/spring/spring-boot/springboot-%E7%83%AD%E9%83%A8%E7%BD%B2%E5%8E%9F%E7%90%86-%E8%BD%AC/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/10/14/spring/spring-boot/springboot-热部署原理-转/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>DevTools 为我们提供的支持 Spring Boot应用热部署的功能，无需手动重启Spring Boot应用，可以极大提高开发效率。</p>
+<a id="more"></a>
+
+<h2 id="如何使用"><a href="#如何使用" class="headerlink" title="如何使用"></a>如何使用</h2><p>使用很方便，在应用的pom.xml中增加依赖即可。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">dependencies</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.springframework.boot<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>spring-boot-devtools<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">optional</span>&gt;</span>true<span class="tag">&lt;/<span class="name">optional</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependencies</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>既然是 「Dev」Tool，开发的也比较机智，只在开发环境用，生产环境就自动停用了。判断生产环境的方便是是否通过 java -jar的方式启动，或者是「自定义的ClassLoader」。而且一般也推荐依赖的时候做为optional。<br>然后在项目中修改你的应用代码，你就会发现应用自动重新部署了。但是分明比你自己重新启动要快好多。</p>
+<h2 id="怎么做到的，为什么快"><a href="#怎么做到的，为什么快" class="headerlink" title="怎么做到的，为什么快?"></a>怎么做到的，为什么快?</h2><p>带着这个疑问，我们一起看下 DevTools的工作原理。</p>
+<p>在 SpringBoot 的主类 启动 SpringApplication 时，会产生一系列的事件，通过观察者模式，进行 multicastEvent ，这一系列事件会广播到各个Listener。<br>在增加 DevTools依赖后，这些 Listener 中，会有一个RestartApplicationListener。<br>它在事件通知时会干啥呢？</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">onApplicationStartingEvent</span><span class="params">(ApplicationStartingEvent event)</span> </span>&#123;</span><br><span class="line">    String enabled = System.getProperty(<span class="string">"spring.devtools.restart.enabled"</span>);</span><br><span class="line">    <span class="keyword">if</span>(enabled != <span class="keyword">null</span> &amp;&amp; !Boolean.parseBoolean(enabled)) &#123;</span><br><span class="line">        Restarter.disable();</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        String[] args = event.getArgs();</span><br><span class="line">        DefaultRestartInitializer initializer = <span class="keyword">new</span> DefaultRestartInitializer();</span><br><span class="line">        <span class="keyword">boolean</span> restartOnInitialize = !AgentReloader.isActive();</span><br><span class="line">        Restarter.initialize(args, <span class="keyword">false</span>, initializer, restartOnInitialize);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们看到，这里会初始化一个Restarter。初始化的时候，会使用到著名的「c双重锁检查」。</p>
+<p>下面的代码，就是初始化时的 DCL。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">initialize</span><span class="params">(String[] args, <span class="keyword">boolean</span> forceReferenceCleanup, RestartInitializer initializer, <span class="keyword">boolean</span> restartOnInitialize)</span> </span>&#123;</span><br><span class="line">    Restarter localInstance = <span class="keyword">null</span>;</span><br><span class="line">    Object var5 = INSTANCE_MONITOR;</span><br><span class="line">    <span class="keyword">synchronized</span>(INSTANCE_MONITOR) &#123;</span><br><span class="line">        <span class="keyword">if</span>(instance == <span class="keyword">null</span>) &#123;</span><br><span class="line">            localInstance = <span class="keyword">new</span> Restarter(Thread.currentThread(), args, forceReferenceCleanup, initializer);</span><br><span class="line">            instance = localInstance;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span>(localInstance != <span class="keyword">null</span>) &#123;</span><br><span class="line">        localInstance.initialize(restartOnInitialize);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>初始化时，会生成 Restarter 的实例，我们看，此时会保存下来一些关键信息，像主类名称，参数等等，请留意，这些是后面重启的要素。<br>除参数外，还有一个名为LeakSafeThread的重要「人物」以及加载类URL的分类。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="title">Restarter</span><span class="params">(Thread thread, String[] args, <span class="keyword">boolean</span> forceReferenceCleanup, RestartInitializer initializer)</span> </span>&#123;</span><br><span class="line">    SilentExitExceptionHandler.setup(thread);</span><br><span class="line">    <span class="keyword">this</span>.forceReferenceCleanup = forceReferenceCleanup;</span><br><span class="line">    <span class="keyword">this</span>.initialUrls = initializer.getInitialUrls(thread);</span><br><span class="line">    <span class="keyword">this</span>.mainClassName = <span class="keyword">this</span>.getMainClassName(thread);</span><br><span class="line">    <span class="keyword">this</span>.applicationClassLoader = thread.getContextClassLoader();</span><br><span class="line">    <span class="keyword">this</span>.args = args;</span><br><span class="line">    <span class="keyword">this</span>.exceptionHandler = thread.getUncaughtExceptionHandler();</span><br><span class="line">    <span class="keyword">this</span>.leakSafeThreads.add(<span class="keyword">new</span> Restarter.LeakSafeThread());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先，类的加载我们都知道，是通过类加载完成的。类加载去哪里加载类呢？当然是在我们启动时指定的类路径上。为了完成应用的快速启动， DevTools的巧妙之外在于，这里将第三方类库的类和用户自定义的类做了区分。<br>这里的initialUrls，就是做这个的，他会根据路径判断，将用户自定义类的URL选出来。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="title">ChangeableUrls</span><span class="params">(URL... urls)</span> </span>&#123;</span><br><span class="line">    DevToolsSettings settings = DevToolsSettings.get();</span><br><span class="line">    List&lt;URL&gt; reloadableUrls = <span class="keyword">new</span> ArrayList(urls.length);</span><br><span class="line">    URL[] var4 = urls;</span><br><span class="line">    <span class="keyword">int</span> var5 = urls.length;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">for</span>(<span class="keyword">int</span> var6 = <span class="number">0</span>; var6 &lt; var5; ++var6) &#123;</span><br><span class="line">        URL url = var4[var6];</span><br><span class="line">        <span class="keyword">if</span>((settings.isRestartInclude(url) || <span class="keyword">this</span>.isFolderUrl(url.toString())) &amp;&amp; !settings.isRestartExclude(url)) &#123;</span><br><span class="line">            reloadableUrls.add(url);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span>(logger.isDebugEnabled()) &#123;</span><br><span class="line">        logger.debug(<span class="string">"Matching URLs for reloading : "</span> + reloadableUrls);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">this</span>.urls = Collections.unmodifiableList(reloadableUrls);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码是从整个项目的加载类路径中找到我们自己的类，也就是非第三方类库，因为这些第<br>三方的库是不会变的，我们所改的都是自己项目的内容。</p>
+<p>然后这里呢，会添加这样一个Thread</p>
+<blockquote>
+<p>this.leakSafeThreads.add(new Restarter.LeakSafeThread());</p>
+</blockquote>
+<p>这个leakSafeThread是做啥的呢？</p>
+<p>这是 Restarter 的一个内部类</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="class"><span class="keyword">class</span> <span class="title">LeakSafeThread</span> <span class="keyword">extends</span> <span class="title">Thread</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Callable&lt;?&gt; callable;</span><br><span class="line">    <span class="keyword">private</span> Object result;</span><br><span class="line"></span><br><span class="line">    LeakSafeThread() &#123;</span><br><span class="line">        <span class="keyword">this</span>.setDaemon(<span class="keyword">false</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">call</span><span class="params">(Callable&lt;?&gt; callable)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.callable = callable;</span><br><span class="line">        <span class="keyword">this</span>.start();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> &lt;V&gt; <span class="function">V <span class="title">callAndWait</span><span class="params">(Callable&lt;V&gt; callable)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.callable = callable;</span><br><span class="line">        <span class="keyword">this</span>.start(); <span class="comment">// 这里把线程自己给启动起来</span></span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="keyword">this</span>.join();</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">this</span>.result;</span><br><span class="line">        &#125; <span class="keyword">catch</span> (InterruptedException var3) &#123;</span><br><span class="line">            Thread.currentThread().interrupt();</span><br><span class="line">            <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(var3);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            Restarter.<span class="keyword">this</span>.leakSafeThreads.put(Restarter.<span class="keyword">this</span>.<span class="keyword">new</span> LeakSafeThread());</span><br><span class="line">            <span class="keyword">this</span>.result = <span class="keyword">this</span>.callable.call();</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception var2) &#123;</span><br><span class="line">            var2.printStackTrace();</span><br><span class="line">            System.exit(<span class="number">1</span>);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>那这个线程是什么时候被启动的呢？看一眼前面的初始化内容</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">if</span>(localInstance != <span class="keyword">null</span>) &#123;</span><br><span class="line">        localInstance.initialize(restartOnInitialize);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">initialize</span><span class="params">(<span class="keyword">boolean</span> restartOnInitialize)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.preInitializeLeakyClasses();</span><br><span class="line">    <span class="keyword">if</span>(<span class="keyword">this</span>.initialUrls != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">this</span>.urls.addAll(Arrays.asList(<span class="keyword">this</span>.initialUrls));</span><br><span class="line">        <span class="keyword">if</span>(restartOnInitialize) &#123;</span><br><span class="line">            <span class="keyword">this</span>.logger.debug(<span class="string">"Immediately restarting application"</span>);</span><br><span class="line">            <span class="keyword">this</span>.immediateRestart();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>看，这就和LeakSafeThread串起来了。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">immediateRestart</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        <span class="keyword">this</span>.getLeakSafeThread().callAndWait(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">this</span>.start(FailureHandler.NONE);</span><br><span class="line">            <span class="keyword">this</span>.cleanupCaches();</span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125; <span class="keyword">catch</span> (Exception var2) &#123;      </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">start</span><span class="params">(FailureHandler failureHandler)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    Throwable error;</span><br><span class="line">    <span class="keyword">do</span> &#123;</span><br><span class="line">        error = <span class="keyword">this</span>.doStart();</span><br><span class="line">        <span class="keyword">if</span>(error == <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">while</span>(failureHandler.handle(error) != Outcome.ABORT);</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> Throwable <span class="title">doStart</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    URL[] urls = (URL[])<span class="keyword">this</span>.urls.toArray(<span class="keyword">new</span> URL[<span class="number">0</span>]);</span><br><span class="line">    ClassLoaderFiles updatedFiles = <span class="keyword">new</span> ClassLoaderFiles(<span class="keyword">this</span>.classLoaderFiles);</span><br><span class="line">    ClassLoader classLoader = <span class="keyword">new</span> RestartClassLoader(<span class="keyword">this</span>.applicationClassLoader, urls, updatedFiles, <span class="keyword">this</span>.logger);</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.relaunch(classLoader);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>重点来了，这里加入了一个新的人物：RestartClassLoader</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> Throwable <span class="title">relaunch</span><span class="params">(ClassLoader classLoader)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    RestartLauncher launcher = <span class="keyword">new</span> RestartLauncher(classLoader, <span class="keyword">this</span>.mainClassName, <span class="keyword">this</span>.args, <span class="keyword">this</span>.exceptionHandler);</span><br><span class="line">    launcher.start();</span><br><span class="line">    launcher.join();</span><br><span class="line">    <span class="keyword">return</span> launcher.getError();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">RestartLauncher</span> <span class="keyword">extends</span> <span class="title">Thread</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> String mainClassName;</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> String[] args;</span><br><span class="line">    <span class="keyword">private</span> Throwable error;</span><br><span class="line">    RestartLauncher(ClassLoader classLoader, String mainClassName, String[] args, UncaughtExceptionHandler exceptionHandler) &#123;</span><br><span class="line">        <span class="keyword">this</span>.mainClassName = mainClassName;</span><br><span class="line">        <span class="keyword">this</span>.args = args;</span><br><span class="line">        <span class="keyword">this</span>.setName(<span class="string">"restartedMain"</span>);</span><br><span class="line">        <span class="keyword">this</span>.setUncaughtExceptionHandler(exceptionHandler);</span><br><span class="line">        <span class="keyword">this</span>.setDaemon(<span class="keyword">false</span>);</span><br><span class="line">        <span class="keyword">this</span>.setContextClassLoader(classLoader);</span><br><span class="line">    &#125;   </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这也是个新的线程，我们看到前面 Restarter 里记下来了MainClass的名字，参数</p>
+<p>这里搞了一个新的ClassLoader，然后后面我想你也猜到了</p>
+<blockquote>
+<p>反射。</p>
+</blockquote>
+<p>看一眼具体的调用栈：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">&quot;restartedMain@2014&quot; prio&#x3D;5 tid&#x3D;0xe nid&#x3D;NA runnable</span><br><span class="line">  java.lang.Thread.State: RUNNABLE</span><br><span class="line">      at org.springframework.boot.devtools.restart.classloader.RestartClassLoader.getResources(RestartClassLoader.java:93)</span><br><span class="line">      at org.springframework.core.io.support.SpringFactoriesLoader.loadSpringFactories(SpringFactoriesLoader.java:130)</span><br><span class="line">      at org.springframework.core.io.support.SpringFactoriesLoader.loadFactoryNames(SpringFactoriesLoader.java:119)</span><br><span class="line">      at org.springframework.boot.SpringApplication.getSpringFactoriesInstances(SpringApplication.java:429)</span><br><span class="line">      at org.springframework.boot.SpringApplication.getSpringFactoriesInstances(SpringApplication.java:421)</span><br><span class="line">      at org.springframework.boot.SpringApplication.&lt;init&gt;(SpringApplication.java:268)</span><br><span class="line">      at org.springframework.boot.SpringApplication.&lt;init&gt;(SpringApplication.java:249)</span><br><span class="line">      at org.springframework.boot.SpringApplication.run(SpringApplication.java:1258)</span><br><span class="line">      at org.springframework.boot.SpringApplication.run(SpringApplication.java:1246)</span><br><span class="line">      at com.finecity.RabbitApplication.main(RabbitApplication.java:21)</span><br><span class="line">      at sun.reflect.NativeMethodAccessorImpl.invoke0(NativeMethodAccessorImpl.java:-1)</span><br><span class="line">      at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)</span><br><span class="line">      at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)</span><br><span class="line">      at java.lang.reflect.Method.invoke(Method.java:498)</span><br><span class="line">      at org.springframework.boot.devtools.restart.RestartLauncher.run(RestartLauncher.java:49)</span><br><span class="line"></span><br><span class="line">Class&lt;?&gt; mainClass &#x3D; this.getContextClassLoader().loadClass(this.mainClassName);</span><br><span class="line">Method mainMethod &#x3D; mainClass.getDeclaredMethod(&quot;main&quot;, new Class[]&#123;String[].class&#125;);</span><br><span class="line">mainMethod.invoke((Object)null, new Object[]&#123;this.args&#125;);</span><br></pre></td></tr></table></figure>
+
+
+<p>整体的启动不久就完成了，和我们加 DevTools之前的区别是，这里的线程是restartedMain，他已经接管了我们的启动。</p>
+<h2 id="重部署呢"><a href="#重部署呢" class="headerlink" title="重部署呢?"></a>重部署呢?</h2><p>那我们对于代码的变更，又是怎样作用到Thread上的呢？修改一个自己的业务代码，你会发现，原来是本地启动了一个File Watcher，看看这个调用栈：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">&quot;File Watcher@7244&quot; daemon prio&#x3D;5 tid&#x3D;0x1a nid&#x3D;NA runnable</span><br><span class="line">  java.lang.Thread.State: RUNNABLE</span><br><span class="line">      at org.springframework.boot.devtools.restart.Restarter$LeakSafeThread.call(Restarter.java:612)</span><br><span class="line">      at org.springframework.boot.devtools.restart.Restarter.restart(Restarter.java:251)</span><br><span class="line">      at org.springframework.boot.devtools.autoconfigure.LocalDevToolsAutoConfiguration$RestartConfiguration.onClassPathChanged(LocalDevToolsAutoConfiguration.java:108)</span><br><span class="line">      at sun.reflect.NativeMethodAccessorImpl.invoke0(NativeMethodAccessorImpl.java:-1)</span><br><span class="line">      at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)</span><br><span class="line">      at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)</span><br><span class="line">      at java.lang.reflect.Method.invoke(Method.java:498)</span><br><span class="line">      at org.springframework.context.event.ApplicationListenerMethodAdapter.doInvoke(ApplicationListenerMethodAdapter.java:261)</span><br><span class="line">      at org.springframework.context.event.ApplicationListenerMethodAdapter.processEvent(ApplicationListenerMethodAdapter.java:180)</span><br><span class="line">      at org.springframework.context.event.ApplicationListenerMethodAdapter.onApplicationEvent(ApplicationListenerMethodAdapter.java:142)</span><br><span class="line">      at org.springframework.context.event.SimpleApplicationEventMulticaster.doInvokeListener(SimpleApplicationEventMulticaster.java:172)</span><br><span class="line">      at org.springframework.context.event.SimpleApplicationEventMulticaster.invokeListener(SimpleApplicationEventMulticaster.java:165)</span><br><span class="line">      at org.springframework.context.event.SimpleApplicationEventMulticaster.multicastEvent(SimpleApplicationEventMulticaster.java:139)</span><br><span class="line">      at org.springframework.context.support.AbstractApplicationContext.publishEvent(AbstractApplicationContext.java:400)</span><br><span class="line">      at org.springframework.context.support.AbstractApplicationContext.publishEvent(AbstractApplicationContext.java:354)</span><br><span class="line">      at org.springframework.boot.devtools.classpath.ClassPathFileChangeListener.publishEvent(ClassPathFileChangeListener.java:68)</span><br><span class="line">      at org.springframework.boot.devtools.classpath.ClassPathFileChangeListener.onChange(ClassPathFileChangeListener.java:64)</span><br><span class="line">      at org.springframework.boot.devtools.filewatch.FileSystemWatcher$Watcher.fireListeners(FileSystemWatcher.java:309)</span><br><span class="line">      at org.springframework.boot.devtools.filewatch.FileSystemWatcher$Watcher.updateSnapshots(FileSystemWatcher.java:302)</span><br><span class="line">      at org.springframework.boot.devtools.filewatch.FileSystemWatcher$Watcher.scan(FileSystemWatcher.java:262)</span><br><span class="line">      at org.springframework.boot.devtools.filewatch.FileSystemWatcher$Watcher.run(FileSystemWatcher.java:242)</span><br><span class="line">      at java.lang.Thread.run(Thread.java:748)</span><br></pre></td></tr></table></figure>
+
+<p>此时，会调用到Restarter的 restart方法上</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">restart</span><span class="params">(FailureHandler failureHandler)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span>(!<span class="keyword">this</span>.enabled) &#123;</span><br><span class="line">        <span class="keyword">this</span>.logger.debug(<span class="string">"Application restart is disabled"</span>);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">this</span>.logger.debug(<span class="string">"Restarting application"</span>);</span><br><span class="line">        <span class="keyword">this</span>.getLeakSafeThread().call(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">this</span>.stop();  <span class="comment">// 第一步</span></span><br><span class="line">            <span class="keyword">this</span>.start(failureHandler); <span class="comment">// 第二步</span></span><br><span class="line">            <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>具体的restart，是先stop，再start，start的过程又和我们前面启动时一样。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">stop</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    <span class="keyword">this</span>.logger.debug(<span class="string">"Stopping application"</span>);</span><br><span class="line">    <span class="keyword">this</span>.stopLock.lock();</span><br><span class="line"></span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">        Iterator var1 = <span class="keyword">this</span>.rootContexts.iterator();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span>(<span class="keyword">true</span>) &#123;</span><br><span class="line">            <span class="keyword">if</span>(!var1.hasNext()) &#123;</span><br><span class="line">                <span class="keyword">this</span>.cleanupCaches();</span><br><span class="line">                <span class="keyword">if</span>(<span class="keyword">this</span>.forceReferenceCleanup) &#123;</span><br><span class="line">                    <span class="keyword">this</span>.forceReferenceCleanup();</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            ConfigurableApplicationContext context = (ConfigurableApplicationContext)var1.next();</span><br><span class="line">            context.close();</span><br><span class="line">            <span class="keyword">this</span>.rootContexts.remove(context);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">        <span class="keyword">this</span>.stopLock.unlock();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    System.gc();</span><br><span class="line">    System.runFinalization();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> Throwable <span class="title">doStart</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">    Assert.notNull(<span class="keyword">this</span>.mainClassName, <span class="string">"Unable to find the main class to restart"</span>);</span><br><span class="line">    URL[] urls = (URL[])<span class="keyword">this</span>.urls.toArray(<span class="keyword">new</span> URL[<span class="number">0</span>]);</span><br><span class="line">    ClassLoaderFiles updatedFiles = <span class="keyword">new</span> ClassLoaderFiles(<span class="keyword">this</span>.classLoaderFiles);</span><br><span class="line">    ClassLoader classLoader = <span class="keyword">new</span> RestartClassLoader(<span class="keyword">this</span>.applicationClassLoader, urls, updatedFiles, <span class="keyword">this</span>.logger);</span><br><span class="line">    <span class="keyword">if</span>(<span class="keyword">this</span>.logger.isDebugEnabled()) &#123;</span><br><span class="line">        <span class="keyword">this</span>.logger.debug(<span class="string">"Starting application "</span> + <span class="keyword">this</span>.mainClassName + <span class="string">" with URLs "</span> + Arrays.asList(urls));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">this</span>.relaunch(classLoader);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>整体来说，DevTools能快速热部署，主要在于ClassLoader做了区分，一个加载第三方类，另一个称为RestartClassLoader的加载用户类,这样在有代码更改的时候，原来的ClassLoader 会被清除，进行gc，重新创建一个RestartClassLoader，由于需要加载的类相比较少，所以重启很快。</p>
+<h2 id="原文地址"><a href="#原文地址" class="headerlink" title="原文地址"></a>原文地址</h2><p><a href="https://www.javazhiyin.com/27485.html" target="_blank" rel="noopener">https://www.javazhiyin.com/27485.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/springboot/" rel="tag"># springboot</a>
+              <a href="/tags/%E7%83%AD%E5%90%AF%E5%8A%A8/" rel="tag"># 热启动</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/10/14/spring/spring-core/spring-5-i18n/" rel="prev" title="spring-5-i18n">
+      <i class="fa fa-chevron-left"></i> spring-5-i18n
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/10/14/spring/spring-boot/springboot-9-%E4%BA%8B%E5%8A%A1%E7%AE%A1%E7%90%86/" rel="next" title="springboot-9-事务管理">
+      springboot-9-事务管理 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#如何使用"><span class="nav-number">1.</span> <span class="nav-text">如何使用</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#怎么做到的，为什么快"><span class="nav-number">2.</span> <span class="nav-text">怎么做到的，为什么快?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#重部署呢"><span class="nav-number">3.</span> <span class="nav-text">重部署呢?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">4.</span> <span class="nav-text">总结</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#原文地址"><span class="nav-number">5.</span> <span class="nav-text">原文地址</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2019/10/14/spring/spring-boot/springboot-%E7%83%AD%E9%83%A8%E7%BD%B2%E5%8E%9F%E7%90%86-%E8%BD%AC/",
+            identifier: "2019/10/14/spring/spring-boot/springboot-热部署原理-转/",
+            title: "springboot-热部署原理-转"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

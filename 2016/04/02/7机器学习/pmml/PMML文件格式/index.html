@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="PMML简介PMML全称预言模型标记模型（Predictive Model Markup Language），以XML 为载体呈现数据挖掘模型。PMML 允许您在不同的应用程序之间轻松共享预测分析模型。因此，您可以在一个系统中定型一个模型，在 PMML 中对其进行表达，然后将其移动到另一个系统中，而不需考虑分析和预测过程中的具体实现细节。使得模型的部署摆脱了模型开发和产品整合的束缚。 PMML标准">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PMML 标准化(转)">
+<meta property="og:url" content="https://longzl2015.github.io/2016/04/02/7%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/pmml/PMML%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="PMML简介PMML全称预言模型标记模型（Predictive Model Markup Language），以XML 为载体呈现数据挖掘模型。PMML 允许您在不同的应用程序之间轻松共享预测分析模型。因此，您可以在一个系统中定型一个模型，在 PMML 中对其进行表达，然后将其移动到另一个系统中，而不需考虑分析和预测过程中的具体实现细节。使得模型的部署摆脱了模型开发和产品整合的束缚。 PMML标准">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://www.ibm.com/developerworks/cn/opensource/ind-PMML1/image001.gif">
+<meta property="article:published_time" content="2016-04-02T08:03:07.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.792Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="pmml">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.ibm.com/developerworks/cn/opensource/ind-PMML1/image001.gif">
+
+<link rel="canonical" href="https://longzl2015.github.io/2016/04/02/7%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/pmml/PMML%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>PMML 标准化(转) | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2016/04/02/7%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/pmml/PMML%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          PMML 标准化(转)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2016-04-02 16:03:07" itemprop="dateCreated datePublished" datetime="2016-04-02T16:03:07+08:00">2016-04-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/" itemprop="url" rel="index">
+                    <span itemprop="name">机器学习</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/pmml/" itemprop="url" rel="index">
+                    <span itemprop="name">pmml</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2016/04/02/7%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/pmml/PMML%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2016/04/02/7机器学习/pmml/PMML文件格式/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="PMML简介"><a href="#PMML简介" class="headerlink" title="PMML简介"></a>PMML简介</h2><p>PMML全称预言模型标记模型（Predictive Model Markup Language），以XML 为载体呈现数据挖掘模型。<br>PMML 允许您在不同的应用程序之间轻松共享预测分析模型。<br>因此，您可以在一个系统中定型一个模型，在 PMML 中对其进行表达，然后将其移动到另一个系统中，而不需考虑分析和预测过程中的具体实现细节。<br>使得模型的部署摆脱了模型开发和产品整合的束缚。</p>
+<h2 id="PMML标准"><a href="#PMML标准" class="headerlink" title="PMML标准"></a>PMML标准</h2><p>PMML 标准是数据挖掘过程的一个实例化标准，它按照数据挖掘任务执行过程，有序的定义了数据挖掘不同阶段的相关信息：<br><img src="https://www.ibm.com/developerworks/cn/opensource/ind-PMML1/image001.gif" alt="这里写图片描述"></p>
+<ul>
+<li>头信息  （Header）</li>
+<li>数据字典（DataDictionary）</li>
+<li>挖掘模式 (Mining Schema)</li>
+<li>数据转换（Transformations）</li>
+<li>模型定义 (Model Definition)</li>
+<li>评分结果 (Score Result)</li>
+</ul>
+<h3 id="头信息（Header）"><a href="#头信息（Header）" class="headerlink" title="头信息（Header）"></a>头信息（Header）</h3><p>PMML文件使用头信息作为开始，它主要用于记录产品、版权、模型描述，建模时间等描述性信息。例如：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">Header</span> <span class="attr">copyright</span>=<span class="string">"Copyright (c) 2017 liaotuo"</span> <span class="attr">description</span>=<span class="string">"Random Forest Tree Model"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Extension</span> <span class="attr">name</span>=<span class="string">"user"</span> <span class="attr">value</span>=<span class="string">"liaotuo"</span> <span class="attr">extender</span>=<span class="string">"Rattle/PMML"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Application</span> <span class="attr">name</span>=<span class="string">"Rattle/PMML"</span> <span class="attr">version</span>=<span class="string">"1.4"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">Timestamp</span>&gt;</span>2017-07-04 16:33:42<span class="tag">&lt;/<span class="name">Timestamp</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Header</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>其中：</p>
+<ul>
+<li>Header 是标识头信息部分的起始标记</li>
+<li>copyright 包含了所记录模型的版权信息</li>
+<li>description 包含可读的描述性信息</li>
+<li>Application 描述了生成本文件所含模型的软件产品。</li>
+<li>Timestamp 记录了模型创建的时间。</li>
+</ul>
+<h3 id="数据字典（DataDictionary）"><a href="#数据字典（DataDictionary）" class="headerlink" title="数据字典（DataDictionary）"></a>数据字典（DataDictionary）</h3><p>数据字典定义了所有变量的信息，包括<code>预测变量</code>和<code>目标变量</code>。这些信息包括变量名，量度和类型等。<br>对于分类变量，可能包含各种不同类型的分类值，包括有效值 (valid value)，遗漏值 (missing value) 和无效值 (invalid value)，<br>它们由 Value 的“property”属性决定；对于连续变量，可以指定一个或多个有效值范围 (Interval)。</p>
+<p>对于字段 <code>Age</code>，范围从0到 120 的值是有效值，不在0-120范围值被定义为无效值。<br>尽管在此没有显示，您可以使用 PMML 元素 <code>MiningSchema</code> 为无效值和遗漏值定义合适的处理方法。）</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"> <span class="tag">&lt;<span class="name">DataDictionary</span> <span class="attr">numberOfFields</span>=<span class="string">"7"</span>&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">dataType</span>=<span class="string">"double"</span> <span class="attr">displayName</span>=<span class="string">"Age"</span> <span class="attr">name</span>=<span class="string">"Age"</span> <span class="attr">optype</span>=<span class="string">"continuous"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">Interval</span> <span class="attr">leftMargin</span>=<span class="string">"0"</span> <span class="attr">rightMargin</span>=<span class="string">"120"</span> <span class="attr">closure</span>=<span class="string">"closedClosed"</span> /&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">displayName</span>=<span class="string">"Sex"</span> <span class="attr">name</span>=<span class="string">"Sex"</span> <span class="attr">optype</span>=<span class="string">"categorical"</span>&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"F"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"F"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"M"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"M"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;/<span class="name">DataField</span>&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">displayName</span>=<span class="string">"BP"</span> <span class="attr">name</span>=<span class="string">"BP"</span> <span class="attr">optype</span>=<span class="string">"categorical"</span>&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"HIGH"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"HIGH"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"LOW"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"LOW"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"NORMAL"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"NORMAL"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"ABNORMAL"</span> <span class="attr">property</span>=<span class="string">"invalid"</span> <span class="attr">value</span>=<span class="string">"ABNORMAL"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"MISSING"</span> <span class="attr">property</span>=<span class="string">"missing"</span> <span class="attr">value</span>=<span class="string">"MISSING"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;/<span class="name">DataField</span>&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">displayName</span>=<span class="string">"Cholesterol"</span> <span class="attr">name</span>=<span class="string">"Cholesterol"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">optype</span>=<span class="string">"categorical"</span>&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"HIGH"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"HIGH"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"NORMAL"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"NORMAL"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;/<span class="name">DataField</span>&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">dataType</span>=<span class="string">"double"</span> <span class="attr">displayName</span>=<span class="string">"Na"</span> <span class="attr">name</span>=<span class="string">"Na"</span> <span class="attr">optype</span>=<span class="string">"continuous"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">dataType</span>=<span class="string">"double"</span> <span class="attr">displayName</span>=<span class="string">"K"</span> <span class="attr">name</span>=<span class="string">"K"</span> <span class="attr">optype</span>=<span class="string">"continuous"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">displayName</span>=<span class="string">"Drug"</span> <span class="attr">name</span>=<span class="string">"Drug"</span> <span class="attr">optype</span>=<span class="string">"categorical"</span>&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"drugA"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"drugA"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"drugB"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"drugB"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"drugC"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"drugC"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"drugX"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"drugX"</span>/&gt;</span> </span><br><span class="line">    <span class="tag">&lt;<span class="name">Value</span> <span class="attr">displayValue</span>=<span class="string">"drugY"</span> <span class="attr">property</span>=<span class="string">"valid"</span> <span class="attr">value</span>=<span class="string">"drugY"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;/<span class="name">DataField</span>&gt;</span> </span><br><span class="line"><span class="tag">&lt;/<span class="name">DataDictionary</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="挖掘模式-Mining-Schema"><a href="#挖掘模式-Mining-Schema" class="headerlink" title="挖掘模式(Mining Schema)"></a>挖掘模式(Mining Schema)</h3><p>定义预测变量和目标变量</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">MiningSchema</span>&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">importance</span>=<span class="string">"0.589759"</span> <span class="attr">name</span>=<span class="string">"K"</span> <span class="attr">usageType</span>=<span class="string">"active"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">importance</span>=<span class="string">"0.0328595"</span> <span class="attr">name</span>=<span class="string">"Age"</span> <span class="attr">usageType</span>=<span class="string">"active"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">importance</span>=<span class="string">"0.0249929"</span> <span class="attr">name</span>=<span class="string">"Na"</span> <span class="attr">usageType</span>=<span class="string">"active"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">outliers</span>=<span class="string">" asExtremeValues"</span> <span class="attr">lowValue</span>=<span class="string">"0.02"</span> <span class="attr">highValue</span>=<span class="string">"0.08"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">importance</span>=<span class="string">"0.0333406"</span> <span class="attr">name</span>=<span class="string">"Cholesterol"</span> <span class="attr">usageType</span>=<span class="string">"active"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">importance</span>=<span class="string">"0.307279"</span> <span class="attr">name</span>=<span class="string">"BP"</span> <span class="attr">usageType</span>=<span class="string">"active"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">missingValueReplacement</span>=<span class="string">"HIGH"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">importance</span>=<span class="string">"0.0117684"</span> <span class="attr">name</span>=<span class="string">"Sex"</span> <span class="attr">usageType</span>=<span class="string">"active"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"Drug"</span> <span class="attr">usageType</span>=<span class="string">"predicted"</span>/&gt;</span> </span><br><span class="line"><span class="tag">&lt;/<span class="name">MiningSchema</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>变量的属性由 “usageType” 值决定，该属性未指定或者值为 “active” 代表预测变量， “predicted”代表目标变量。<br>一般来说，一个常见的模型有多个预测变量和一个目标变量， 但是也可以没有预测变量、多个目标变量或者根本没有目标变量。</li>
+<li>所有在 Mining Schema 中被引用的变量一定会在数据字典中被定义， 但是不是所有出现在数据字典中的变量会在 Mining Schema 中被应用，<br>Mining Schema 定义了数据字典中的一个子集，这个子集才是对模型来说最重要的。</li>
+</ul>
+<h3 id="数据转换-Transformations"><a href="#数据转换-Transformations" class="headerlink" title="数据转换 (Transformations)"></a>数据转换 (Transformations)</h3><p>一旦数据字典对数据集做出了定义，那么就可以在其之上进行各种数据转换的预处理操作。这是由于有时用户所提供的数据并不能直接用于建模，<br>需要将原始的用户数据转换或映射成模型可以识别和使用的数据类型，这就需要使用数据转换来完成。<br>譬如，神经网络模型内部仅能处理数值型的数据，如果用户数据中含有离散型数据，如性别包含“男”、“女”二值，那在建模前就需要将性别变量映射成 0 和 1 来分别表示“男”和“女”。</p>
+<p>PMML 标准支持一些常用的数据转换预处理操作，并在此基础上支持使用函数表达式的转换。以下所列的是标准所定义的一些简单的数据转换操作：</p>
+<ul>
+<li>正态化 (Normalization) - 把数据值转化为数值，同时适用于连续性变量和离散变量。</li>
+<li>离散化 (Discretization) - 把连续性变量转化为离散变量。</li>
+<li>数据映射 (Value mapping) - 把当前离散变量映射成另一种离散性变量。</li>
+<li>函数 (Functions) - PMML 内建了大量的常用函数，用户也可以定义自己的函数。</li>
+<li>聚合 (Aggregation) - 聚合操作，比如求平均值，最大值，最小值等。</li>
+</ul>
+<p>如下：给出了一个使用 Discretization 的示例。通过两个给定的区间将连续型变量“Profit”转换成仅含“negative”和“positive”二值的离散变量。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">Discretize</span> <span class="attr">field</span>=<span class="string">"Profit"</span>&gt;</span> </span><br><span class="line">   <span class="tag">&lt;<span class="name">DiscretizeBin</span> <span class="attr">binValue</span>=<span class="string">"negative"</span>&gt;</span> </span><br><span class="line">       <span class="tag">&lt;<span class="name">Interval</span> <span class="attr">closure</span>=<span class="string">"openOpen"</span> <span class="attr">rightMargin</span>=<span class="string">"0"</span>/&gt;</span> </span><br><span class="line">       <span class="comment">&lt;!-- left margin is -infinity by default --&gt;</span> </span><br><span class="line">   <span class="tag">&lt;/<span class="name">DiscretizeBin</span>&gt;</span> </span><br><span class="line">   <span class="tag">&lt;<span class="name">DiscretizeBin</span> <span class="attr">binValue</span>=<span class="string">"positive"</span>&gt;</span> </span><br><span class="line">       <span class="tag">&lt;<span class="name">Interval</span> <span class="attr">closure</span>=<span class="string">"closedOpen"</span> <span class="attr">leftMargin</span>=<span class="string">"0"</span>/&gt;</span> </span><br><span class="line">       <span class="comment">&lt;!-- right margin is +infinity by default --&gt;</span> </span><br><span class="line">   <span class="tag">&lt;/<span class="name">DiscretizeBin</span>&gt;</span> </span><br><span class="line"><span class="tag">&lt;/<span class="name">Discretize</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>如下：给出了一个使用 Functions 的示例，通过使用内建函数 if 和 isMissing 将变量“PREVEXP”中的缺失值替换为指定的均值。<br>值得注意的是，替换了缺失值之后将产生一个新的变量“PREVEXP_without_missing”。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">DerivedField</span> <span class="attr">dataType</span>=<span class="string">"double"</span> <span class="attr">name</span>=<span class="string">"PREVEXP_without_missing"</span> </span></span><br><span class="line"><span class="tag"><span class="attr">optype</span>=<span class="string">"continuous"</span>&gt;</span> </span><br><span class="line">   <span class="tag">&lt;<span class="name">Apply</span> <span class="attr">function</span>=<span class="string">"if"</span>&gt;</span> </span><br><span class="line">       <span class="tag">&lt;<span class="name">Apply</span> <span class="attr">function</span>=<span class="string">"isMissing"</span>&gt;</span> </span><br><span class="line">           <span class="tag">&lt;<span class="name">FieldRef</span> <span class="attr">field</span>=<span class="string">"PREVEXP"</span>/&gt;</span> </span><br><span class="line">       <span class="tag">&lt;/<span class="name">Apply</span>&gt;</span> </span><br><span class="line">       <span class="tag">&lt;<span class="name">Constant</span>&gt;</span>mean<span class="tag">&lt;/<span class="name">Constant</span>&gt;</span> </span><br><span class="line">       <span class="tag">&lt;<span class="name">FieldRef</span> <span class="attr">field</span>=<span class="string">"PREVEXP"</span>/&gt;</span> </span><br><span class="line">   <span class="tag">&lt;/<span class="name">Apply</span>&gt;</span> </span><br><span class="line"><span class="tag">&lt;/<span class="name">DerivedField</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="模型定义-Model-Definition"><a href="#模型定义-Model-Definition" class="headerlink" title="模型定义 (Model Definition)"></a>模型定义 (Model Definition)</h3><p>具体的模型定义，最新的 PMML 4.0.1 定义了一下十三种模型：</p>
+<ul>
+<li>AssociationModel</li>
+<li>ClusteringModel</li>
+<li>GeneralRegressionModel</li>
+<li>MiningModel</li>
+<li>NaiveBayesModel</li>
+<li>NeuralNetwork</li>
+<li>RegressionModel</li>
+<li>RuleSetModel</li>
+<li>SequenceModel</li>
+<li>SupportVectorMachineModel</li>
+<li>TextModel</li>
+<li>TimeSeriesModel</li>
+<li>TreeModel</li>
+</ul>
+<p>这些模型都是帮助使用者从历史性的数据中提取出无法直观发现的，具有推广意义的数据模式。</p>
+<ul>
+<li>Association model，关联规则模型，常被用来发现大量交易数据中不同产品的购买关系和规则。使用其分析超市的销售单就可以发现，那些购买婴幼儿奶粉和护肤品的客户同时也会以较大的可能性去购买纸尿裤。这样有助于管理人员作出合理的商业决策，有导向的推动购物行为，比如将上述产品放在相邻的购物架上便于客户购买，从而产生更高的销售额。</li>
+<li>Tree model，树模型，也是很常用的模型，她采用类似树分支的结构将数据逐层划分成节点，而每个叶子节点就表示一个特别的类别。树模型受到应用领域广泛的欢迎，还有一个重要的原因就是她所做出的预测决策易于解释，能够快速推广。为了支持这些模型，PMML 标准提供了大量的语法来有针对性的表示不同的模型。</li>
+</ul>
+<h3 id="评分结果-Score-Result"><a href="#评分结果-Score-Result" class="headerlink" title="评分结果(Score Result)"></a>评分结果(Score Result)</h3><p>评分结果集可以在输出元素 (Output) 中定义</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">Output</span>&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">OutputField</span> <span class="attr">name</span>=<span class="string">"$R-Drug"</span> <span class="attr">displayName</span>=<span class="string">"Predicted Value"</span> <span class="attr">optype</span>=<span class="string">"categorical"</span></span></span><br><span class="line"><span class="tag">    <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">targetField</span>=<span class="string">"Drug"</span> <span class="attr">feature</span>=<span class="string">"predictedValue"</span>/&gt;</span>    </span><br><span class="line">  <span class="tag">&lt;<span class="name">OutputField</span> <span class="attr">name</span>=<span class="string">"$RC-Drug"</span> <span class="attr">displayName</span>=<span class="string">"Confidence of Predicted Value"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">optype</span>=<span class="string">"continuous"</span> <span class="attr">dataType</span>=<span class="string">"double"</span> <span class="attr">targetField</span>=<span class="string">"Drug"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">feature</span>=<span class="string">"standardError"</span>/&gt;</span>        </span><br><span class="line">  <span class="tag">&lt;<span class="name">OutputField</span> <span class="attr">name</span>=<span class="string">"$RP-drugA"</span> <span class="attr">displayName</span>=<span class="string">"Probability of drugA"</span></span></span><br><span class="line"><span class="tag">    <span class="attr">optype</span>=<span class="string">"categorical"</span> <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">targetField</span>=<span class="string">"Drug"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">feature</span>=<span class="string">"probability"</span> <span class="attr">value</span>=<span class="string">"drugA"</span>/&gt;</span>        </span><br><span class="line">  <span class="tag">&lt;<span class="name">OutputField</span> <span class="attr">name</span>=<span class="string">"$RP-drugB"</span> <span class="attr">displayName</span>=<span class="string">"Probability of drugB"</span></span></span><br><span class="line"><span class="tag">    <span class="attr">optype</span>=<span class="string">"categorical"</span> <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">targetField</span>=<span class="string">"Drug"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">feature</span>=<span class="string">"probability"</span> <span class="attr">value</span>=<span class="string">"drugB"</span>/&gt;</span>       </span><br><span class="line">  <span class="tag">&lt;<span class="name">OutputField</span> <span class="attr">name</span>=<span class="string">"$RP-drugC"</span> <span class="attr">displayName</span>=<span class="string">"Probability of drugC"</span></span></span><br><span class="line"><span class="tag">    <span class="attr">optype</span>=<span class="string">"categorical"</span> <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">targetField</span>=<span class="string">"Drug"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">feature</span>=<span class="string">"probability"</span> <span class="attr">value</span>=<span class="string">"drugC"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">OutputField</span> <span class="attr">name</span>=<span class="string">"$RP-drugX"</span> <span class="attr">displayName</span>=<span class="string">"Probability of drugX"</span></span></span><br><span class="line"><span class="tag">    <span class="attr">optype</span>=<span class="string">"categorical"</span> <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">targetField</span>=<span class="string">"Drug"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">feature</span>=<span class="string">"probability"</span> <span class="attr">value</span>=<span class="string">"drugX"</span>/&gt;</span> </span><br><span class="line">  <span class="tag">&lt;<span class="name">OutputField</span> <span class="attr">name</span>=<span class="string">"$RP-drugY"</span> <span class="attr">displayName</span>=<span class="string">"Probability of drugY"</span></span></span><br><span class="line"><span class="tag">    <span class="attr">optype</span>=<span class="string">"categorical"</span> <span class="attr">dataType</span>=<span class="string">"string"</span> <span class="attr">targetField</span>=<span class="string">"Drug"</span> </span></span><br><span class="line"><span class="tag">    <span class="attr">feature</span>=<span class="string">"probability"</span> <span class="attr">value</span>=<span class="string">"drugY"</span>/&gt;</span> </span><br><span class="line"><span class="tag">&lt;/<span class="name">Output</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>输出元素 : 描述了从模型中获取评分结果值的集合。每一个输出变量指定名称，类型，规则计算和结果特征。<br>结果特征 (feature): 它是一个结果的标识符 , 它有很多的分类表达，常见统计观念如下：</p>
+<ul>
+<li>预测价值（predictedValue）：它描述了预测统计的目标值。</li>
+<li>概率（probability）：它描述预测统计的目标值的概率值。</li>
+<li>标准误差（standardError）：它描述了标准误差的预测数值。</li>
+</ul>
+<p>其他类型参见 <a href="http://dmg.org/pmml/v4-3/Output.html" target="_blank" rel="noopener">http://dmg.org/pmml/v4-3/Output.html</a></p>
+<h2 id="样例pmml"><a href="#样例pmml" class="headerlink" title="样例pmml"></a>样例pmml</h2><h3 id="LR-pmml"><a href="#LR-pmml" class="headerlink" title="LR.pmml"></a>LR.pmml</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;?xml version="1.0"?&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">PMML</span> <span class="attr">version</span>=<span class="string">"4.3"</span> <span class="attr">xmlns</span>=<span class="string">"http://www.dmg.org/PMML-4_3"</span> <span class="attr">xmlns:xsi</span>=<span class="string">"http://www.w3.org/2001/XMLSchema-instance"</span> <span class="attr">xsi:schemaLocation</span>=<span class="string">"http://www.dmg.org/PMML-4_3 http://www.dmg.org/pmml/v4-3/pmml-4-3.xsd"</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">Header</span> <span class="attr">copyright</span>=<span class="string">"Copyright (c) 2017 liaotuo"</span> <span class="attr">description</span>=<span class="string">"Generalized Linear Regression Model"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">Extension</span> <span class="attr">name</span>=<span class="string">"user"</span> <span class="attr">value</span>=<span class="string">"liaotuo"</span> <span class="attr">extender</span>=<span class="string">"Rattle/PMML"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">Application</span> <span class="attr">name</span>=<span class="string">"Rattle/PMML"</span> <span class="attr">version</span>=<span class="string">"1.4"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">Timestamp</span>&gt;</span>2017-07-11 13:18:36<span class="tag">&lt;/<span class="name">Timestamp</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">Header</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">DataDictionary</span> <span class="attr">numberOfFields</span>=<span class="string">"4"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">name</span>=<span class="string">"am"</span> <span class="attr">optype</span>=<span class="string">"continuous"</span> <span class="attr">dataType</span>=<span class="string">"double"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">name</span>=<span class="string">"cyl"</span> <span class="attr">optype</span>=<span class="string">"continuous"</span> <span class="attr">dataType</span>=<span class="string">"double"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">name</span>=<span class="string">"hp"</span> <span class="attr">optype</span>=<span class="string">"continuous"</span> <span class="attr">dataType</span>=<span class="string">"double"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">DataField</span> <span class="attr">name</span>=<span class="string">"wt"</span> <span class="attr">optype</span>=<span class="string">"continuous"</span> <span class="attr">dataType</span>=<span class="string">"double"</span>/&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">DataDictionary</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">GeneralRegressionModel</span> <span class="attr">modelName</span>=<span class="string">"General_Regression_Model"</span> <span class="attr">modelType</span>=<span class="string">"generalizedLinear"</span> <span class="attr">functionName</span>=<span class="string">"regression"</span> <span class="attr">algorithmName</span>=<span class="string">"glm"</span> <span class="attr">distribution</span>=<span class="string">"binomial"</span> <span class="attr">linkFunction</span>=<span class="string">"logit"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">MiningSchema</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"am"</span> <span class="attr">usageType</span>=<span class="string">"predicted"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"cyl"</span> <span class="attr">usageType</span>=<span class="string">"active"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"hp"</span> <span class="attr">usageType</span>=<span class="string">"active"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"wt"</span> <span class="attr">usageType</span>=<span class="string">"active"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">MiningSchema</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">Output</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">OutputField</span> <span class="attr">name</span>=<span class="string">"Predicted_am"</span> <span class="attr">feature</span>=<span class="string">"predictedValue"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">Output</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">ParameterList</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">Parameter</span> <span class="attr">name</span>=<span class="string">"p0"</span> <span class="attr">label</span>=<span class="string">"(Intercept)"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">Parameter</span> <span class="attr">name</span>=<span class="string">"p1"</span> <span class="attr">label</span>=<span class="string">"cyl"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">Parameter</span> <span class="attr">name</span>=<span class="string">"p2"</span> <span class="attr">label</span>=<span class="string">"hp"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">Parameter</span> <span class="attr">name</span>=<span class="string">"p3"</span> <span class="attr">label</span>=<span class="string">"wt"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">ParameterList</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">FactorList</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">CovariateList</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">Predictor</span> <span class="attr">name</span>=<span class="string">"cyl"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">Predictor</span> <span class="attr">name</span>=<span class="string">"hp"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">Predictor</span> <span class="attr">name</span>=<span class="string">"wt"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">CovariateList</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">PPMatrix</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">PPCell</span> <span class="attr">value</span>=<span class="string">"1"</span> <span class="attr">predictorName</span>=<span class="string">"cyl"</span> <span class="attr">parameterName</span>=<span class="string">"p1"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">PPCell</span> <span class="attr">value</span>=<span class="string">"1"</span> <span class="attr">predictorName</span>=<span class="string">"hp"</span> <span class="attr">parameterName</span>=<span class="string">"p2"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">PPCell</span> <span class="attr">value</span>=<span class="string">"1"</span> <span class="attr">predictorName</span>=<span class="string">"wt"</span> <span class="attr">parameterName</span>=<span class="string">"p3"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">PPMatrix</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">ParamMatrix</span>&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">PCell</span> <span class="attr">parameterName</span>=<span class="string">"p0"</span> <span class="attr">df</span>=<span class="string">"1"</span> <span class="attr">beta</span>=<span class="string">"19.7028827927103"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">PCell</span> <span class="attr">parameterName</span>=<span class="string">"p1"</span> <span class="attr">df</span>=<span class="string">"1"</span> <span class="attr">beta</span>=<span class="string">"0.487597975045672"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">PCell</span> <span class="attr">parameterName</span>=<span class="string">"p2"</span> <span class="attr">df</span>=<span class="string">"1"</span> <span class="attr">beta</span>=<span class="string">"0.0325916758086386"</span>/&gt;</span></span><br><span class="line">   <span class="tag">&lt;<span class="name">PCell</span> <span class="attr">parameterName</span>=<span class="string">"p3"</span> <span class="attr">df</span>=<span class="string">"1"</span> <span class="attr">beta</span>=<span class="string">"-9.14947126999654"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">ParamMatrix</span>&gt;</span></span><br><span class="line"> <span class="tag">&lt;/<span class="name">GeneralRegressionModel</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">PMML</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="rule-pmml"><a href="#rule-pmml" class="headerlink" title="rule.pmml"></a>rule.pmml</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">RuleSetModel</span> <span class="attr">modelName</span>=<span class="string">"RiskEval"</span> <span class="attr">functionName</span>=<span class="string">"classification"</span> <span class="attr">algorithmName</span>=<span class="string">"RuleSet"</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">MiningSchema</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"var973"</span> <span class="attr">usageType</span>=<span class="string">"active"</span> <span class="attr">invalidValueTreatment</span>=<span class="string">"asMissing"</span> <span class="attr">missingValueReplacement</span>=<span class="string">"0"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"var969"</span> <span class="attr">usageType</span>=<span class="string">"active"</span> <span class="attr">invalidValueTreatment</span>=<span class="string">"asMissing"</span> <span class="attr">missingValueReplacement</span>=<span class="string">"0"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"var20"</span> <span class="attr">usageType</span>=<span class="string">"active"</span> <span class="attr">invalidValueTreatment</span>=<span class="string">"asMissing"</span> <span class="attr">missingValueReplacement</span>=<span class="string">"0"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"var393"</span> <span class="attr">usageType</span>=<span class="string">"active"</span> <span class="attr">invalidValueTreatment</span>=<span class="string">"asMissing"</span> <span class="attr">missingValueReplacement</span>=<span class="string">"0"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"var868"</span> <span class="attr">usageType</span>=<span class="string">"active"</span> <span class="attr">invalidValueTreatment</span>=<span class="string">"asMissing"</span> <span class="attr">missingValueReplacement</span>=<span class="string">"0"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"var543"</span> <span class="attr">usageType</span>=<span class="string">"active"</span> <span class="attr">invalidValueTreatment</span>=<span class="string">"asMissing"</span> <span class="attr">missingValueReplacement</span>=<span class="string">"0"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"var1213"</span> <span class="attr">usageType</span>=<span class="string">"active"</span> <span class="attr">invalidValueTreatment</span>=<span class="string">"asMissing"</span> <span class="attr">missingValueReplacement</span>=<span class="string">"0.0"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">MiningField</span> <span class="attr">name</span>=<span class="string">"flg"</span> <span class="attr">usageType</span>=<span class="string">"target"</span>/&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">MiningSchema</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;<span class="name">RuleSet</span> <span class="attr">defaultScore</span>=<span class="string">"0"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">RuleSelectionMethod</span> <span class="attr">criterion</span>=<span class="string">"firstHit"</span>/&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">SimpleRule</span> <span class="attr">id</span>=<span class="string">"RULE1"</span> <span class="attr">score</span>=<span class="string">"1"</span> <span class="attr">confidence</span>=<span class="string">"1"</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;<span class="name">CompoundPredicate</span> <span class="attr">booleanOperator</span>=<span class="string">"or"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">SimplePredicate</span> <span class="attr">field</span>=<span class="string">"var973"</span> <span class="attr">operator</span>=<span class="string">"greaterOrEqual"</span> <span class="attr">value</span>=<span class="string">"1"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">SimplePredicate</span> <span class="attr">field</span>=<span class="string">"var969"</span> <span class="attr">operator</span>=<span class="string">"greaterOrEqual"</span> <span class="attr">value</span>=<span class="string">"1"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">SimplePredicate</span> <span class="attr">field</span>=<span class="string">"var20"</span> <span class="attr">operator</span>=<span class="string">"greaterOrEqual"</span> <span class="attr">value</span>=<span class="string">"7"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">CompoundPredicate</span> <span class="attr">booleanOperator</span>=<span class="string">"and"</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">SimplePredicate</span> <span class="attr">field</span>=<span class="string">"var393"</span> <span class="attr">operator</span>=<span class="string">"greaterOrEqual"</span> <span class="attr">value</span>=<span class="string">"2"</span>/&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">SimplePredicate</span> <span class="attr">field</span>=<span class="string">"var543"</span> <span class="attr">operator</span>=<span class="string">"notEqual"</span> <span class="attr">value</span>=<span class="string">"1"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">CompoundPredicate</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">CompoundPredicate</span> <span class="attr">booleanOperator</span>=<span class="string">"and"</span>&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">SimplePredicate</span> <span class="attr">field</span>=<span class="string">"var868"</span> <span class="attr">operator</span>=<span class="string">"greaterOrEqual"</span> <span class="attr">value</span>=<span class="string">"1"</span>/&gt;</span></span><br><span class="line">          <span class="tag">&lt;<span class="name">SimplePredicate</span> <span class="attr">field</span>=<span class="string">"var1213"</span> <span class="attr">operator</span>=<span class="string">"lessThan"</span> <span class="attr">value</span>=<span class="string">"0.8"</span>/&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">CompoundPredicate</span>&gt;</span></span><br><span class="line">      <span class="tag">&lt;/<span class="name">CompoundPredicate</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">SimpleRule</span>&gt;</span></span><br><span class="line">  <span class="tag">&lt;/<span class="name">RuleSet</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">RuleSetModel</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a href="https://blog.csdn.net/c1481118216/article/details/78411200" target="_blank" rel="noopener">https://blog.csdn.net/c1481118216/article/details/78411200</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/pmml/" rel="tag"># pmml</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2016/04/02/7%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/pmml/pmml%E5%8A%A0%E8%BD%BD%E6%96%B9%E5%BC%8F/" rel="prev" title="pmml 使用方式">
+      <i class="fa fa-chevron-left"></i> pmml 使用方式
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/%E6%97%A5%E5%BF%97/%E6%97%A5%E5%BF%97%E8%AF%A6%E8%A7%A3/" rel="next" title="日志详解">
+      日志详解 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#PMML简介"><span class="nav-number">1.</span> <span class="nav-text">PMML简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#PMML标准"><span class="nav-number">2.</span> <span class="nav-text">PMML标准</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#头信息（Header）"><span class="nav-number">2.1.</span> <span class="nav-text">头信息（Header）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据字典（DataDictionary）"><span class="nav-number">2.2.</span> <span class="nav-text">数据字典（DataDictionary）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#挖掘模式-Mining-Schema"><span class="nav-number">2.3.</span> <span class="nav-text">挖掘模式(Mining Schema)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#数据转换-Transformations"><span class="nav-number">2.4.</span> <span class="nav-text">数据转换 (Transformations)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#模型定义-Model-Definition"><span class="nav-number">2.5.</span> <span class="nav-text">模型定义 (Model Definition)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#评分结果-Score-Result"><span class="nav-number">2.6.</span> <span class="nav-text">评分结果(Score Result)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#样例pmml"><span class="nav-number">3.</span> <span class="nav-text">样例pmml</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#LR-pmml"><span class="nav-number">3.1.</span> <span class="nav-text">LR.pmml</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rule-pmml"><span class="nav-number">3.2.</span> <span class="nav-text">rule.pmml</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number">4.</span> <span class="nav-text">参考资料</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2016/04/02/7%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/pmml/PMML%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/",
+            identifier: "2016/04/02/7机器学习/pmml/PMML文件格式/",
+            title: "PMML 标准化(转)"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

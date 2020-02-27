@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="在ORACLE数据库中，所有数据从逻辑结构上看都是存放在表空间当中，当然表空间下还有段、区、块等逻辑结构。从物理结构上看是放在数据文件中。一个表空间可由多个数据文件组成。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="表空间">
+<meta property="og:url" content="https://longzl2015.github.io/2018/09/21/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E8%A1%A8%E7%A9%BA%E9%97%B4/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="在ORACLE数据库中，所有数据从逻辑结构上看都是存放在表空间当中，当然表空间下还有段、区、块等逻辑结构。从物理结构上看是放在数据文件中。一个表空间可由多个数据文件组成。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://longzl2015.github.io/images/%E8%A1%A8%E7%A9%BA%E9%97%B4/%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%841.png">
+<meta property="og:image" content="https://longzl2015.github.io/images/%E8%A1%A8%E7%A9%BA%E9%97%B4/%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%842.png">
+<meta property="article:published_time" content="2018-09-21T03:34:00.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.789Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="oracle">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://longzl2015.github.io/images/%E8%A1%A8%E7%A9%BA%E9%97%B4/%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%841.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2018/09/21/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E8%A1%A8%E7%A9%BA%E9%97%B4/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>表空间 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2018/09/21/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E8%A1%A8%E7%A9%BA%E9%97%B4/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          表空间
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-09-21 11:34:00" itemprop="dateCreated datePublished" datetime="2018-09-21T11:34:00+08:00">2018-09-21</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/" itemprop="url" rel="index">
+                    <span itemprop="name">数据库</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/" itemprop="url" rel="index">
+                    <span itemprop="name">rdbms</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/" itemprop="url" rel="index">
+                    <span itemprop="name">oracle</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2018/09/21/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E8%A1%A8%E7%A9%BA%E9%97%B4/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/09/21/4数据库/rdbms/oracle/表空间/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>在ORACLE数据库中，所有数据从逻辑结构上看都是存放在表空间当中，当然表空间下还有段、区、块等逻辑结构。从物理结构上看是放在数据文件中。一个表空间可由多个数据文件组成。</p>
+<a id="more"></a>
+
+<h2 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h2><h3 id="结构图"><a href="#结构图" class="headerlink" title="结构图"></a>结构图</h3><p><img src="/images/%E8%A1%A8%E7%A9%BA%E9%97%B4/%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%841.png" alt=""><br><img src="/images/%E8%A1%A8%E7%A9%BA%E9%97%B4/%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%842.png" alt=""></p>
+<h3 id="基本的表空间"><a href="#基本的表空间" class="headerlink" title="基本的表空间"></a>基本的表空间</h3><p>系统中默认创建的几个表空间：</p>
+<ul>
+<li>SYSTEM</li>
+<li>SYSAUX</li>
+<li>USERS</li>
+<li>UNDOTBS1</li>
+<li>EXAMPLE</li>
+<li>TEMP</li>
+</ul>
+<p>系统中必须的表空间有那几个？</p>
+<p>答案： SYSTEM、SYSAUX、TEMP、UNDO， 像USERS、EXAMPLE等表空间是可有可无的。</p>
+<h3 id="表空间的分类"><a href="#表空间的分类" class="headerlink" title="表空间的分类"></a>表空间的分类</h3><ul>
+<li>永久表空间              存放永久性数据，如表，索引等。</li>
+<li>临时表空间              不能存放永久性对象，用于保存数据库排序，分组时产生的临时数据。</li>
+<li>UNDO表空间             保存数据修改前的镜象。</li>
+</ul>
+<h3 id="表空间的管理"><a href="#表空间的管理" class="headerlink" title="表空间的管理"></a>表空间的管理</h3><p>表空间的管理方式：</p>
+<ul>
+<li><p>字典管理：全库所有的空间分配都放在数据字典中。容易引起字典争用，而导致性能问题。</p>
+</li>
+<li><p>本地管理：空间分配不放在数据字典，而在每个数据文件头部的第3到第8个块的位图块，来管理空间分配。</p>
+</li>
+</ul>
+<h2 id="创建表空间"><a href="#创建表空间" class="headerlink" title="创建表空间"></a>创建表空间</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">-- 创建</span><br><span class="line">CREATE TABLESPACE TBS_TR_DATA</span><br><span class="line">DATAFILE &#39;&#x2F;oradata&#x2F;rTBS_TR_DATA_001.dbf&#39;</span><br><span class="line">SIZE 64G </span><br><span class="line">EXTENT MANAGEMENT LOCAL</span><br><span class="line">SEGMENT SPACE MANAGEMENT AUTO ONLINE;</span><br><span class="line"></span><br><span class="line">-- 更改</span><br><span class="line">ALTER TABLESPACE TBS_TR_DATA</span><br><span class="line">ADD DATAFILE &#39;&#x2F;oradata&#x2F;rTBS_TR_DATA_002.dbf&#39;</span><br><span class="line">SIZE 64G</span><br><span class="line">AUTOEXTEND OFF;</span><br></pre></td></tr></table></figure>
+
+<h2 id="表空间管理"><a href="#表空间管理" class="headerlink" title="表空间管理"></a>表空间管理</h2><h3 id="表空间信息"><a href="#表空间信息" class="headerlink" title="表空间信息"></a>表空间信息</h3><p>查看表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">-- 包含数据库中所有表空间的描述信息</span><br><span class="line">SELECT * FROM DBA_TABLESPACES;</span><br><span class="line">-- 包含当前用户的表空间的描叙信息</span><br><span class="line">SELECT * FROM USER_TABLESPACES;</span><br><span class="line">-- 包含从控制文件中获取的表空间名称和编号信息</span><br><span class="line">SELECT * FROM V$TABLESPACE;</span><br></pre></td></tr></table></figure>
+
+<p>查看数据文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">--包含数据文件以及所属的表空间的描述信息</span><br><span class="line">SELECT * FROM DBA_DATA_FILES;</span><br><span class="line">--包含临时数据文件以及所属的表空间的描述信息</span><br><span class="line">SELECT * FROM DBA_TEMP_FILES;</span><br><span class="line">--包含从控制文件中获取的数据文件的基本信息，包括它所属的表空间名称、编号等</span><br><span class="line">SELECT * FROM V$DATAFILE;</span><br><span class="line">--包含所有临时数据文件的基本信息</span><br><span class="line">SELECT * FROM V$TEMPFILE;</span><br></pre></td></tr></table></figure>
+
+<h4 id="查看默认的TEMP表空间"><a href="#查看默认的TEMP表空间" class="headerlink" title="查看默认的TEMP表空间"></a>查看默认的TEMP表空间</h4><p>数据库维度</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">SELECT PROPERTY_NAME, PROPERTY_VALUE</span><br><span class="line">FROM DATABASE_PROPERTIES</span><br><span class="line">WHERE PROPERTY_NAME&#x3D;&#39;DEFAULT_TEMP_TABLESPACE&#39;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">PROPERTY_NAME                        PROPERTY_VALUE    </span><br><span class="line">------------------------------ ----------------------------</span><br><span class="line">DEFAULT_TEMP_TABLESPACE                  TEMP</span><br></pre></td></tr></table></figure>
+
+<p>用户维度</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT USERNAME, TEMPORARY_TABLESPACE FROM DBA_USERS</span><br></pre></td></tr></table></figure>
+
+<h4 id="查看默认的永久表空间"><a href="#查看默认的永久表空间" class="headerlink" title="查看默认的永久表空间"></a>查看默认的永久表空间</h4><p>如果创建用户时，不指定其永久表空间，则会使用默认的表空间。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT PROPERTY_NAME, PROPERTY_VALUE FROM DATABASE_PROPERTIES;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">PROPERTY_NAME PROPERTY_VALUE </span><br><span class="line">------------------------------ ------------------</span><br><span class="line">DEFAULT_TEMP_TABLESPACE              TEMP</span><br><span class="line">DEFAULT_PERMANENT_TABLESPACE         USERS</span><br></pre></td></tr></table></figure>
+
+<h4 id="查看默认的表空间类型"><a href="#查看默认的表空间类型" class="headerlink" title="查看默认的表空间类型"></a>查看默认的表空间类型</h4><p>如果不指定表空间类型，就会默认使用DEFAULT_TBS_TYPE参数指定的表空间类型。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">SELECT PROPERTY_NAME, PROPERTY_VALUE</span><br><span class="line">FROM DATABASE_PROPERTIES</span><br><span class="line">WHERE PROPERTY_NAME&#x3D;&#39;DEFAULT_TBS_TYPE&#39;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">PROPERTY_NAME                    PROPERTY_VALUE    </span><br><span class="line">------------------------------ ------------------    </span><br><span class="line">DEFAULT_TBS_TYPE                     SMALLFILE</span><br></pre></td></tr></table></figure>
+
+<h4 id="查看表空间情况"><a href="#查看表空间情况" class="headerlink" title="查看表空间情况"></a>查看表空间情况</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM DBA_TABLESPACES</span><br></pre></td></tr></table></figure>
+
+<h4 id="查看表空间的数据文件"><a href="#查看表空间的数据文件" class="headerlink" title="查看表空间的数据文件"></a>查看表空间的数据文件</h4><p>永久表空间/UNDO表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM DBA_DATA_FILES;</span><br></pre></td></tr></table></figure>
+
+<p>临时表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM V$TEMPFILE;</span><br></pre></td></tr></table></figure>
+
+<h4 id="查看表空间使用情况"><a href="#查看表空间使用情况" class="headerlink" title="查看表空间使用情况"></a>查看表空间使用情况</h4><p>SQL 1</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">SELECT A.TABLESPACE_NAME                     AS TABLESPACE_NAME, </span><br><span class="line">        ROUND(A.BYTES&#x2F;(1024*1024*1024),2)    AS &quot;TOTAL(G)&quot;     , </span><br><span class="line">        ROUND(B.BYTES&#x2F;(1024*1024*1024),2)    AS &quot;USED(G)&quot;      , </span><br><span class="line">        ROUND(C.BYTES&#x2F;(1024*1024*1024),2)    AS &quot;FREE(G)&quot;      , </span><br><span class="line">        ROUND((B.BYTES * 100) &#x2F; A.BYTES,2)   AS &quot;% USED&quot;       , </span><br><span class="line">        ROUND((C.BYTES * 100) &#x2F; A.BYTES,2)   AS &quot;% FREE&quot; </span><br><span class="line">FROM SYS.SM$TS_AVAIL A, SYS.SM$TS_USED B, SYS.SM$TS_FREE C </span><br><span class="line">WHERE A.TABLESPACE_NAME &#x3D; B.TABLESPACE_NAME </span><br><span class="line">AND A.TABLESPACE_NAME &#x3D; C.TABLESPACE_NAME;</span><br></pre></td></tr></table></figure>
+
+<p>计算表空间使用情况(考虑了数据文件自动增长情况)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">SELECT UPPER(F.TABLESPACE_NAME) AS &quot;表空间名称&quot;, </span><br><span class="line">        ROUND(D.AVAILB_BYTES ,2) AS &quot;表空间大小(G)&quot;, </span><br><span class="line">        ROUND(D.MAX_BYTES,2) AS &quot;最终表空间大小(G)&quot;, </span><br><span class="line">        ROUND((D.AVAILB_BYTES - F.USED_BYTES),2) AS &quot;已使用空间(G)&quot;, </span><br><span class="line">        TO_CHAR(ROUND((D.AVAILB_BYTES - F.USED_BYTES) &#x2F; D.AVAILB_BYTES * 100, </span><br><span class="line">            2), &#39;999.99&#39;) AS &quot;使用比&quot;, </span><br><span class="line">        ROUND(F.USED_BYTES, 6) AS &quot;空闲空间(G)&quot;, </span><br><span class="line">        F.MAX_BYTES AS &quot;最大块(M)&quot; </span><br><span class="line"> FROM (</span><br><span class="line">           SELECT TABLESPACE_NAME, </span><br><span class="line">                   ROUND(SUM(BYTES) &#x2F; (1024 * 1024 * 1024), 6) USED_BYTES, </span><br><span class="line">                   ROUND(MAX(BYTES) &#x2F; (1024 * 1024 * 1024), 6) MAX_BYTES </span><br><span class="line">           FROM SYS.DBA_FREE_SPACE </span><br><span class="line">           GROUP BY TABLESPACE_NAME) F, </span><br><span class="line">         (SELECT DD.TABLESPACE_NAME, </span><br><span class="line">                   ROUND(SUM(DD.BYTES) &#x2F; (1024 * 1024 * 1024), 6) AVAILB_BYTES, </span><br><span class="line">               ROUND(SUM(DECODE(DD.MAXBYTES, 0, DD.BYTES, DD.MAXBYTES))&#x2F;(1024*1024*1024),6) MAX_BYTES </span><br><span class="line">          FROM SYS.DBA_DATA_FILES DD </span><br><span class="line">          GROUP BY DD.TABLESPACE_NAME) D </span><br><span class="line">         WHERE D.TABLESPACE_NAME &#x3D; F.TABLESPACE_NAME </span><br><span class="line"> ORDER BY 4 DESC</span><br></pre></td></tr></table></figure>
+
+<h3 id="默认表空间"><a href="#默认表空间" class="headerlink" title="默认表空间"></a>默认表空间</h3><p>在ORACLE 9i数据库中，创建数据库用户时，如果没有指定默认的永久性表空间，则系统使用SYSTME表空间分别作为该用户的默认永久表空间，默认的临时表空间为TEMP。<br>在ORACLE 10/11g中，如果不指定默认永久性表空间，则是USERS.默认的临时表空间为TEMP，当然前提是你没有修改过默认永久表空间值或指定用户的默认永久性表空间。<br>ORACLE允许使用自定义的表空间作为默认永久性表空间。</p>
+<p>数据库的默认永久表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM database_properties </span><br><span class="line">WHERE PROPERTY_NAME &#x3D; &#39;DEFAULT_PERMANENT_TABLESPACE&#39;;</span><br></pre></td></tr></table></figure>
+
+<p>你可以使用<code>ALTER DATABASE DEFAULT TABLESPACE</code>语句可以设置数据库的默认永久性表空间，这样建立用户时，默认将使用指定的表空间。</p>
+<p>修改数据库级别-永久表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER DATABASE DEFAULT TABLESPACE USER;</span><br></pre></td></tr></table></figure>
+
+<p>修改数据库级别-临时表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER DATABASE DEFAULT TEMPORARY TABLESPACE TEMP;</span><br></pre></td></tr></table></figure>
+
+<p>修改用户级别-表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER USER USERNAM DEFAULT TABLESPACE NEW_TABLESPACE_NAME</span><br></pre></td></tr></table></figure>
+
+<p>查看用户对应的默认表空间</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT USERNAME, DEFAULT_TABLESPACE FROM DBA_USERS</span><br></pre></td></tr></table></figure>
+
+<p>注意事项：</p>
+<p>1：如果我们在创建用户时指定了默认表空间为DEFAULT_PERMANENT_TABLESPACE的值，那么在修改默认表空间后，之前用户的默认表空间也会发生改变。</p>
+<p>eg:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">SELECT * FROM database_properties</span><br><span class="line"> WHERE PROPERTY_NAME IN( &#39;DEFAULT_PERMANENT_TABLESPACE&#39;,&#39;DEFAULT_TEMP_TABLESPACE&#39;);</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">PROPERTY_NAME                  PROPERTY_VALUE                                     DESCRIPTION</span><br><span class="line">---------------- -------------------------------- ------------------------------------------------------------</span><br><span class="line">DEFAULT_TEMP_TABLESPACE        TEMP                                       Name of default temporary tablespace</span><br><span class="line">DEFAULT_PERMANENT_TABLESPACE   USERS                                      Name of default permanent tablespace</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">CREATE USER U1 IDENTIFIED BY U1 DEFAULT TABLESPACE USERS; </span><br><span class="line">SELECT USERNAME, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE FROM DBA_USERS WHERE USERNAME &#x3D;&#39;U1&#39;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">USERNAME                       DEFAULT_TABLESPACE             TEMPORARY_TABLESPACE</span><br><span class="line">------------------------------ ------------------------------ ------------------------------</span><br><span class="line">U1</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ALTER DATABASE DEFAULT TABLESPACE TEST1;</span><br><span class="line">-- Database altered</span><br></pre></td></tr></table></figure>
+
+<p>修改了默认永久性表空间后，此时查看用户U1的DEFAULT_TABLESPACE值，发现其值也改为了TEST1，证实了结论1的正确性。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">SELECT USERNAME, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE FROM DBA_USERS WHERE USERNAME &#x3D;&#39;U1&#39;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">USERNAME                       DEFAULT_TABLESPACE             TEMPORARY_TABLESPACE</span><br><span class="line">------------------------------ ------------------------------ ------------------------------</span><br><span class="line">U1                             TEST1                          TEMP</span><br></pre></td></tr></table></figure>
+
+<p>2：如果我们在创建用户时没有指定用户表空间，那么默认也会使用DB的默认表空间，这时候如果我们修改了DB的默认表空间，用户的表空间也会发生改变。</p>
+<p>将数据库的默认表空间切换为USERS</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ALTER DATABASE  DEFAULT TABLESPACE USERS;</span><br><span class="line">-- Database altered</span><br><span class="line">CREATE USER U2 IDENTIFIED BY U2;</span><br><span class="line">-- User created</span><br><span class="line">SELECT USERNAME, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE FROM DBA_USERS WHERE USERNAME &#x3D;&#39;U1&#39;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">USERNAME                       DEFAULT_TABLESPACE             TEMPORARY_TABLESPACE</span><br><span class="line">------------------------------ ------------------------------ ------------------------------</span><br><span class="line">U1                             USERS                          TEMP</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ALTER DATABASE DEFAULT TABLESPACE TEST1;</span><br><span class="line">-- Database altered</span><br><span class="line">SELECT USERNAME, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE FROM DBA_USERS WHERE USERNAME &#x3D;&#39;U1&#39;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">USERNAME                       DEFAULT_TABLESPACE             TEMPORARY_TABLESPACE</span><br><span class="line">------------------------------ ------------------------------ ------------------------------</span><br><span class="line">U1                             TEST1                          TEMP</span><br></pre></td></tr></table></figure>
+
+<p>3: 如果我们在创建用户指定用户的表空间是其他的表空间，那么我们修改DB的默认表空间不会影响用户的表空间。</p>
+<p>eg:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">CREATE USER U3 IDENTIFIED BY U3 DEFAULT TABLESPACE TEST2;</span><br><span class="line">-- User created</span><br><span class="line">SELECT USERNAME, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE FROM DBA_USERS WHERE USERNAME&#x3D;&#39;U3&#39;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">USERNAME                       DEFAULT_TABLESPACE             TEMPORARY_TABLESPACE</span><br><span class="line">------------------------------ ------------------------------ ------------------------------</span><br><span class="line">U3                             TEST2                          TEMP</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ALTER DATABASE DEFAULT TABLESPACE USERS;</span><br><span class="line">-- Database altered</span><br><span class="line">SELECT USERNAME, DEFAULT_TABLESPACE, TEMPORARY_TABLESPACE FROM DBA_USERS WHERE USERNAME&#x3D;&#39;U3&#39;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">USERNAME                       DEFAULT_TABLESPACE             TEMPORARY_TABLESPACE</span><br><span class="line">------------------------------ ------------------------------ ------------------------------</span><br><span class="line">U3                             TEST2                          TEMP</span><br></pre></td></tr></table></figure>
+
+<p>4: DB的默认表空间不能删除，除非将默认表空间指向其他表空间之后才可以删除。</p>
+<p>5: 如果用户的默认表空间指向其他的表空间，当这个表空间被drop 之后，用户的默认表空间会自动指向DB的默认表空间。</p>
+<h3 id="删除表空间"><a href="#删除表空间" class="headerlink" title="删除表空间"></a>删除表空间</h3><p>除了SYSTEM表空间外，数据库中的任何表空间可以删除。删除表空间时，ORACLE仅仅是在控制文件和数据字典中删除与表空间和数据文件相关的信息。<br>默认情况下，ORACLE并不会在操作操作系统中删除相应的数据文件，因此在成功执行删除表空间的操作后，需要手动删除该表空间在操作系统中对应的数据文件。<br>如果在删除表空间的同时要删除对应的数据文件，则必须显示的指定<code>INCLUDING CONTENTS AND DATAFILES</code>子句。<br>注意:当前的数据库级的默认表空间不能删除，用户级的可以删除.否则会报错：<code>ORA-129 Can not drop the default permanent tablespace</code></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">DROP TABLESPACE 表空间名 [INCLUDING CONTENTS [AND DATAFILES] [CASCADE CONSTRAINTS]]</span><br><span class="line">DROP TABLESPACE URER01 INCLUDING CONTENTS;</span><br></pre></td></tr></table></figure>
+
+<p>如果在表空间中包含数据库对象，则必须在DROP TABLESPACE语句中显示的指定<code>INCLUDING CONTENTS</code>. 如果要再删除表空间USER的同时删除它所对应的数据文件，则可以使用下面的语句</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">DROP TABLESPACE USER01 INCLUDING CONTENTS AND DATAFILES;</span><br></pre></td></tr></table></figure>
+
+<p>注意：删除表空间时，CONTENTS与DATAFILES选项错位，会报如下错误：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">DROP TABLESPACE TBS_STAGE_DAT INCLUDING DATAFILES AND CONTENTS</span><br><span class="line">-- ORA-01911：contents keyword expected</span><br></pre></td></tr></table></figure>
+
+<h3 id="调整表空间"><a href="#调整表空间" class="headerlink" title="调整表空间"></a>调整表空间</h3><h4 id="增加数据文件"><a href="#增加数据文件" class="headerlink" title="增加数据文件"></a>增加数据文件</h4><p>如果发现某个表空间存储空间不足时，可以为表空间添加新的数据文件，扩展表空间大小。但是一般建议预先估计表空间所需的存储空间大小，然后为它建立若干适当大小的数据文件。</p>
+<p>例子：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">-- 添加文件 不能自动扩展</span><br><span class="line">ALTER TABLESPACE TBS_TR_IND</span><br><span class="line">ADD DATAFILE &#39;&#x2F;oradata&#x2F;rTBS_TR_IND_002.dbf&#39;</span><br><span class="line">SIZE 32G</span><br><span class="line">AUTOEXTEND OFF;</span><br><span class="line">-- 添加文件 自动扩展大小</span><br><span class="line">ALTER TABLESPACE TBS_EDS_DAT</span><br><span class="line">ADD DATAFILE &#39;G:\datafile\TBS_EDS_DAT01.DBF&#39;</span><br><span class="line">SIZE 100M</span><br><span class="line">AUTOEXTEND ON</span><br><span class="line">NEXT 10M</span><br><span class="line">MAXSIZE 20480M;</span><br><span class="line">-- REUSE</span><br><span class="line">ALTER TABLESPACE temp01</span><br><span class="line">ADD TMPFILE &#39;D:\ORACLEDATA\temp01_02.dbf&#39; SIZE 10M REUSE;</span><br></pre></td></tr></table></figure>
+
+<p>在添加新的数据文件时，如果同名的操作系统已经存在，ALTER TABLESPACE语句将失败。如果要覆盖同名的操作系统文件时，则必须在后面显示的指定REUSE子句。</p>
+<p>ORACLE支持的数据文件大小是由它的db_block_size和db_block的数量决定的。其中db_block(ORACLE块)的数量是一个定值2*<em>22-1(4194303).数据文件大小容量=块数量</em>块大小。下面列表说明不同数据块数据库所能支持的最大物理文件大小:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">数据块的大小        物理文件的最大值M  物理文件的最大值G</span><br><span class="line">&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;</span><br><span class="line">2KB                       8191M                                   8G</span><br><span class="line">4KB                       16383M                                 16G</span><br><span class="line">8KB                       32767M                                 32G</span><br><span class="line">16KB                      65535M                                 64G</span><br><span class="line">32KB                      131072M                               128G</span><br><span class="line">64KB                      262144M                               256G</span><br></pre></td></tr></table></figure>
+
+<h4 id="调整数据文件大小"><a href="#调整数据文件大小" class="headerlink" title="调整数据文件大小"></a>调整数据文件大小</h4><p>重置数据文件的大小</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER DATABASE DATAFILE &#39;&#x2F;database&#x2F;oracle&#x2F;oradata&#x2F;gsp&#x2F;tbs_dm_data_002.dbf&#39; RESIZE 500M;</span><br></pre></td></tr></table></figure>
+
+<h4 id="删除数据文件"><a href="#删除数据文件" class="headerlink" title="删除数据文件"></a>删除数据文件</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ALTER TABLESPACE TEST</span><br><span class="line">DROP DATAFILE &#39;&#x2F;database&#x2F;oracle&#x2F;oradata&#x2F;gsp&#x2F;tbs_dm_data_002.dbf&#39;</span><br></pre></td></tr></table></figure>
+
+<h5 id="删除以前的数据文件，则必须先关闭数据库，手动删除文件，否则会报错。"><a href="#删除以前的数据文件，则必须先关闭数据库，手动删除文件，否则会报错。" class="headerlink" title="删除以前的数据文件，则必须先关闭数据库，手动删除文件，否则会报错。"></a>删除以前的数据文件，则必须先关闭数据库，手动删除文件，否则会报错。</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">SQL&gt; shutdown immediate</span><br><span class="line"></span><br><span class="line">数据库已经关闭。</span><br><span class="line">已经卸载数据库。</span><br><span class="line">ORACLE 例程已经关闭。</span><br><span class="line">  </span><br><span class="line">SQL&gt; startup</span><br><span class="line">  </span><br><span class="line">ORACLE 例程已经启动。</span><br><span class="line">Total System Global Area 612368384 bytes</span><br><span class="line">Fixed Size 1250428 bytes</span><br><span class="line">Variable Size 104860548 bytes</span><br><span class="line">Database Buffers 499122176 bytes</span><br><span class="line">Redo Buffers 7135232 bytes</span><br><span class="line">数据库装载完毕。</span><br><span class="line">数据库已经打开。</span><br></pre></td></tr></table></figure>
+
+<h4 id="移动数据文件"><a href="#移动数据文件" class="headerlink" title="移动数据文件"></a>移动数据文件</h4><p>连接数据库并查看数据文件位置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">conn sysdba&#x2F;manage as sysdba;</span><br><span class="line"></span><br><span class="line">select TABLESPACE_NAME,FILE_NAME,BYTES&#x2F;1024&#x2F;1024 &quot;MB&quot; from dba_data_files;</span><br></pre></td></tr></table></figure>
+
+<p>把要移动数据文件的表空间脱机</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER TABLESPACE TBS_EDS_DAT OFFLINE NORMAL ;</span><br></pre></td></tr></table></figure>
+
+<p>移动物理数据文件后，修改控制文件的记录指针。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">-- 指定的文件位置一定要文件</span><br><span class="line">alter database rename file &#39;&#x2F;u01&#x2F;app&#x2F;oracle&#x2F;oradata&#x2F;ocp&#x2F;users01.dbf&#39; to &#39;&#x2F;u02&#x2F;users01.dbf&#39;;</span><br></pre></td></tr></table></figure>
+
+<p>表空间联机</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER TABLESPACE TBS_DM_DAT ONLINE;</span><br></pre></td></tr></table></figure>
+
+<h4 id="数据文件脱机"><a href="#数据文件脱机" class="headerlink" title="数据文件脱机"></a>数据文件脱机</h4><p>ALTER DATABASE DATAFILE ‘/database/oracle/oradata/gsp/tbs_dm_data_002.dbf’ OFFLINE;</p>
+<h4 id="数据文件联机"><a href="#数据文件联机" class="headerlink" title="数据文件联机"></a>数据文件联机</h4><p>ALTER DATABASE DATAFILE ‘/database/oracle/oradata/gsp/tbs_dm_data_002.dbf’ ONLINE;</p>
+<h2 id="维护表空间"><a href="#维护表空间" class="headerlink" title="维护表空间"></a>维护表空间</h2><h3 id="变更表空间状态"><a href="#变更表空间状态" class="headerlink" title="变更表空间状态"></a>变更表空间状态</h3><p>表空间状态有下面几种状态：online、offline、read only、read write。</p>
+<p>若要查看表空间的状态，可以通过下面SQL语句来查看。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">SQL&gt; SELECT TABLESPACE_NAME, CONTENTS, STATUS FROM DBA_TABLESPACES;</span><br><span class="line"> </span><br><span class="line">TABLESPACE_NAME                CONTENTS  STATUS</span><br><span class="line">------------------------------ --------- ---------</span><br><span class="line">SYSTEM                         PERMANENT ONLINE</span><br><span class="line">UNDOTBS1                       UNDO      ONLINE</span><br><span class="line">SYSAUX                         PERMANENT ONLINE</span><br><span class="line">TEMP                           TEMPORARY ONLINE</span><br><span class="line">USERS                          PERMANENT ONLINE</span><br><span class="line">EXAMPLE                        PERMANENT ONLINE</span><br><span class="line">TBS_DM_DATA                    PERMANENT READ ONLY</span><br><span class="line"></span><br><span class="line">7 rows selected</span><br><span class="line">    </span><br><span class="line">            </span><br><span class="line">SQL&gt; SELECT FILE#, STATUS, ENABLED FROM V$DATAFILE;</span><br><span class="line">    </span><br><span class="line">FILE# STATUS  ENABLED</span><br><span class="line">---------- ------- ----------</span><br><span class="line">1 SYSTEM  READ WRITE</span><br><span class="line">2 ONLINE  READ WRITE</span><br><span class="line">3 ONLINE  READ WRITE</span><br><span class="line">4 ONLINE  READ WRITE</span><br><span class="line">5 ONLINE  READ WRITE</span><br><span class="line">6 OFFLINE READ ONLY</span><br><span class="line">7 OFFLINE READ ONLY</span><br></pre></td></tr></table></figure>
+
+<h4 id="表空间脱机"><a href="#表空间脱机" class="headerlink" title="表空间脱机"></a>表空间脱机</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER TABLESPACE TBS_DM_DAT OFFLINE IMMEDIATE;</span><br></pre></td></tr></table></figure>
+
+<p>设置脱机状态，可以使用下面4个参数来控制脱机方式</p>
+<ul>
+<li>NORMAL 该参数表示将表空间以正常方式切换到脱机状态，在进入脱机状态过程中，ORACLE会执行一次检查点， 将SGA区中与该表空间相关的脏缓存块写入数据文件中，然后再关闭表空间的所有数据文件。如果在这过程中没有发生任何错误，则可以使用NORMAL参数，这也是默认的方式。</li>
+<li>TEMPORARY 该参数将表空间以临时方式切换到脱机状态。这时ORACLE在执行检查点时并不会检查各个数据文件的状态，即使某些数据文件处于不可用状态，ORACLE也会忽略这些错误。这样将表空间设置为联机状态时，可能需要进行数据恢复。</li>
+<li>IMMEDIATE 该参数将表空间以立即方式切换到脱机状态，这时ORACLE不会执行检查点，也不会检查数据文件是否可用。而是直接将属于表空间的数据文件设置为脱机状态。下一次将表空间恢复为联机状态时必须进行数据库恢复。</li>
+<li>FOR RECOVER 该参数将表空间以用于恢复方式切换到脱机状态，如果要对表空间进行基于时间的恢复，可以使用这个参数将表空间切换到脱机状态。</li>
+</ul>
+<p>如果数据库运行在非归档模式下(NOARCHIVELOG),由于无法保留恢复表空间所需要的重做数据，所以不能将表空间以立即方式切换到脱机状态。如果表空间脱机了，则查询表空间下的表，会报错误：ORA-00376 此时无法读取文件 以及 ORA-01110：数据文件x……</p>
+<p>注意：脱机（offline）一般用于数据库的联机备份，数据恢复等维护操作。有些表空间不能OFFLINE，如：SYSTEM,UNDO等</p>
+<ul>
+<li>SYSTEM 不能offline，也不能read only</li>
+<li>当前的UNDO表空空间，不能offline,也不能read only</li>
+<li>当前的临时表空间不能offline,也不能read only</li>
+<li>SYSAUX可以offline 不能read only</li>
+</ul>
+<h4 id="表空间联机"><a href="#表空间联机" class="headerlink" title="表空间联机"></a>表空间联机</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER TABLESPACE TBS_DM_DAT ONLINE;</span><br></pre></td></tr></table></figure>
+
+<h4 id="表空间只读"><a href="#表空间只读" class="headerlink" title="表空间只读"></a>表空间只读</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER TABLESPACE TBS_DM_DAT READ ONLY;</span><br></pre></td></tr></table></figure>
+
+<h4 id="表空间读写"><a href="#表空间读写" class="headerlink" title="表空间读写"></a>表空间读写</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER TABLESPACE TBS_DM_DAT READ WRITE;</span><br></pre></td></tr></table></figure>
+
+<h4 id="表空间改名"><a href="#表空间改名" class="headerlink" title="表空间改名"></a>表空间改名</h4><p>在ORACLE 10g 之前，表空间的名称是不能被修改的。<br>在ORACLE 11G中，通过ALTER TABLESPACE 语句中使用RENAME子句，数据库管理员可以修改表空间的名称。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLESPACE TBS_DM_DAT </span><br><span class="line">DATAFILE &#39;E:\APP\KERRY\ORADATA\ORCL\TBS_DM_DAT.DBF&#39;</span><br><span class="line">SIZE 50M</span><br><span class="line">EXTENT MANAGEMENT LOCAL</span><br><span class="line">SEGMENT SPACE MANAGEMENT AUTO ONLINE</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ALTER TABLESPACE TBS_DM_DAT RENAME TO TBS_DM_DATA;</span><br><span class="line"></span><br><span class="line">SELECT TABLESPACE_NAME FROM DBA_TABLESPACES WHERE TABLESPACE_NAME &#x3D; &#39;TBS_DM_DATA&#39;;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">LESPACE_NAME</span><br><span class="line">---------------------------</span><br><span class="line">_DM_DATA</span><br></pre></td></tr></table></figure>
+
+<h4 id="开启自动扩展"><a href="#开启自动扩展" class="headerlink" title="开启自动扩展"></a>开启自动扩展</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER DATABASE DATAFILE &#39;&#x2F;database&#x2F;oracle&#x2F;oradata&#x2F;gsp&#x2F;tbs_dm_data_002.dbf&#39; AUTOEXTEND ON;</span><br></pre></td></tr></table></figure>
+
+<h4 id="关闭自动扩展"><a href="#关闭自动扩展" class="headerlink" title="关闭自动扩展"></a>关闭自动扩展</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ALTER DATABASE DATAFILE &#39;&#x2F;database&#x2F;oracle&#x2F;oradata&#x2F;gsp&#x2F;tbs_dm_data_002.dbf&#39; AUTOEXTEND OFF;</span><br></pre></td></tr></table></figure>
+
+<h3 id="表空间配额"><a href="#表空间配额" class="headerlink" title="表空间配额"></a>表空间配额</h3><p>表空间不足与用户配额不足是两种不同的概念。表空间的大小是指实际的用户表空间的大小，而配额大小指的是用户指定使用表空间的的大小。两者的解决方式亦不相同</p>
+<h4 id="查看用户表空间配额"><a href="#查看用户表空间配额" class="headerlink" title="查看用户表空间配额"></a>查看用户表空间配额</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">--查看所有用户表空间的配额情况 </span><br><span class="line">SELECT * FROM DBA_TS_QUOTAS;</span><br><span class="line">  </span><br><span class="line">--查看当前用户表空间的配额情况   </span><br><span class="line">SELECT * FROM USER_TS_QUOTAS;</span><br></pre></td></tr></table></figure>
+
+<p>下面是DBA_TS_QUOTAS描述</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Name            Type         Nullable Default Comments                                         </span><br><span class="line">--------------- ------------ -------- ------- ------------------------------------------------ </span><br><span class="line">TABLESPACE_NAME VARCHAR2(30)                  Tablespace name                                  </span><br><span class="line">USERNAME        VARCHAR2(30)                  User with resource rights on the tablespace      </span><br><span class="line">BYTES           NUMBER       Y                Number of bytes charged to the user              </span><br><span class="line">MAX_BYTES       NUMBER       Y                User&#39;s quota in bytes.  NULL if no limit         </span><br><span class="line">BLOCKS          NUMBER       Y                Number of ORACLE blocks charged to the user      </span><br><span class="line">MAX_BLOCKS      NUMBER       Y                User&#39;s quota in ORACLE blocks.  NULL if no limit </span><br><span class="line">DROPPED         VARCHAR2(3)  Y                Whether the tablespace has been dropped</span><br></pre></td></tr></table></figure>
+
+<p>MAX_BYTES=-1表示没有配额限制，</p>
+<h4 id="管理用户表空间配额"><a href="#管理用户表空间配额" class="headerlink" title="管理用户表空间配额"></a>管理用户表空间配额</h4><p>用户表空间限额的创建与更改：</p>
+<p>1.创建用户时，指定限额</p>
+<p>eg：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">CREATE USER TEST IDENTIFIED BY TEST</span><br><span class="line">DEFAULT TABLESPACE TS_TEST</span><br><span class="line">TEMPORARY TABLESPACE TEMP</span><br><span class="line">QUOTA 3M ON TS_TEST</span><br><span class="line">PASSWORD EXPIRE;</span><br></pre></td></tr></table></figure>
+
+<p>2.取消限额</p>
+<p>这种方式是全局性的.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">GRANT UNLIMITED TABLESPACE TO SCOTT;</span><br></pre></td></tr></table></figure>
+
+<p>或者针对特定的表空间的.</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ALTER USER SCOTT QUOTA UNIMITED ON TBS_EDS_DAT;</span><br><span class="line">SELECT * FROM SESSION_PRIVS WHERE PRIVILEGE&#x3D;&#39;UNLIMITED TABLESPACE&#39;</span><br><span class="line">REVOKE UNLIMITED TABLESPACE FROM SCOTT;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>可以分配自然也可以回收了:</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">revoke unlimited tablespace from TEST;</span><br><span class="line">-- 或者</span><br><span class="line">alter user skate quota 0 on TB;</span><br></pre></td></tr></table></figure>
+
+<p>表空间大小不足问题的解决：使用“ALTER TABLESPACE tablespace_name ADD DATAFILE filename SIZE size_of_file”命令向指定的数据增加表空间，根据具体的情况可以增加一个或多个表空间。</p>
+<h2 id="来源"><a href="#来源" class="headerlink" title="来源"></a>来源</h2><p><a href="http://www.cnblogs.com/kerrycode/p/3418694.html" target="_blank" rel="noopener">http://www.cnblogs.com/kerrycode/p/3418694.html</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/oracle/" rel="tag"># oracle</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/09/21/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E5%B8%B8%E7%94%A8%E8%BF%90%E7%BB%B4%E5%91%BD%E4%BB%A4/" rel="prev" title="常用运维命令">
+      <i class="fa fa-chevron-left"></i> 常用运维命令
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/09/25/%E8%BF%90%E7%BB%B4/%E7%B3%BB%E7%BB%9Fcrash%E4%BA%8B%E4%BB%B6/" rel="next" title="系统crash日志">
+      系统crash日志 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#概念"><span class="nav-number">1.</span> <span class="nav-text">概念</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#结构图"><span class="nav-number">1.1.</span> <span class="nav-text">结构图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#基本的表空间"><span class="nav-number">1.2.</span> <span class="nav-text">基本的表空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#表空间的分类"><span class="nav-number">1.3.</span> <span class="nav-text">表空间的分类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#表空间的管理"><span class="nav-number">1.4.</span> <span class="nav-text">表空间的管理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#创建表空间"><span class="nav-number">2.</span> <span class="nav-text">创建表空间</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#表空间管理"><span class="nav-number">3.</span> <span class="nav-text">表空间管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#表空间信息"><span class="nav-number">3.1.</span> <span class="nav-text">表空间信息</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#查看默认的TEMP表空间"><span class="nav-number">3.1.1.</span> <span class="nav-text">查看默认的TEMP表空间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#查看默认的永久表空间"><span class="nav-number">3.1.2.</span> <span class="nav-text">查看默认的永久表空间</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#查看默认的表空间类型"><span class="nav-number">3.1.3.</span> <span class="nav-text">查看默认的表空间类型</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#查看表空间情况"><span class="nav-number">3.1.4.</span> <span class="nav-text">查看表空间情况</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#查看表空间的数据文件"><span class="nav-number">3.1.5.</span> <span class="nav-text">查看表空间的数据文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#查看表空间使用情况"><span class="nav-number">3.1.6.</span> <span class="nav-text">查看表空间使用情况</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#默认表空间"><span class="nav-number">3.2.</span> <span class="nav-text">默认表空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#删除表空间"><span class="nav-number">3.3.</span> <span class="nav-text">删除表空间</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#调整表空间"><span class="nav-number">3.4.</span> <span class="nav-text">调整表空间</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#增加数据文件"><span class="nav-number">3.4.1.</span> <span class="nav-text">增加数据文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#调整数据文件大小"><span class="nav-number">3.4.2.</span> <span class="nav-text">调整数据文件大小</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#删除数据文件"><span class="nav-number">3.4.3.</span> <span class="nav-text">删除数据文件</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#删除以前的数据文件，则必须先关闭数据库，手动删除文件，否则会报错。"><span class="nav-number">3.4.3.1.</span> <span class="nav-text">删除以前的数据文件，则必须先关闭数据库，手动删除文件，否则会报错。</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#移动数据文件"><span class="nav-number">3.4.4.</span> <span class="nav-text">移动数据文件</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#数据文件脱机"><span class="nav-number">3.4.5.</span> <span class="nav-text">数据文件脱机</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#数据文件联机"><span class="nav-number">3.4.6.</span> <span class="nav-text">数据文件联机</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#维护表空间"><span class="nav-number">4.</span> <span class="nav-text">维护表空间</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#变更表空间状态"><span class="nav-number">4.1.</span> <span class="nav-text">变更表空间状态</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#表空间脱机"><span class="nav-number">4.1.1.</span> <span class="nav-text">表空间脱机</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#表空间联机"><span class="nav-number">4.1.2.</span> <span class="nav-text">表空间联机</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#表空间只读"><span class="nav-number">4.1.3.</span> <span class="nav-text">表空间只读</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#表空间读写"><span class="nav-number">4.1.4.</span> <span class="nav-text">表空间读写</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#表空间改名"><span class="nav-number">4.1.5.</span> <span class="nav-text">表空间改名</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#开启自动扩展"><span class="nav-number">4.1.6.</span> <span class="nav-text">开启自动扩展</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#关闭自动扩展"><span class="nav-number">4.1.7.</span> <span class="nav-text">关闭自动扩展</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#表空间配额"><span class="nav-number">4.2.</span> <span class="nav-text">表空间配额</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#查看用户表空间配额"><span class="nav-number">4.2.1.</span> <span class="nav-text">查看用户表空间配额</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#管理用户表空间配额"><span class="nav-number">4.2.2.</span> <span class="nav-text">管理用户表空间配额</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#来源"><span class="nav-number">5.</span> <span class="nav-text">来源</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2018/09/21/4%E6%95%B0%E6%8D%AE%E5%BA%93/rdbms/oracle/%E8%A1%A8%E7%A9%BA%E9%97%B4/",
+            identifier: "2018/09/21/4数据库/rdbms/oracle/表空间/",
+            title: "表空间"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

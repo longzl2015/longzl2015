@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="JavaWeb中的监听器是Servlet规范中定义的一种特殊类，它用于监听web应用程序中的ServletContext、HttpSession和 ServletRequest这三大域对象的创建、销毁事件以及监听这些域对象中的属性发生修改的事件。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="web三大组件-listener">
+<meta property="og:url" content="https://longzl2015.github.io/2018/09/06/web/%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-listener/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="JavaWeb中的监听器是Servlet规范中定义的一种特殊类，它用于监听web应用程序中的ServletContext、HttpSession和 ServletRequest这三大域对象的创建、销毁事件以及监听这些域对象中的属性发生修改的事件。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://longzl2015.github.io/images/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-listener/%E5%90%AF%E5%8A%A8%E9%A1%BA%E5%BA%8F.png">
+<meta property="article:published_time" content="2018-09-06T09:42:00.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.922Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="web">
+<meta property="article:tag" content="listener">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://longzl2015.github.io/images/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-listener/%E5%90%AF%E5%8A%A8%E9%A1%BA%E5%BA%8F.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2018/09/06/web/%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-listener/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>web三大组件-listener | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2018/09/06/web/%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-listener/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          web三大组件-listener
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-09-06 17:42:00" itemprop="dateCreated datePublished" datetime="2018-09-06T17:42:00+08:00">2018-09-06</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/web/" itemprop="url" rel="index">
+                    <span itemprop="name">web</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/web/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6/" itemprop="url" rel="index">
+                    <span itemprop="name">web三大组件</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2018/09/06/web/%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-listener/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/09/06/web/三大组件/web三大组件-listener/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>JavaWeb中的监听器是Servlet规范中定义的一种特殊类，它用于监听web应用程序中的ServletContext、HttpSession和 ServletRequest这三大域对象的创建、销毁事件以及监听这些域对象中的属性发生修改的事件。</p>
+<a id="more"></a>
+
+<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>JavaWeb中的监听器 主要有8个.<br>从域对象方面又分为3类: </p>
+<ul>
+<li>ServletContext</li>
+<li>HttpSession</li>
+<li>ServletRequest</li>
+</ul>
+<p>事件区分:</p>
+<ul>
+<li>生命周期监听: 对象的创建和销毁事件</li>
+<li>属性监听: 对象的属性添加和删除事件</li>
+<li>感知监听: 监听绑定到HttpSession域中的某个对象的状态</li>
+</ul>
+<h2 id="启动顺序"><a href="#启动顺序" class="headerlink" title="启动顺序"></a>启动顺序</h2><p><img src="/images/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-listener/%E5%90%AF%E5%8A%A8%E9%A1%BA%E5%BA%8F.png" alt=""></p>
+<h2 id="生命周期监听"><a href="#生命周期监听" class="headerlink" title="生命周期监听"></a>生命周期监听</h2><h3 id="ServletContext"><a href="#ServletContext" class="headerlink" title="ServletContext"></a>ServletContext</h3><p>当Servlet 容器启动或终止Web 应用时，会触发ServletContextEvent 事件，该事件由ServletContextListener 来处理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@WebListener</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AListener</span> <span class="keyword">implements</span> <span class="title">ServletContextListener</span></span>&#123;    </span><br><span class="line">    <span class="comment">//在项目启动时调用    </span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">contextInitialized</span><span class="params">(ServletContextEvent sce)</span> </span>&#123;   </span><br><span class="line">    &#125;    </span><br><span class="line">    <span class="comment">//在项目关闭时调用    </span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">contextDestroyed</span><span class="params">(ServletContextEvent sce)</span> </span>&#123;      </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ServletContextListener用处:</p>
+<ol>
+<li>当使用quartz时，将原先未完成的或者缺失的 job 添加进 quartz中。</li>
+<li>其他需要在tomcat启动时处理的逻辑</li>
+</ol>
+<h3 id="HttpSession"><a href="#HttpSession" class="headerlink" title="HttpSession"></a>HttpSession</h3><p>HttpSessionListener是对Session的监听，在Session生成或销毁后被调用。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@WebListener</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AListener</span> <span class="keyword">implements</span> <span class="title">HttpSessionListener</span></span>&#123;  </span><br><span class="line">    <span class="comment">//当浏览器第一次访问应用时      </span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sessionCreated</span><span class="params">(HttpSessionEvent sce)</span> </span>&#123;      </span><br><span class="line">    &#125;   </span><br><span class="line">     <span class="comment">//1. 手动注销session.invalidate() </span></span><br><span class="line">     <span class="comment">//2. 会话超时，自动注销</span></span><br><span class="line">     <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sessionDestroyed</span><span class="params">(HttpSessionEvent sce)</span> </span>&#123;      </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>用处: </p>
+<ol>
+<li>记录用户在线人数 等</li>
+<li>记录访问日志</li>
+</ol>
+<h3 id="ServletRequestListener"><a href="#ServletRequestListener" class="headerlink" title="ServletRequestListener"></a>ServletRequestListener</h3><p>ServletRequestListener 接口用于监听Web应用程序中ServletRequest对象的创建和销毁。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@WebListener</span>()</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">testListener</span> <span class="keyword">implements</span> <span class="title">ServletRequestListener</span></span>&#123;</span><br><span class="line">       <span class="comment">//request创建时(发送请求)调用</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">requestInitialized</span><span class="params">(ServletRequestEvent servletRequestEvent)</span></span>&#123;</span><br><span class="line">            System.out.println(<span class="string">"requestCreated"</span>);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//request处理完毕销毁时调用</span></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">requestDestroyed</span><span class="params">(ServletRequestEvent servletRequestEvent)</span></span>&#123; </span><br><span class="line">            System.out.println(<span class="string">"requestDestroyed"</span>);</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>用途: </p>
+<p>统计 web 访问量指标</p>
+<h2 id="属性监听"><a href="#属性监听" class="headerlink" title="属性监听"></a>属性监听</h2><h3 id="ServletContextAttributeListener"><a href="#ServletContextAttributeListener" class="headerlink" title="ServletContextAttributeListener"></a>ServletContextAttributeListener</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@WebListener</span>()</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">testListener</span> <span class="keyword">implements</span> <span class="title">ServletContextAttributeListener</span></span>&#123;</span><br><span class="line">       <span class="comment">//添加属性</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">attributeAdded</span><span class="params">(ServletContextAttributeEvent e)</span></span>&#123;</span><br><span class="line">            System.out.println(<span class="string">"attributeAdded"</span>+e.getName());</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">//删除属性</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">attributeRemoved</span><span class="params">(ServletContextAttributeEvent e)</span></span>&#123;</span><br><span class="line">            System.out.println(<span class="string">"attributeRemoved"</span>+e.getName());</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">//修改属性</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">attributeReplaced</span><span class="params">(ServletContextAttributeEvent e)</span></span>&#123; </span><br><span class="line">            System.out.println(<span class="string">"attributeReplaced"</span>+e.getName());</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="HttpSessionAttributeListener"><a href="#HttpSessionAttributeListener" class="headerlink" title="HttpSessionAttributeListener"></a>HttpSessionAttributeListener</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@WebListener</span>()</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">testListener</span> <span class="keyword">implements</span> <span class="title">HttpSessionAttributeListener</span></span>&#123;</span><br><span class="line">       <span class="comment">//session.setAttribute()</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">attributeAdded</span><span class="params">(HttpSessionBindingEvent e)</span></span>&#123;</span><br><span class="line">            System.out.println(<span class="string">"attributeAdded"</span>+e.getName());</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">//session.removeAttribute()</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">attributeRemoved</span><span class="params">(HttpSessionBindingEvent e)</span></span>&#123;</span><br><span class="line">            System.out.println(<span class="string">"attributeRemoved"</span>+e.getName());</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">//session.replaceAttribute()</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">attributeReplaced</span><span class="params">(HttpSessionBindingEvent e)</span></span>&#123; </span><br><span class="line">            System.out.println(<span class="string">"attributeReplaced"</span>+e.getName());</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="ServletRequestAttributeListener"><a href="#ServletRequestAttributeListener" class="headerlink" title="ServletRequestAttributeListener"></a>ServletRequestAttributeListener</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@WebListener</span>()</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">testListener</span> <span class="keyword">implements</span> <span class="title">ServletRequestAttributeListener</span></span>&#123;</span><br><span class="line">        <span class="comment">//request.setAttribute()</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">attributeAdded</span><span class="params">(HttpSessionBindingEvent e)</span></span>&#123;</span><br><span class="line">            System.out.println(<span class="string">"attributeAdded"</span>+e.getName());</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//request.removeAttribute();</span></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">attributeRemoved</span><span class="params">(HttpSessionBindingEvent e)</span></span>&#123;</span><br><span class="line">            System.out.println(<span class="string">"attributeRemoved"</span>+e.getName());</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//对已经存在于request中的属性再次调用request.setAttribute("user", "bbb")</span></span><br><span class="line">        <span class="comment">//如request.setAttribute("user", "aaa");request.setAttribute("user", "bbb");</span></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">attributeReplaced</span><span class="params">(HttpSessionBindingEvent e)</span></span>&#123; </span><br><span class="line">            System.out.println(<span class="string">"attributeReplaced"</span>+e.getName());</span><br><span class="line">       &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="感知监听"><a href="#感知监听" class="headerlink" title="感知监听"></a>感知监听</h2><p>HttpSession中的对象状态：①钝化→活化 ②绑定→解除绑定  </p>
+<h3 id="钝化与活化"><a href="#钝化与活化" class="headerlink" title="钝化与活化"></a>钝化与活化</h3><ul>
+<li>钝化：将session对象持久化到存储设备上；</li>
+<li>活化：将session从存储设备上恢复</li>
+</ul>
+<p>Session正常是放到服务器内存当中的，服务器会对每一个在线用户创建一个Session对象，如果当前用户很多，Session内存的开销是非常大的，影响性能。而Session的钝化机制可以解决这个问题。</p>
+<p>钝化的本质就是把一部分比较长时间没有变动的Session暂时序列化到系统文件或者数据库系统当中，等该Session的用户重新使用的时候，服务器在内存中找不到Session，就会到磁盘中去找，然后把Session反序列化到内存中。整个过程由服务器自动完成。</p>
+<p>注意，Session只有可以被序列化才能被钝化。Session序列化时，服务器会把Session保存到硬盘中,以sessionID命名，以“.session”作为扩展名。<br>  Session钝化机制由SessionManager管理，Tomcat有两种Session管理器：</p>
+<h4 id="StandardManager-标准会话管理器"><a href="#StandardManager-标准会话管理器" class="headerlink" title="StandardManager(标准会话管理器)"></a>StandardManager(标准会话管理器)</h4><blockquote>
+<p><Manager className="org.apache.catalina.session.StandardManager" 
+     maxInactiveInterval="7200"/></p>
+</blockquote>
+<p>Tomcat6的默认会话管理器，用于非集群环境中对单个处于运行状态的Tomcat实例会话进行管理。<br>当运行Tomcat时，StandardManager实例负责在内存中管理Session；但当服务器关闭时，会将当前内存中的Session写入到磁盘上的一个名叫SESSION.ser的文件，等服务器再次启动时，会重新载入这些Session。<br>另一种情况是Web应用程序被重新加载时，内存中的Session对象也会被钝化到服务器的文件系统中。<br>钝化后的文件默认被保存在Tomcat的安装路径$CATALINA_HOME/work/Catalina/<hostname>/<webapp-name>/下的SESSIONS.ser文件中。</p>
+<h4 id="PersistentManager-持久会话管理器"><a href="#PersistentManager-持久会话管理器" class="headerlink" title="PersistentManager(持久会话管理器)"></a>PersistentManager(持久会话管理器)</h4><p>PersistentManager和StandardManager的区别在于PersistentManager自己实现了Store类，使Session可以被保存到不同地方(Database,Redis等)，而不局限于只保存在SESSION.ser文件中。Store表示了管理session对的二级存储设备。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">Manager</span> <span class="attr">className</span>=<span class="string">"org.apache.catalina.session.PersistentManager"</span> <span class="attr">debug</span>=<span class="string">"0"</span> <span class="attr">saveOnRestart</span>=<span class="string">"true"</span> <span class="attr">maxActiveSession</span>=<span class="string">"-1"</span> <span class="attr">minIdleSwap</span>=<span class="string">"0"</span> </span></span><br><span class="line"><span class="tag"><span class="attr">maxIdleSwap</span>=<span class="string">"0"</span> <span class="attr">maxIdleBackup</span>=<span class="string">"-1"</span> &gt;</span></span><br><span class="line">         <span class="comment">&lt;!--保存在Reids中--&gt;</span></span><br><span class="line">         <span class="tag">&lt;<span class="name">Store</span> <span class="attr">className</span>=<span class="string">"com.cdai.test.RedisStore"</span> <span class="attr">host</span>=<span class="string">"192.168.1.1"</span> <span class="attr">port</span>=<span class="string">"6379"</span>/&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">Manager</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>Manager 标签属性</strong></p>
+<pre><code>&lt;!--当Tomcat正常停止及重启动时，是否要储存及重载会话。--&gt;
+saveOnRestart=&quot;true&quot;
+&lt;!--可容许现行最大会话的最大数，-1代表无限制--&gt;
+maxActiveSession=&quot;-1&quot;
+&lt;!--在调换会话至磁盘之前，此会话必须闲置的最小时间--&gt;
+minIdleSwap=&quot;0&quot;
+&lt;!--在文件交换之前，此会话可以闲置的最大时间(以秒为单位)。-1表示会话不应该被强迫调换至文件。--&gt;
+maxIdleSwap=&quot;0&quot;
+&lt;!--在备份之前，此会话必须闲置的最大时间。-1表示不进行备份--&gt;
+maxIdleBackup=&quot;-1&quot; </code></pre><p>PersistentManager支持两种钝化驱动类：org.apache.Catalina.FileStore和org.apache.Catalina.JDBCStore，分别支持将会话保存至文件存储(FileStore)或JDBC存储(JDBCStore)中。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--保存到文件中--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">Manager</span> <span class="attr">className</span>=<span class="string">"org.apache.catalina.session.PersistentManager"</span> </span></span><br><span class="line"><span class="tag"> <span class="attr">saveOnRestart</span>=<span class="string">"true"</span>&gt;</span> </span><br><span class="line"><span class="comment">&lt;!--每个用户的会话会被保存至directory指定的目录中的文件中--&gt;</span></span><br><span class="line"> <span class="tag">&lt;<span class="name">Store</span> <span class="attr">className</span>=<span class="string">"org.apache.catalina.session.FileStore"</span> </span></span><br><span class="line"><span class="tag">         <span class="attr">directory</span>=<span class="string">"/data/tomcat-sessions"</span>/&gt;</span> </span><br><span class="line"><span class="tag">&lt;/<span class="name">Manager</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--保存到JDBCStore中--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">Manager</span> <span class="attr">className</span>=<span class="string">"org.apache.catalina.session.PersistentManager"</span> </span></span><br><span class="line"><span class="tag"> <span class="attr">saveOnRestart</span>=<span class="string">"true"</span>&gt;</span> </span><br><span class="line"> <span class="tag">&lt;<span class="name">Store</span> <span class="attr">className</span>=<span class="string">"org.apache.catalina.session.JDBCStore"</span> </span></span><br><span class="line"><span class="tag">         <span class="attr">driverName</span>=<span class="string">"com.mysql.jdbc.Driver"</span> </span></span><br><span class="line"><span class="tag">         <span class="attr">connectionURL</span>=<span class="string">"jdbc:mysql://localhost:3306/mydb?user=root;password=123"</span>/&gt;</span> </span><br><span class="line"><span class="tag">&lt;/<span class="name">Manager</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在持久化管理器中，session可以被备份或换出到存储器中。</p>
+<ul>
+<li>换出：当内存中有过多的session对象时，持久化管理器会直接将session对象换出，直到当前活动对象等于maxActiveSession指定的值。</li>
+<li>备份：不是所有的session都会备份，PersistentManager只会将那些空闲时间超过maxIdleBackup的session备份到文件或数据库中。该任务由processMaxIdleBackups方法完成。</li>
+</ul>
+<p>此时Tomcat只是在下面三种情况会将Session通过Store保存起来。</p>
+<ul>
+<li>当Session的空闲时间超过minIdleSwap和maxIdleSwap时，会将Session换出</li>
+<li>当Session的空闲时间超过maxIdleBackup时，会将Session备份出去</li>
+<li>当Session总数大于maxActiveSession时，会将超出部分的空闲Session换出</li>
+</ul>
+<h3 id="HttpSessionBindingListener-和-HttpSessionActivationListener"><a href="#HttpSessionBindingListener-和-HttpSessionActivationListener" class="headerlink" title="HttpSessionBindingListener 和 HttpSessionActivationListener"></a>HttpSessionBindingListener 和 HttpSessionActivationListener</h3><p>保存在Session域中的对象可以有多种状态：</p>
+<ul>
+<li>绑定(session.setAttribute(“bean”,Object))到Session中, 随Session对象持久化到一个存储设备中</li>
+<li>从Session域中解除(session.removeAttribute(“bean”))绑定, 随Session对象从一个存储设备中恢复</li>
+</ul>
+<p>servlet规范中提供的两种接口用以监听session内的对象：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">HttpSessionBindingListener                 HttpSessionActivationListener</span><br><span class="line">          |                                             |</span><br><span class="line">         &#x2F; \                                           &#x2F; \</span><br><span class="line">valueBound  valueUnBound            sessionWillPassivate sessionDidActivate</span><br><span class="line">  (绑定)     (解除绑定)                    (钝化)             (活化)</span><br></pre></td></tr></table></figure>
+
+<p><strong>以上接口皆不需要在web容器中注册。</strong></p>
+<h4 id="绑定和解绑接口"><a href="#绑定和解绑接口" class="headerlink" title="绑定和解绑接口"></a>绑定和解绑接口</h4><p>实现了HttpSessionBindingListener接口的JavaBean对象可以感知自己被绑定到Session中和 Session中删除的事件。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">User</span> <span class="keyword">implements</span> <span class="title">HttpSessionBindingListener</span></span>&#123;</span><br><span class="line">       <span class="keyword">private</span> String userName;</span><br><span class="line">       <span class="keyword">private</span> String password;</span><br><span class="line"></span><br><span class="line">       <span class="comment">//对象被放进session时触发，如session.setAttribute("user",user);</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">valueBound</span><span class="params">(HttpSessionBindingEvent e)</span></span>&#123; </span><br><span class="line">          <span class="comment">//getName()方法可以取得属性设定或移除时指定的名称</span></span><br><span class="line">          System.out.println(<span class="keyword">this</span> + <span class="string">"被绑定到session \""</span> + e.getSession.getId() + <span class="string">"\"的"</span> +e.getName()+ <span class="string">"属性上"</span>);</span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//从session移除后触发，session.removeAttribute()等</span></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">valueUnBound</span><span class="params">(HttpSessionBindingEvent e)</span></span>&#123; </span><br><span class="line">          System.out.println(<span class="keyword">this</span> + <span class="string">"被从session \""</span> + e.getSession.getId() + <span class="string">"\"的"</span> +e.getName()+ <span class="string">"属性上移除"</span>);       </span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">//此处省略getter和setter</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>valueUnbound方法将被以下任一条件触发：</p>
+<p>a. 执行session.setAttribute(“uocl”, 非uocl对象) 时。<br>b. 执行session.removeAttribute(“uocl”) 时。<br>c. 执行session.invalidate()时。<br>d. session超时后。</p>
+<h4 id="钝化和活化接口"><a href="#钝化和活化接口" class="headerlink" title="钝化和活化接口"></a>钝化和活化接口</h4><p>实现了HttpSessionActivationListener接口的JavaBean对象可以感知自己被活化(反序列化)和钝化(序列化)的事件。</p>
+<p>当绑定到HttpSession对象中的javabean对象将要随HttpSession对象被钝化(序列化)之前，web服务器调用该javabean对象的 sessionWillPassivate(HttpSessionEvent event) 方法。这样javabean对象就可以知道自己将要和HttpSession对象一起被序列化(钝化)到硬盘中。<br>当绑定到HttpSession对象中的javabean对象将要随HttpSession对象被活化(反序列化)之后，web服务器调用该javabean对象的 sessionDidActive(HttpSessionEvent event)方法。这样javabean对象就可以知道自己将要和 HttpSession对象一起被反序列化(活化)回到内存中。</p>
+<p>需要注意的是: javabean随着HttpSession对象一起被活化的前提 <strong>该javabean对象除了实现该接口外还应该实现Serialize接口</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">//要注意只有实现Serializable接口才能被钝化</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">User</span> <span class="keyword">implements</span> <span class="title">HttpSessionActivationListener</span>, <span class="title">Serializable</span></span>&#123;</span><br><span class="line">       <span class="keyword">private</span> String userName;</span><br><span class="line">       <span class="keyword">private</span> String password;</span><br><span class="line"></span><br><span class="line">       <span class="comment">//被钝化时调用</span></span><br><span class="line">       <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sessionWillPassivate</span><span class="params">(HttpSessionEvent e)</span></span>&#123;</span><br><span class="line">          System.out.println(<span class="keyword">this</span> + <span class="string">"即将保存到硬盘。sessionId: "</span> + e.getSession.getId());       </span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//被活化时调用</span></span><br><span class="line">        <span class="meta">@Override</span></span><br><span class="line">       <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">sessionDidActivate</span><span class="params">(HttpSessionEvent e)</span></span>&#123; </span><br><span class="line">          System.out.println(<span class="keyword">this</span> + <span class="string">"已经成功从硬盘中加载。sessionId: "</span> + e.getSession.getId());      </span><br><span class="line">       &#125;</span><br><span class="line"></span><br><span class="line">       <span class="comment">//此处省略getter和setter</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>测试的时候先把Tomcat关掉，就会发现控制台输出了</p>
+<blockquote>
+<p>sessionWillPassivate org.apache.catalina.session.StandardSessionFacade@4f2d26d2</p>
+</blockquote>
+<p>也就是session已经被钝化了，此时在Tomcat安装路径下会发现SESSION.er文件。然后我们再来重启Tomcat，发现控制台输出：</p>
+<blockquote>
+<p>sessionDidActivate org.apache.catalina.session.StandardSessionFacade@4f2d26d2</p>
+</blockquote>
+<p>此时会发现在Tomcat安装路径下的SESSION.er文件消失了，也就说明session已经被活化了。</p>
+<p>同样的，如果我们设定了maxIdleeSwap=”1”，当用户开着浏览器一分钟不操作页面的话服务器就会将session钝化，将session生成文件放在tomcat工作目录下，直到再次访问才会被激活。</p>
+<h2 id="来源"><a href="#来源" class="headerlink" title="来源"></a>来源</h2><p><a href="https://www.jianshu.com/p/b85c535dc5fd" target="_blank" rel="noopener">https://www.jianshu.com/p/b85c535dc5fd</a><br><a href="https://www.jianshu.com/p/931d9dc34fa0" target="_blank" rel="noopener">https://www.jianshu.com/p/931d9dc34fa0</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/web/" rel="tag"># web</a>
+              <a href="/tags/listener/" rel="tag"># listener</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/09/06/web/%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-filter/" rel="prev" title="web三大组件-filter">
+      <i class="fa fa-chevron-left"></i> web三大组件-filter
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/09/12/8%E7%AE%97%E6%B3%95%E4%B8%8E%E7%BB%93%E6%9E%84/%E7%BA%A2%E9%BB%91%E6%A0%91/" rel="next" title="红黑树">
+      红黑树 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#概述"><span class="nav-number">1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动顺序"><span class="nav-number">2.</span> <span class="nav-text">启动顺序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#生命周期监听"><span class="nav-number">3.</span> <span class="nav-text">生命周期监听</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ServletContext"><span class="nav-number">3.1.</span> <span class="nav-text">ServletContext</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HttpSession"><span class="nav-number">3.2.</span> <span class="nav-text">HttpSession</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ServletRequestListener"><span class="nav-number">3.3.</span> <span class="nav-text">ServletRequestListener</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#属性监听"><span class="nav-number">4.</span> <span class="nav-text">属性监听</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#ServletContextAttributeListener"><span class="nav-number">4.1.</span> <span class="nav-text">ServletContextAttributeListener</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HttpSessionAttributeListener"><span class="nav-number">4.2.</span> <span class="nav-text">HttpSessionAttributeListener</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ServletRequestAttributeListener"><span class="nav-number">4.3.</span> <span class="nav-text">ServletRequestAttributeListener</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#感知监听"><span class="nav-number">5.</span> <span class="nav-text">感知监听</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#钝化与活化"><span class="nav-number">5.1.</span> <span class="nav-text">钝化与活化</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#StandardManager-标准会话管理器"><span class="nav-number">5.1.1.</span> <span class="nav-text">StandardManager(标准会话管理器)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#PersistentManager-持久会话管理器"><span class="nav-number">5.1.2.</span> <span class="nav-text">PersistentManager(持久会话管理器)</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#HttpSessionBindingListener-和-HttpSessionActivationListener"><span class="nav-number">5.2.</span> <span class="nav-text">HttpSessionBindingListener 和 HttpSessionActivationListener</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#绑定和解绑接口"><span class="nav-number">5.2.1.</span> <span class="nav-text">绑定和解绑接口</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#钝化和活化接口"><span class="nav-number">5.2.2.</span> <span class="nav-text">钝化和活化接口</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#来源"><span class="nav-number">6.</span> <span class="nav-text">来源</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2018/09/06/web/%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-listener/",
+            identifier: "2018/09/06/web/三大组件/web三大组件-listener/",
+            title: "web三大组件-listener"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

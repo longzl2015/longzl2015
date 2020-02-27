@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="本文介绍spring应用上下文的refresh方法。 我们以AnnotationConfigApplicationContext为例。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spring-4-应用上下文的refresh方法(转)">
+<meta property="og:url" content="https://longzl2015.github.io/2019/10/16/spring/spring-core/spring-4-%E5%BA%94%E7%94%A8%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84refresh/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本文介绍spring应用上下文的refresh方法。 我们以AnnotationConfigApplicationContext为例。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://longzl2015.github.io/images/spring-3-%E5%BA%94%E7%94%A8%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84refresh/11102521_5Jz2.png">
+<meta property="article:published_time" content="2019-10-16T16:00:03.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.900Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="spring">
+<meta property="article:tag" content="springframe">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://longzl2015.github.io/images/spring-3-%E5%BA%94%E7%94%A8%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84refresh/11102521_5Jz2.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2019/10/16/spring/spring-core/spring-4-%E5%BA%94%E7%94%A8%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84refresh/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>spring-4-应用上下文的refresh方法(转) | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2019/10/16/spring/spring-core/spring-4-%E5%BA%94%E7%94%A8%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84refresh/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          spring-4-应用上下文的refresh方法(转)
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-10-17 00:00:03" itemprop="dateCreated datePublished" datetime="2019-10-17T00:00:03+08:00">2019-10-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index">
+                    <span itemprop="name">spring</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/spring-core/" itemprop="url" rel="index">
+                    <span itemprop="name">spring-core</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2019/10/16/spring/spring-core/spring-4-%E5%BA%94%E7%94%A8%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84refresh/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/10/16/spring/spring-core/spring-4-应用上下文的refresh/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文介绍spring应用上下文的refresh方法。</p>
+<p>我们以AnnotationConfigApplicationContext为例。</p>
+<a id="more"></a>
+
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>在介绍 refresh() 方法之前，简单看下 AnnotationConfigApplicationContext 的构造函数: </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AnnotationConfigApplicationContext</span> <span class="keyword">extends</span> <span class="title">GenericApplicationContext</span> <span class="keyword">implements</span> <span class="title">AnnotationConfigRegistry</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="title">AnnotationConfigApplicationContext</span><span class="params">(String... basePackages)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">this</span>();</span><br><span class="line">		scan(basePackages);</span><br><span class="line">		refresh();</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>##refresh方法总览</p>
+<p>refresh方法的左右: 在创建IoC容器前，如果已经有容器存在，则需要把已有的容器销毁和关闭，以保证在refresh之后使用的是新建立起来的IoC容器。因此refresh类似于对IoC容器的重启。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AbstractApplicationContext</span> <span class="keyword">extends</span> <span class="title">DefaultResourceLoader</span></span></span><br><span class="line"><span class="class">		<span class="keyword">implements</span> <span class="title">ConfigurableApplicationContext</span> </span>&#123;</span><br><span class="line">  <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">refresh</span><span class="params">()</span> <span class="keyword">throws</span> BeansException, IllegalStateException </span>&#123;  </span><br><span class="line">       <span class="keyword">synchronized</span> (<span class="keyword">this</span>.startupShutdownMonitor) &#123;</span><br><span class="line">           <span class="comment">//设置容器的启动时间，标记状态为active，验证所有的必要参数已配置正确</span></span><br><span class="line">           <span class="comment">//等等</span></span><br><span class="line">           prepareRefresh();</span><br><span class="line">           <span class="comment">//获取一个 BeanFactory</span></span><br><span class="line">           ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();  </span><br><span class="line">           <span class="comment">//为BeanFactory配置容器特性，例如类加载器、事件处理器等  </span></span><br><span class="line">           prepareBeanFactory(beanFactory);  </span><br><span class="line">           <span class="keyword">try</span> &#123;  </span><br><span class="line">               <span class="comment">//为容器的某些子类指定特殊的BeanPost事件处理器  </span></span><br><span class="line">               postProcessBeanFactory(beanFactory);  </span><br><span class="line">               <span class="comment">//调用所有注册的BeanFactoryPostProcessor的Bean  </span></span><br><span class="line">               invokeBeanFactoryPostProcessors(beanFactory);  </span><br><span class="line">               <span class="comment">//为BeanFactory注册BeanPost事件处理器.  </span></span><br><span class="line">               <span class="comment">//BeanPostProcessor是Bean后置处理器，用于监听容器触发的事件  </span></span><br><span class="line">               registerBeanPostProcessors(beanFactory);  </span><br><span class="line">               <span class="comment">//初始化信息源，和国际化相关.  </span></span><br><span class="line">               initMessageSource();  </span><br><span class="line">               <span class="comment">//初始化容器事件传播器.  </span></span><br><span class="line">               initApplicationEventMulticaster();  </span><br><span class="line">               <span class="comment">//调用子类的某些特殊Bean初始化方法  </span></span><br><span class="line">               onRefresh();  </span><br><span class="line">               <span class="comment">//为事件传播器注册事件监听器.  </span></span><br><span class="line">               registerListeners();  </span><br><span class="line">               <span class="comment">//初始化所有剩余的单态Bean.  </span></span><br><span class="line">               finishBeanFactoryInitialization(beanFactory);  </span><br><span class="line">               <span class="comment">//初始化容器的生命周期事件处理器，并发布容器的生命周期事件  </span></span><br><span class="line">               finishRefresh();  </span><br><span class="line">           &#125;  </span><br><span class="line">           <span class="keyword">catch</span> (BeansException ex) &#123;  </span><br><span class="line">               <span class="comment">//销毁以创建的单态Bean  </span></span><br><span class="line">               destroyBeans();  </span><br><span class="line">               <span class="comment">//取消refresh操作，重置容器的同步标识.  </span></span><br><span class="line">               cancelRefresh(ex);  </span><br><span class="line">               <span class="keyword">throw</span> ex;  </span><br><span class="line">           &#125;  </span><br><span class="line">       &#125;  </span><br><span class="line">   &#125;</span><br><span class="line">  <span class="comment">//其他忽略</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="初始化-refresh-的上下文环境"><a href="#初始化-refresh-的上下文环境" class="headerlink" title="初始化 refresh 的上下文环境"></a>初始化 refresh 的上下文环境</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">prepareRefresh</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="comment">// 设置spring容器启动时间</span></span><br><span class="line">  <span class="keyword">this</span>.startupDate = System.currentTimeMillis();</span><br><span class="line">  <span class="keyword">this</span>.closed.set(<span class="keyword">false</span>);</span><br><span class="line">  <span class="keyword">this</span>.active.set(<span class="keyword">true</span>);</span><br><span class="line">  <span class="comment">// 初始化属性源，默认什么都不做。具体可由子类覆盖实现</span></span><br><span class="line">  initPropertySources();</span><br><span class="line">  <span class="comment">// 验证 必要参数 是否完整。</span></span><br><span class="line">  getEnvironment().validateRequiredProperties();</span><br><span class="line"></span><br><span class="line">  <span class="comment">// 添加某些监听器到 applicationListeners 变量中</span></span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.earlyApplicationListeners == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">this</span>.earlyApplicationListeners = <span class="keyword">new</span> LinkedHashSet&lt;&gt;(<span class="keyword">this</span>.applicationListeners);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">else</span> &#123;</span><br><span class="line">    <span class="keyword">this</span>.applicationListeners.clear();</span><br><span class="line">    <span class="keyword">this</span>.applicationListeners.addAll(<span class="keyword">this</span>.earlyApplicationListeners);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  <span class="comment">// Allow for the collection of early ApplicationEvents,</span></span><br><span class="line">  <span class="comment">// to be published once the multicaster is available...</span></span><br><span class="line">  <span class="keyword">this</span>.earlyApplicationEvents = <span class="keyword">new</span> LinkedHashSet&lt;&gt;();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>添加的监听器样例如下:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">0 &#x3D; &#123;ConditionEvaluationReportLoggingListener$ConditionEvaluationReportListener@3109&#125; </span><br><span class="line">1 &#x3D; &#123;ServerPortInfoApplicationContextInitializer@3110&#125; </span><br><span class="line">2 &#x3D; &#123;BootstrapApplicationListener@3111&#125; </span><br><span class="line">3 &#x3D; &#123;LoggingSystemShutdownListener@3112&#125; </span><br><span class="line">4 &#x3D; &#123;ConfigFileApplicationListener@3113&#125; </span><br><span class="line">5 &#x3D; &#123;AnsiOutputApplicationListener@3114&#125; </span><br><span class="line">6 &#x3D; &#123;LoggingApplicationListener@3115&#125; </span><br><span class="line">7 &#x3D; &#123;BackgroundPreinitializer@3116&#125; </span><br><span class="line">8 &#x3D; &#123;ClasspathLoggingApplicationListener@3117&#125; </span><br><span class="line">9 &#x3D; &#123;RestartListener@3118&#125; </span><br><span class="line">10 &#x3D; &#123;DelegatingApplicationListener@3119&#125; </span><br><span class="line">11 &#x3D; &#123;ParentContextCloserApplicationListener@3120&#125; </span><br><span class="line">12 &#x3D; &#123;ClearCachesApplicationListener@3121&#125; </span><br><span class="line">13 &#x3D; &#123;FileEncodingApplicationListener@3122&#125; </span><br><span class="line">14 &#x3D; &#123;LiquibaseServiceLocatorApplicationListener@3123&#125; </span><br><span class="line">15 &#x3D; &#123;EnableEncryptablePropertiesBeanFactoryPostProcessor@3124&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="初始化-BeanFactory"><a href="#初始化-BeanFactory" class="headerlink" title="初始化 BeanFactory"></a>初始化 BeanFactory</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> ConfigurableListableBeanFactory <span class="title">obtainFreshBeanFactory</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  refreshBeanFactory();</span><br><span class="line">  <span class="comment">// 直接返回 this.beanFactory</span></span><br><span class="line">  <span class="keyword">return</span> getBeanFactory();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">final</span> <span class="keyword">void</span> <span class="title">refreshBeanFactory</span><span class="params">()</span> <span class="keyword">throws</span> IllegalStateException </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (!<span class="keyword">this</span>.refreshed.compareAndSet(<span class="keyword">false</span>, <span class="keyword">true</span>)) &#123;</span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(</span><br><span class="line">      <span class="string">"GenericApplicationContext does not support multiple refresh attempts: just call 'refresh' once"</span>);</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">this</span>.beanFactory.setSerializationId(getId());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="对-BeanFactory-进行功能增强"><a href="#对-BeanFactory-进行功能增强" class="headerlink" title="对 BeanFactory 进行功能增强"></a>对 BeanFactory 进行功能增强</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">prepareBeanFactory</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> </span>&#123;</span><br><span class="line">		<span class="comment">//设置用于加载bean的BeanClassLoader</span></span><br><span class="line">		beanFactory.setBeanClassLoader(getClassLoader());</span><br><span class="line">    <span class="comment">//设置表达式解析器(解析bean定义中的一些EL表达式)</span></span><br><span class="line">		beanFactory.setBeanExpressionResolver(<span class="keyword">new</span> StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));</span><br><span class="line">    <span class="comment">//添加属性编辑注册器</span></span><br><span class="line">		beanFactory.addPropertyEditorRegistrar(<span class="keyword">new</span> ResourceEditorRegistrar(<span class="keyword">this</span>, getEnvironment()));</span><br><span class="line">		<span class="comment">//添加添加后置处理器 ApplicationContextAwareProcessor(该类与XXAware接口配合)</span></span><br><span class="line">    <span class="comment">//由于ApplicationContextAwareProcessor实现了下面几个接口的字段属性的自动注入，</span></span><br><span class="line">    <span class="comment">//因此需要忽略下面这些接口的自动注入</span></span><br><span class="line">		beanFactory.addBeanPostProcessor(<span class="keyword">new</span> ApplicationContextAwareProcessor(<span class="keyword">this</span>));</span><br><span class="line">		beanFactory.ignoreDependencyInterface(EnvironmentAware<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">		beanFactory.ignoreDependencyInterface(ResourceLoaderAware<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">		beanFactory.ignoreDependencyInterface(ApplicationEventPublisherAware<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">		beanFactory.ignoreDependencyInterface(MessageSourceAware<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">		beanFactory.ignoreDependencyInterface(ApplicationContextAware<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">//注册几个自动装配的规则</span></span><br><span class="line">		beanFactory.registerResolvableDependency(BeanFactory<span class="class">.<span class="keyword">class</span>, <span class="title">beanFactory</span>)</span>;</span><br><span class="line">		beanFactory.registerResolvableDependency(ResourceLoader<span class="class">.<span class="keyword">class</span>, <span class="title">this</span>)</span>;</span><br><span class="line">		beanFactory.registerResolvableDependency(ApplicationEventPublisher<span class="class">.<span class="keyword">class</span>, <span class="title">this</span>)</span>;</span><br><span class="line">		beanFactory.registerResolvableDependency(ApplicationContext<span class="class">.<span class="keyword">class</span>, <span class="title">this</span>)</span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">//注册后置处理器 ApplicationListenerDetector，用于探测 ApplicationListener 类型接口</span></span><br><span class="line">		beanFactory.addBeanPostProcessor(<span class="keyword">new</span> ApplicationListenerDetector(<span class="keyword">this</span>));</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 增加对 AspectJ 的支持</span></span><br><span class="line">		<span class="keyword">if</span> (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) &#123;</span><br><span class="line">			beanFactory.addBeanPostProcessor(<span class="keyword">new</span> LoadTimeWeaverAwareProcessor(beanFactory));</span><br><span class="line">			beanFactory.setTempClassLoader(<span class="keyword">new</span> ContextTypeMatchClassLoader(beanFactory.getBeanClassLoader()));</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// 注册默认系统环境相关的bean(environment、systemProperties、systemEnvironment)</span></span><br><span class="line">		<span class="keyword">if</span> (!beanFactory.containsLocalBean(ENVIRONMENT_BEAN_NAME)) &#123;</span><br><span class="line">			beanFactory.registerSingleton(ENVIRONMENT_BEAN_NAME, getEnvironment());</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (!beanFactory.containsLocalBean(SYSTEM_PROPERTIES_BEAN_NAME)) &#123;</span><br><span class="line">			beanFactory.registerSingleton(SYSTEM_PROPERTIES_BEAN_NAME, getEnvironment().getSystemProperties());</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (!beanFactory.containsLocalBean(SYSTEM_ENVIRONMENT_BEAN_NAME)) &#123;</span><br><span class="line">			beanFactory.registerSingleton(SYSTEM_ENVIRONMENT_BEAN_NAME, getEnvironment().getSystemEnvironment());</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在配置 bean 的时候，如果我们希望对某一类型的属性执行一些处理，可以通过自定义属性编辑器来实现，典型的应用场景就是对时间类型属性的转换，假设我们的 bean 存在 LocalDate 类型的属性，这个时候我们直接以字符串配置进行注入是会出现异常的，这个时候我们可以自定义属性编辑器来实现类型的转换：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MyDatePropertyEditor</span> <span class="keyword">extends</span> <span class="title">PropertyEditorSupport</span> <span class="keyword">implements</span> <span class="title">InitializingBean</span> </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> String format = <span class="string">"yyyy-MM-dd"</span>;</span><br><span class="line">    <span class="keyword">private</span> DateTimeFormatter dtf;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">afterPropertiesSet</span><span class="params">()</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        dtf = DateTimeFormatter.ofPattern(format);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">setAsText</span><span class="params">(String text)</span> <span class="keyword">throws</span> IllegalArgumentException </span>&#123;</span><br><span class="line">        <span class="keyword">if</span> (!StringUtils.hasText(text)) &#123;</span><br><span class="line">            <span class="keyword">this</span>.setValue(<span class="keyword">null</span>);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">this</span>.setValue(LocalDate.parse(text));</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> MyDatePropertyEditor <span class="title">setFormat</span><span class="params">(String format)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.format = format;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">this</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--注册自定义属性解析器--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">bean</span> <span class="attr">class</span>=<span class="string">"org.springframework.beans.factory.config.CustomEditorConfigurer"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">"customEditors"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">map</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">entry</span> <span class="attr">key</span>=<span class="string">"java.time.LocalDate"</span>&gt;</span></span><br><span class="line">                <span class="tag">&lt;<span class="name">bean</span> <span class="attr">class</span>=<span class="string">"org.zhenchao.editor.MyDatePropertyEditor"</span>&gt;</span></span><br><span class="line">                    <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">"format"</span> <span class="attr">value</span>=<span class="string">"yyyy-MM-dd"</span>/&gt;</span></span><br><span class="line">                <span class="tag">&lt;/<span class="name">bean</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;/<span class="name">entry</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">map</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">bean</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>我们自定义的属性编辑器 MyDatePropertyEditor 通过时间格式化工具对指定模式的字符串格式日期执行转换和注入，而上述转换只能在我们以 ApplicationContext 的方式加载 bean 的前提下才生效，如果我们以 BeanFactory 的方式加载 bean，还是会抛出异常，毕竟这属于高级容器中增强的功能。</p>
+<p>当我们定义的 bean 实现了 Aware 接口的时候，这些 bean 可以比一般的 bean 多拿到一些资源，而此处对于 beanFactory 的扩展也增加了对一些 Aware 类自动装配的支持。ApplicationContextAwareProcessor 实现了 BeanPostProcessor 接口，并主要实现了 postProcessBeforeInitialization 逻辑：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">postProcessBeforeInitialization</span><span class="params">(<span class="keyword">final</span> Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException </span>&#123;</span><br><span class="line">    AccessControlContext acc = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (System.getSecurityManager() != <span class="keyword">null</span> &amp;&amp;</span><br><span class="line">            (bean <span class="keyword">instanceof</span> EnvironmentAware </span><br><span class="line">                || bean <span class="keyword">instanceof</span> EmbeddedValueResolverAware </span><br><span class="line">                || bean <span class="keyword">instanceof</span> ResourceLoaderAware </span><br><span class="line">                || bean <span class="keyword">instanceof</span> ApplicationEventPublisherAware </span><br><span class="line">                || bean <span class="keyword">instanceof</span> MessageSourceAware </span><br><span class="line">                || bean <span class="keyword">instanceof</span> ApplicationContextAware)) &#123;</span><br><span class="line">        acc = <span class="keyword">this</span>.applicationContext.getBeanFactory().getAccessControlContext();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (acc != <span class="keyword">null</span>) &#123;</span><br><span class="line">        AccessController.doPrivileged(<span class="keyword">new</span> PrivilegedAction&lt;Object&gt;() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> Object <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                invokeAwareInterfaces(bean);</span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;, acc);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 核心在于激活 Aware</span></span><br><span class="line">        <span class="keyword">this</span>.invokeAwareInterfaces(bean);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> bean;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述方法的核心在于 invokeAwareInterfaces 方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">invokeAwareInterfaces</span><span class="params">(Object bean)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> Aware) &#123;</span><br><span class="line">    <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> EnvironmentAware) &#123;</span><br><span class="line">      ((EnvironmentAware) bean).setEnvironment(<span class="keyword">this</span>.applicationContext.getEnvironment());</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> EmbeddedValueResolverAware) &#123;</span><br><span class="line">      ((EmbeddedValueResolverAware) bean).setEmbeddedValueResolver(<span class="keyword">this</span>.embeddedValueResolver);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> ResourceLoaderAware) &#123;</span><br><span class="line">      ((ResourceLoaderAware) bean).setResourceLoader(<span class="keyword">this</span>.applicationContext);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> ApplicationEventPublisherAware) &#123;</span><br><span class="line">      ((ApplicationEventPublisherAware) bean).setApplicationEventPublisher(<span class="keyword">this</span>.applicationContext);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> MessageSourceAware) &#123;</span><br><span class="line">      ((MessageSourceAware) bean).setMessageSource(<span class="keyword">this</span>.applicationContext);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">if</span> (bean <span class="keyword">instanceof</span> ApplicationContextAware) &#123;</span><br><span class="line">      ((ApplicationContextAware) bean).setApplicationContext(<span class="keyword">this</span>.applicationContext);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>整个方法的逻辑很直观，判断当前类所实现的 Aware 接口，然后将相应的资源给到该 bean</p>
+<p>在 4.3.x 版本中增加了对实现了 ApplicationListener 接口的探测，ApplicationListenerDetector 实现了 MergedBeanDefinitionPostProcessor 和 DestructionAwareBeanPostProcessor 后置处理接口，并相应实现了这些后置处理器定义的模板方法，其中核心的方法 postProcessAfterInitialization 逻辑如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">postProcessAfterInitialization</span><span class="params">(Object bean, String beanName)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.applicationContext != <span class="keyword">null</span> &amp;&amp; bean <span class="keyword">instanceof</span> ApplicationListener) &#123;</span><br><span class="line">    <span class="comment">// 实现了 ApplicationListener 接口</span></span><br><span class="line">    Boolean flag = <span class="keyword">this</span>.singletonNames.get(beanName);</span><br><span class="line">    <span class="keyword">if</span> (Boolean.TRUE.equals(flag)) &#123; <span class="comment">// 单例</span></span><br><span class="line">      <span class="keyword">this</span>.applicationContext.addApplicationListener((ApplicationListener&lt;?&gt;) bean);</span><br><span class="line">    &#125; <span class="keyword">else</span> <span class="keyword">if</span> (Boolean.FALSE.equals(flag)) &#123; <span class="comment">// 非单例</span></span><br><span class="line">      <span class="keyword">if</span> (logger.isWarnEnabled() &amp;&amp; !<span class="keyword">this</span>.applicationContext.containsBean(beanName)) &#123;</span><br><span class="line">        <span class="comment">// inner bean with other scope - can't reliably process events</span></span><br><span class="line">        logger.warn(<span class="string">"Inner bean '"</span> + beanName + <span class="string">"' implements ApplicationListener interface but is not reachable for event multicasting by its containing ApplicationContext "</span> +</span><br><span class="line">                    <span class="string">"because it does not have singleton scope. Only top-level listener beans are allowed to be of non-singleton scope."</span>);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">this</span>.singletonNames.remove(beanName);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> bean;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>该方法针对实现了 ApplicationListener 接口的单例对象，统一注册到监听器集合中监听事件，而方法中的 singletonNames 变量则是在 postProcessMergedBeanDefinition 方法中进行构建：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">postProcessMergedBeanDefinition</span><span class="params">(RootBeanDefinition beanDefinition, Class&lt;?&gt; beanType, String beanName)</span> </span>&#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">this</span>.applicationContext != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">this</span>.singletonNames.put(beanName, beanDefinition.isSingleton());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由此我们可以知道 singletonNames 中存放了 beanName，以及对应的 bean 是否是单例的关联关系。</p>
+<h2 id="后置处理器-BeanFactory"><a href="#后置处理器-BeanFactory" class="headerlink" title="后置处理器 BeanFactory"></a>后置处理器 BeanFactory</h2><p>该方法的实现逻辑交由子类，用于增强 Spring 框架的可扩展性。</p>
+<p>##调用已注册的 BeanFactoryPostProcessor 后置处理器</p>
+<p>BeanFactoryPostProcessor 用于对 BeanFactory 实例进行后置处理，而 BeanPostProcessor 用于对 bean 实例进行后置处理。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">invokeBeanFactoryPostProcessors</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// invoke BeanFactoryPostProcessor 后置处理器,处理前面已经准备好的 BeanFactory 对象</span></span><br><span class="line">    PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, <span class="keyword">this</span>.getBeanFactoryPostProcessors());</span><br><span class="line">    <span class="comment">// AOP支持：LoadTimeWeaver</span></span><br><span class="line">    <span class="keyword">if</span> (beanFactory.getTempClassLoader() == <span class="keyword">null</span> </span><br><span class="line">          &amp;&amp; beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) &#123;</span><br><span class="line">        beanFactory.addBeanPostProcessor(<span class="keyword">new</span> LoadTimeWeaverAwareProcessor(beanFactory));</span><br><span class="line">        beanFactory.setTempClassLoader(<span class="keyword">new</span> ContextTypeMatchClassLoader(beanFactory.getBeanClassLoader()));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以下代码为 PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors()</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">* beanFactoryPostProcessors 保存了所有通过编码注册的 BeanFactoryPostProcessor</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">invokeBeanFactoryPostProcessors</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">            ConfigurableListableBeanFactory beanFactory, </span></span></span><br><span class="line"><span class="function"><span class="params">            List&lt;BeanFactoryPostProcessor&gt; beanFactoryPostProcessors)</span> </span>&#123;</span><br><span class="line">  </span><br><span class="line">    Set&lt;String&gt; processedBeans = <span class="keyword">new</span> HashSet&lt;String&gt;();</span><br><span class="line">    <span class="comment">// 如果是 BeanDefinitionRegistry 注册器</span></span><br><span class="line">    <span class="keyword">if</span> (beanFactory <span class="keyword">instanceof</span> BeanDefinitionRegistry) &#123;</span><br><span class="line">        BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;</span><br><span class="line">        <span class="comment">// 记录注册的 BeanFactoryPostProcessor 类型处理器</span></span><br><span class="line">        List&lt;BeanFactoryPostProcessor&gt; regularPostProcessors = <span class="keyword">new</span> LinkedList&lt;BeanFactoryPostProcessor&gt;(); </span><br><span class="line">        <span class="comment">// 记录注册的 BeanDefinitionRegistryPostProcessor 注册器后置处理器</span></span><br><span class="line">        List&lt;BeanDefinitionRegistryPostProcessor&gt; registryPostProcessors =  <span class="keyword">new</span> LinkedList&lt;BeanDefinitionRegistryPostProcessor&gt;(); </span><br><span class="line">        <span class="comment">// 一、遍历处理编码注册的 BeanFactoryPostProcessor</span></span><br><span class="line">        <span class="keyword">for</span> (BeanFactoryPostProcessor postProcessor : beanFactoryPostProcessors) &#123;</span><br><span class="line">            <span class="keyword">if</span> (postProcessor <span class="keyword">instanceof</span> BeanDefinitionRegistryPostProcessor) &#123;</span><br><span class="line">                <span class="comment">/*</span></span><br><span class="line"><span class="comment">                 * 如果是 BeanDefinitionRegistryPostProcessor 注册器后置处理器（继承自 BeanFactoryPostProcessor）</span></span><br><span class="line"><span class="comment">                 * 1. 执行 BeanDefinitionRegistryPostProcessor 中扩展的方法 postProcessBeanDefinitionRegistry</span></span><br><span class="line"><span class="comment">                 * 2. 记录到 registryPostProcessors 集合中，用于后面处理继承自 BeanFactoryPostProcessor 的方法</span></span><br><span class="line"><span class="comment">                 */</span></span><br><span class="line">                BeanDefinitionRegistryPostProcessor registryPostProcessor = (BeanDefinitionRegistryPostProcessor) postProcessor;</span><br><span class="line">                registryPostProcessor.postProcessBeanDefinitionRegistry(registry);</span><br><span class="line">                registryPostProcessors.add(registryPostProcessor);</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 否则就是 BeanFactoryPostProcessor</span></span><br><span class="line">                regularPostProcessors.add(postProcessor);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 二、获取配置的 BeanDefinitionRegistryPostProcessor 注册器后置处理器</span></span><br><span class="line">        String[] postProcessorNames =</span><br><span class="line">                beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor<span class="class">.<span class="keyword">class</span>, <span class="title">true</span>, <span class="title">false</span>)</span>;</span><br><span class="line">        <span class="comment">/* 1.invoke 所有实现了 PriorityOrdered 接口的 BeanDefinitionRegistryPostProcessor */</span></span><br><span class="line">        List&lt;BeanDefinitionRegistryPostProcessor&gt; priorityOrderedPostProcessors = <span class="keyword">new</span> ArrayList&lt;BeanDefinitionRegistryPostProcessor&gt;();</span><br><span class="line">        <span class="keyword">for</span> (String ppName : postProcessorNames) &#123;</span><br><span class="line">            <span class="keyword">if</span> (beanFactory.isTypeMatch(ppName, PriorityOrdered<span class="class">.<span class="keyword">class</span>)) </span>&#123;</span><br><span class="line">                priorityOrderedPostProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor<span class="class">.<span class="keyword">class</span>))</span>;</span><br><span class="line">                processedBeans.add(ppName);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        sortPostProcessors(beanFactory, priorityOrderedPostProcessors);</span><br><span class="line">        registryPostProcessors.addAll(priorityOrderedPostProcessors);</span><br><span class="line">        invokeBeanDefinitionRegistryPostProcessors(priorityOrderedPostProcessors, registry);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 为啥要重新获取一次？？</span></span><br><span class="line">        postProcessorNames = </span><br><span class="line">                beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor<span class="class">.<span class="keyword">class</span>, <span class="title">true</span>, <span class="title">false</span>)</span>;</span><br><span class="line">        <span class="comment">/* 2. invoke 所有实现了 Ordered 接口的 BeanDefinitionRegistryPostProcessor */</span></span><br><span class="line">        List&lt;BeanDefinitionRegistryPostProcessor&gt; orderedPostProcessors = <span class="keyword">new</span> ArrayList&lt;BeanDefinitionRegistryPostProcessor&gt;();</span><br><span class="line">        <span class="keyword">for</span> (String ppName : postProcessorNames) &#123;</span><br><span class="line">            <span class="keyword">if</span> (!processedBeans.contains(ppName) &amp;&amp; beanFactory.isTypeMatch(ppName, Ordered<span class="class">.<span class="keyword">class</span>)) </span>&#123;</span><br><span class="line">                orderedPostProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor<span class="class">.<span class="keyword">class</span>))</span>;</span><br><span class="line">                processedBeans.add(ppName);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        sortPostProcessors(beanFactory, orderedPostProcessors);</span><br><span class="line">        registryPostProcessors.addAll(orderedPostProcessors);</span><br><span class="line">        invokeBeanDefinitionRegistryPostProcessors(orderedPostProcessors, registry);</span><br><span class="line"></span><br><span class="line">        <span class="comment">/* 3.激活剩余的 BeanDefinitionRegistryPostProcessor */</span></span><br><span class="line">        <span class="keyword">boolean</span> reiterate = <span class="keyword">true</span>;  </span><br><span class="line">        <span class="keyword">while</span> (reiterate) &#123;</span><br><span class="line">            reiterate = <span class="keyword">false</span>;</span><br><span class="line">            postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor<span class="class">.<span class="keyword">class</span>, <span class="title">true</span>, <span class="title">false</span>)</span>;</span><br><span class="line">            <span class="keyword">for</span> (String ppName : postProcessorNames) &#123;</span><br><span class="line">                <span class="keyword">if</span> (!processedBeans.contains(ppName)) &#123; <span class="comment">// 没有处理过的</span></span><br><span class="line">                    BeanDefinitionRegistryPostProcessor pp = beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">                    registryPostProcessors.add(pp);</span><br><span class="line">                    processedBeans.add(ppName);</span><br><span class="line">                    <span class="comment">// 执行 BeanDefinitionRegistryPostProcessor 中扩展的方法</span></span><br><span class="line">                    pp.postProcessBeanDefinitionRegistry(registry);</span><br><span class="line">                    reiterate = <span class="keyword">true</span>;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 激活所有 BeanDefinitionRegistryPostProcessor 后置处理器中的 postProcessBeanFactory 方法</span></span><br><span class="line">        invokeBeanFactoryPostProcessors(registryPostProcessors, beanFactory);</span><br><span class="line">        <span class="comment">// 激活所有 BeanFactoryPostProcessor 后置处理器中的 postProcessBeanFactory 方法</span></span><br><span class="line">        invokeBeanFactoryPostProcessors(regularPostProcessors, beanFactory);</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 如果不是 BeanDefinitionRegistry 类型，直接激活所有编码注册的 BeanFactoryPostProcessor 后置处理器</span></span><br><span class="line">        invokeBeanFactoryPostProcessors(beanFactoryPostProcessors, beanFactory);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取配置的 BeanFactoryPostProcessor 类型后置处理器</span></span><br><span class="line">    String[] postProcessorNames =</span><br><span class="line">            beanFactory.getBeanNamesForType(BeanFactoryPostProcessor<span class="class">.<span class="keyword">class</span>, <span class="title">true</span>, <span class="title">false</span>)</span>;</span><br><span class="line"></span><br><span class="line">    List&lt;BeanFactoryPostProcessor&gt; priorityOrderedPostProcessors = <span class="keyword">new</span> ArrayList&lt;BeanFactoryPostProcessor&gt;();</span><br><span class="line">    List&lt;String&gt; orderedPostProcessorNames = <span class="keyword">new</span> ArrayList&lt;String&gt;();</span><br><span class="line">    List&lt;String&gt; nonOrderedPostProcessorNames = <span class="keyword">new</span> ArrayList&lt;String&gt;();</span><br><span class="line">    <span class="keyword">for</span> (String ppName : postProcessorNames) &#123;</span><br><span class="line">        <span class="keyword">if</span> (processedBeans.contains(ppName)) &#123;</span><br><span class="line">            <span class="comment">// 跳过已经处理过的 bean</span></span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (beanFactory.isTypeMatch(ppName, PriorityOrdered<span class="class">.<span class="keyword">class</span>)) </span>&#123;</span><br><span class="line">            <span class="comment">// 实现了 PriorityOrdered 接口</span></span><br><span class="line">            priorityOrderedPostProcessors.add(beanFactory.getBean(ppName, BeanFactoryPostProcessor<span class="class">.<span class="keyword">class</span>))</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (beanFactory.isTypeMatch(ppName, Ordered<span class="class">.<span class="keyword">class</span>)) </span>&#123;</span><br><span class="line">            <span class="comment">// 实现了 Ordered 接口</span></span><br><span class="line">            orderedPostProcessorNames.add(ppName);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 其它</span></span><br><span class="line">            nonOrderedPostProcessorNames.add(ppName);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 1.激活所有实现了 PriorityOrdered 接口的 BeanFactoryPostProcessor */</span></span><br><span class="line">    sortPostProcessors(beanFactory, priorityOrderedPostProcessors);</span><br><span class="line">    invokeBeanFactoryPostProcessors(priorityOrderedPostProcessors, beanFactory);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 2.激活所有实现了 Ordered 接口的 BeanFactoryPostProcessor */</span></span><br><span class="line">    List&lt;BeanFactoryPostProcessor&gt; orderedPostProcessors = <span class="keyword">new</span> ArrayList&lt;BeanFactoryPostProcessor&gt;();</span><br><span class="line">    <span class="keyword">for</span> (String postProcessorName : orderedPostProcessorNames) &#123;</span><br><span class="line">        orderedPostProcessors.add(beanFactory.getBean(postProcessorName, BeanFactoryPostProcessor<span class="class">.<span class="keyword">class</span>))</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    sortPostProcessors(beanFactory, orderedPostProcessors);</span><br><span class="line">    invokeBeanFactoryPostProcessors(orderedPostProcessors, beanFactory);</span><br><span class="line"></span><br><span class="line">    <span class="comment">/* 3.激活剩余的 BeanFactoryPostProcessor */</span></span><br><span class="line">    List&lt;BeanFactoryPostProcessor&gt; nonOrderedPostProcessors = <span class="keyword">new</span> ArrayList&lt;BeanFactoryPostProcessor&gt;();</span><br><span class="line">    <span class="keyword">for</span> (String postProcessorName : nonOrderedPostProcessorNames) &#123;</span><br><span class="line">        nonOrderedPostProcessors.add(beanFactory.getBean(postProcessorName, BeanFactoryPostProcessor<span class="class">.<span class="keyword">class</span>))</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    invokeBeanFactoryPostProcessors(nonOrderedPostProcessors, beanFactory);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 清理工作</span></span><br><span class="line">    beanFactory.clearMetadataCache();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们可以看到针对编码注册和以配置方式注册的 BeanFactoryPostProcessor，Spring 的获取方式是不一样的，前者都是注册到之前提到的 beanFactoryPostProcessors 集合中，而后者都是通过 BeanFactory 的 getBeanNamesForType 方法获取到的。</p>
+<p>上述方法先判断 BeanFactory 是不是 BeanDefinitionRegistry 类型，如果是的话则专门处理，这样设计是因为继承自 BeanFactoryPostProcessor 的 BeanDefinitionRegistryPostProcessor 需要专门处理这种类型：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BeanDefinitionRegistryPostProcessor</span> <span class="keyword">extends</span> <span class="title">BeanFactoryPostProcessor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">postProcessBeanDefinitionRegistry</span><span class="params">(BeanDefinitionRegistry registry)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>并且针对配置的 BeanFactoryPostProcessor 而言，因为获取顺序的不确定性，所以 Spring 支持对其配置优先级，上述方法的逻辑也可以看出 Spring 会依次处理 PriorityOrdered、Ordered，以及其他类型，并会针对各类型进行按照比较器进行排序处理。</p>
+<p>##注册 BeanPostProcessor 后置处理器</p>
+<p>不同于 BeanFactoryPostProcessor 的调用，这里仅仅是对 BeanPostProcessor 的注册，因为 BeanPostProcessor 作用于 bean 实例之上，而当前还没有开始创建 bean 实例。之前讲解 getBean 过程的文章中我们应该有所记忆，BeanPostProcessor 的调用是发生在 getBean 过程中，具体来说应该是围绕 bean 实例化过程的前后。如下为 BeanPostProcessor 接口源码</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">BeanPostProcessor</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="function">Object <span class="title">postProcessBeforeInitialization</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">Object <span class="title">postProcessAfterInitialization</span><span class="params">(Object bean, String beanName)</span> <span class="keyword">throws</span> BeansException</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>注册过程本质上是将配置的 BeanPostProcessor 添加到 beanPostProcessors 集合的过程，我们在简单容器中需要通过调用 addBeanPostProcessor 编码注册我们实现的 BeanPostProcessor，实际上两者本质上是一样的，只是高级容器支持以配置的方式来完成简单容器中需要编码才能完成的操作：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// PostProcessorRegistrationDelegate </span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">registerBeanPostProcessors</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">        ConfigurableListableBeanFactory beanFactory, AbstractApplicationContext applicationContext)</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 获取配置的 BeanPostProcessor 类型</span></span><br><span class="line">    String[] postProcessorNames = beanFactory.getBeanNamesForType(BeanPostProcessor<span class="class">.<span class="keyword">class</span>, <span class="title">true</span>, <span class="title">false</span>)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 注册一个 BeanPostProcessorChecker，用于`还没有注册后置处理器就开始实例化bean的情况`打印日志记录</span></span><br><span class="line">    <span class="keyword">int</span> beanProcessorTargetCount = beanFactory.getBeanPostProcessorCount() + <span class="number">1</span> + postProcessorNames.length;</span><br><span class="line">    beanFactory.addBeanPostProcessor(<span class="keyword">new</span> BeanPostProcessorChecker(beanFactory, beanProcessorTargetCount));</span><br><span class="line"></span><br><span class="line">    List&lt;BeanPostProcessor&gt; priorityOrderedPostProcessors = <span class="keyword">new</span> ArrayList&lt;BeanPostProcessor&gt;(); <span class="comment">// 存放实现了 PriorityOrdered 接口的 BeanPostProcessor</span></span><br><span class="line">    List&lt;BeanPostProcessor&gt; internalPostProcessors = <span class="keyword">new</span> ArrayList&lt;BeanPostProcessor&gt;(); <span class="comment">// 存放 MergedBeanDefinitionPostProcessor</span></span><br><span class="line">    List&lt;String&gt; orderedPostProcessorNames = <span class="keyword">new</span> ArrayList&lt;String&gt;(); <span class="comment">// 存放实现了 Ordered 接口的 BeanPostProcessor</span></span><br><span class="line">    List&lt;String&gt; nonOrderedPostProcessorNames = <span class="keyword">new</span> ArrayList&lt;String&gt;(); <span class="comment">// 存放其它的 BeanPostProcessor</span></span><br><span class="line"></span><br><span class="line">    <span class="comment">// 遍历分类</span></span><br><span class="line">    <span class="keyword">for</span> (String ppName : postProcessorNames) &#123;</span><br><span class="line">        <span class="keyword">if</span> (beanFactory.isTypeMatch(ppName, PriorityOrdered<span class="class">.<span class="keyword">class</span>)) </span>&#123;</span><br><span class="line">            BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">            priorityOrderedPostProcessors.add(pp);</span><br><span class="line">            <span class="keyword">if</span> (pp <span class="keyword">instanceof</span> MergedBeanDefinitionPostProcessor) &#123;</span><br><span class="line">                internalPostProcessors.add(pp);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">else</span> <span class="keyword">if</span> (beanFactory.isTypeMatch(ppName, Ordered<span class="class">.<span class="keyword">class</span>)) </span>&#123;</span><br><span class="line">            orderedPostProcessorNames.add(ppName);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            nonOrderedPostProcessorNames.add(ppName);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 1.排序并注册实现了 PriorityOrdered 接口的 BeanPostProcessor，不包含 MergedBeanDefinitionPostProcessor</span></span><br><span class="line">    sortPostProcessors(beanFactory, priorityOrderedPostProcessors);</span><br><span class="line">    registerBeanPostProcessors(beanFactory, priorityOrderedPostProcessors);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2.排序并注册实现了 Ordered 接口的 BeanPostProcessor</span></span><br><span class="line">    List&lt;BeanPostProcessor&gt; orderedPostProcessors = <span class="keyword">new</span> ArrayList&lt;BeanPostProcessor&gt;();</span><br><span class="line">    <span class="keyword">for</span> (String ppName : orderedPostProcessorNames) &#123;</span><br><span class="line">        BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        orderedPostProcessors.add(pp);</span><br><span class="line">        <span class="keyword">if</span> (pp <span class="keyword">instanceof</span> MergedBeanDefinitionPostProcessor) &#123;</span><br><span class="line">            internalPostProcessors.add(pp);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    sortPostProcessors(beanFactory, orderedPostProcessors);</span><br><span class="line">    registerBeanPostProcessors(beanFactory, orderedPostProcessors);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3.注册其余的除 MergedBeanDefinitionPostProcessor 类型的 BeanPostProcessor</span></span><br><span class="line">    List&lt;BeanPostProcessor&gt; nonOrderedPostProcessors = <span class="keyword">new</span> ArrayList&lt;BeanPostProcessor&gt;();</span><br><span class="line">    <span class="keyword">for</span> (String ppName : nonOrderedPostProcessorNames) &#123;</span><br><span class="line">        BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        nonOrderedPostProcessors.add(pp);</span><br><span class="line">        <span class="keyword">if</span> (pp <span class="keyword">instanceof</span> MergedBeanDefinitionPostProcessor) &#123;</span><br><span class="line">            internalPostProcessors.add(pp);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    registerBeanPostProcessors(beanFactory, nonOrderedPostProcessors);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4.排序并注册所有的 MergedBeanDefinitionPostProcessor</span></span><br><span class="line">    sortPostProcessors(beanFactory, internalPostProcessors);</span><br><span class="line">    registerBeanPostProcessors(beanFactory, internalPostProcessors);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 重新注册 ApplicationListenerDetector，将其移到链尾</span></span><br><span class="line">    beanFactory.addBeanPostProcessor(<span class="keyword">new</span> ApplicationListenerDetector(applicationContext));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>BeanPostProcessor 与 BeanFactoryPostProcessor 一样，同样支持优先级的配置。</p>
+<p>##初始化国际化资源</p>
+<p>笔者目前所负责的几个项目都需要考虑国际化支持，有的直接基于 jdk 原生的 ResourceBundle，有的则基于 Spring 提供的 MessageSource，在具体分析 MessageSource 的初始化过程之前，我们先来了解一下 Spring 国际化支持的设计与简单使用。</p>
+<h3 id="MessageSource-的设计与简单使用"><a href="#MessageSource-的设计与简单使用" class="headerlink" title="MessageSource 的设计与简单使用"></a>MessageSource 的设计与简单使用</h3><p>Spring MessageSource 支持本质上也是对 ResourceBundle 的封装，MessageSource 接口的定义如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">MessageSource</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取指定语言的文案信息</span></span><br><span class="line"><span class="comment">     * code 为属性名称，args 用于传递格式化参数，defaultMessage 表示在找不到指定属性时返回的默认信息，locale 表示本地化对象</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">String <span class="title">getMessage</span><span class="params">(String code, Object[] args, String defaultMessage, Locale locale)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取指定语言的文案信息</span></span><br><span class="line"><span class="comment">     * 相对于第一个方法的区别在于当找不到对应属性时直接抛出异常</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">String <span class="title">getMessage</span><span class="params">(String code, Object[] args, Locale locale)</span> <span class="keyword">throws</span> NoSuchMessageException</span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取指定语言的文案信息</span></span><br><span class="line"><span class="comment">     * 只不过采用 MessageSourceResolvable 来封装第一个方法中的前三个参数</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function">String <span class="title">getMessage</span><span class="params">(MessageSourceResolvable resolvable, Locale locale)</span> <span class="keyword">throws</span> NoSuchMessageException</span>;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Spring MessageSource 相关类的继承关系如下：</p>
+<p><img src="/images/spring-3-%E5%BA%94%E7%94%A8%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84refresh/11102521_5Jz2.png" alt="spring-message-source"></p>
+<p>其中 HierarchicalMessageSource 的设计为 MessageSource 提供了层次支持，建立了父子层级结构。<br>ResourceBundleMessageSource 和 ReloadableResourceBundleMessageSource 是我们常用的两个类，均可以看做是对 jdk 原生国际化支持的封装，只不过后者相对于前者提供了定时更新资源文件的支持，从而不需要重启系统。<br>StaticMessageSource 为编码式资源注册提供了支持，<br>DelegatingMessageSource 则可以看做是 MessageSource 的一个代理，必要时对 MessageSource 进行封装。</p>
+<p>下面我们演示一下 MessageSource 的简单使用，首先我们定义好国际化资源 resource.properties：</p>
+<p>resource.properties</p>
+<blockquote>
+<p>spring=Spring framework is a good design, the latest version is {0}</p>
+</blockquote>
+<p>resource_zh.properties</p>
+<blockquote>
+<p>spring=Spring 框架設計精良，當前最新版本是 {0}</p>
+</blockquote>
+<p>resource_zh_CN.properties</p>
+<blockquote>
+<p>spring=Spring 框架设计精良，当前最新版本是 {0}</p>
+</blockquote>
+<p>需要注意的是，如果资源文件包含了非 ASCII 字符，则需要将文本内容转换成 Unicode 编码，jdk 自带的 native2ascii 工具可以达到目的，操作如下：</p>
+<blockquote>
+<p>native2ascii -encoding utf-8 resource_zh.properties resource_zh_tmp.properties</p>
+</blockquote>
+<p>然后我们在配置文件中进行如下配置：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!--推荐以 messageResource 作为 id--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">bean</span> <span class="attr">id</span>=<span class="string">"messageResource"</span> <span class="attr">class</span>=<span class="string">"org.springframework.context.support.ResourceBundleMessageSource"</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span> <span class="attr">name</span>=<span class="string">"basenames"</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">list</span>&gt;</span></span><br><span class="line">            <span class="tag">&lt;<span class="name">value</span>&gt;</span>i18n/resource<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;/<span class="name">list</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">bean</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>调用方式如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">ApplicationContext context = <span class="keyword">new</span> ClassPathXmlApplicationContext(<span class="string">"spring-core.xml"</span>);</span><br><span class="line">Object[] params = &#123;<span class="string">"4.3.8.RELEASE"</span>&#125;;</span><br><span class="line">System.out.println(context.getMessage(<span class="string">"spring"</span>, params, Locale.ENGLISH));</span><br><span class="line">System.out.println(context.getMessage(<span class="string">"spring"</span>, params, Locale.TRADITIONAL_CHINESE));</span><br><span class="line">System.out.println(context.getMessage(<span class="string">"spring"</span>, params, Locale.SIMPLIFIED_CHINESE));</span><br></pre></td></tr></table></figure>
+
+<p>因为 ApplicationContext 同样实现了 MessageSource 接口，所以可以直接调用，但是这样调用的前提是配置中的 id 必须设置为 messageResource。输出如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Spring framework is a good design, the latest version is 4.3.8.RELEASE</span><br><span class="line">Spring 框架設計精良，當前最新版本是 4.3.8.RELEASE</span><br><span class="line">Spring 框架设计精良，当前最新版本是 4.3.8.RELEASE</span><br></pre></td></tr></table></figure>
+
+<p>###MessageSource 的初始化过程</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">initMessageSource</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ConfigurableListableBeanFactory beanFactory = <span class="keyword">this</span>.getBeanFactory();</span><br><span class="line">    <span class="keyword">if</span> (beanFactory.containsLocalBean(MESSAGE_SOURCE_BEAN_NAME)) &#123;</span><br><span class="line">        <span class="comment">/*如果存在名称为 messageSource 的 bean*/</span></span><br><span class="line">        <span class="comment">// 初始化资源</span></span><br><span class="line">        <span class="keyword">this</span>.messageSource = beanFactory.getBean(MESSAGE_SOURCE_BEAN_NAME, MessageSource<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        <span class="comment">// 构造层次关系</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="keyword">this</span>.parent != <span class="keyword">null</span> &amp;&amp; <span class="keyword">this</span>.messageSource <span class="keyword">instanceof</span> HierarchicalMessageSource) &#123;</span><br><span class="line">            HierarchicalMessageSource hms = (HierarchicalMessageSource) <span class="keyword">this</span>.messageSource;</span><br><span class="line">            <span class="keyword">if</span> (hms.getParentMessageSource() == <span class="keyword">null</span>) &#123;</span><br><span class="line">                hms.setParentMessageSource(<span class="keyword">this</span>.getInternalParentMessageSource());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">/*不存在名称为 messageSource 的 bean*/</span></span><br><span class="line">        <span class="comment">// 创建一个 DelegatingMessageSource 对象</span></span><br><span class="line">        DelegatingMessageSource dms = <span class="keyword">new</span> DelegatingMessageSource();</span><br><span class="line">        dms.setParentMessageSource(<span class="keyword">this</span>.getInternalParentMessageSource());</span><br><span class="line">        <span class="keyword">this</span>.messageSource = dms;</span><br><span class="line">        <span class="comment">// 以 messageSource 进行注册</span></span><br><span class="line">        beanFactory.registerSingleton(MESSAGE_SOURCE_BEAN_NAME, <span class="keyword">this</span>.messageSource);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>前面我们在配置时推荐将 id 配置为 messageSource 是有原因的，通过阅读源码一目了然，代码中硬编码要求我们的配置 messageSource 作为 bean 的名称，否则不执行初始化，而是创建一个默认的代理，如果我们利用 ApplicationContext 对象去获取对应的资源则会出现异常，否则我们就需要手动指定 getBean 时候的名称，但是这样做是不推荐的，既然框架以约定的方式提供了相应的实现，还是推荐以 messageSource 作为 id 进行配置。</p>
+<p>##初始化事件广播器</p>
+<p>事件广播和监听机制是典型的观察者模式的实现，而 ApplicationEventMulticaster 也是观察者模式中主题角色的典型实现。<br>在 Spring 中，如果我们希望监听事件广播器广播的事件，则需要定义一个实现了 ApplicationListener 接口的监听器，Spring 支持监听器的编码注册和自动扫描注册，这个我们在后面小节中细说，我们先来看一下这里广播器的初始化过程：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">initApplicationEventMulticaster</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    ConfigurableListableBeanFactory beanFactory = <span class="keyword">this</span>.getBeanFactory();</span><br><span class="line">    <span class="keyword">if</span> (beanFactory.containsLocalBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME)) &#123;</span><br><span class="line">        <span class="keyword">this</span>.applicationEventMulticaster = beanFactory.getBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, ApplicationEventMulticaster<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="comment">// 创建并注册一个 SimpleApplicationEventMulticaster</span></span><br><span class="line">        <span class="keyword">this</span>.applicationEventMulticaster = <span class="keyword">new</span> SimpleApplicationEventMulticaster(beanFactory);</span><br><span class="line">        beanFactory.registerSingleton(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, <span class="keyword">this</span>.applicationEventMulticaster);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>逻辑很清晰，如果我们以约定的方式配置了自己的事件广播器，则初始化该广播器实例，<br>否则容器会创建并注册一个默认的 SimpleApplicationEventMulticaster，进入该广播器的实现我们会发现如下逻辑：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">multicastEvent</span><span class="params">(<span class="keyword">final</span> ApplicationEvent event, ResolvableType eventType)</span> </span>&#123;</span><br><span class="line">    ResolvableType type = (eventType != <span class="keyword">null</span> ? eventType : resolveDefaultEventType(event));</span><br><span class="line">    <span class="keyword">for</span> (<span class="keyword">final</span> ApplicationListener&lt;?&gt; listener : <span class="keyword">this</span>.getApplicationListeners(event, type)) &#123;</span><br><span class="line">        Executor executor = <span class="keyword">this</span>.getTaskExecutor();</span><br><span class="line">        <span class="keyword">if</span> (executor != <span class="keyword">null</span>) &#123;</span><br><span class="line">            executor.execute(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                    invokeListener(listener, event);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            <span class="comment">// 回调各个监听器</span></span><br><span class="line">            <span class="keyword">this</span>.invokeListener(listener, event);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">invokeListener</span><span class="params">(ApplicationListener listener, ApplicationEvent event)</span> </span>&#123;</span><br><span class="line">    ErrorHandler errorHandler = <span class="keyword">this</span>.getErrorHandler();</span><br><span class="line">    <span class="keyword">if</span> (errorHandler != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 回调监听的监听方法 onApplicationEvent</span></span><br><span class="line">            listener.onApplicationEvent(event);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Throwable err) &#123;</span><br><span class="line">            errorHandler.handleError(err);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 回调监听的监听方法 onApplicationEvent</span></span><br><span class="line">            listener.onApplicationEvent(event);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (ClassCastException ex) &#123;</span><br><span class="line">            String msg = ex.getMessage();</span><br><span class="line">            <span class="keyword">if</span> (msg == <span class="keyword">null</span> || msg.startsWith(event.getClass().getName())) &#123;</span><br><span class="line">                <span class="comment">// Possibly a lambda-defined listener which we could not resolve the generic event type for</span></span><br><span class="line">                Log logger = LogFactory.getLog(getClass());</span><br><span class="line">                <span class="keyword">if</span> (logger.isDebugEnabled()) &#123;</span><br><span class="line">                    logger.debug(<span class="string">"Non-matching event type for listener: "</span> + listener, ex);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="keyword">throw</span> ex;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>典型的回调观察者监听方法的逻辑，如果对于观察者模式了解的话，这里的逻辑会比较好理解。</p>
+<h2 id="初始化其他特定的bean"><a href="#初始化其他特定的bean" class="headerlink" title="初始化其他特定的bean"></a>初始化其他特定的bean</h2><p>提供一个模版方法 onRefresh()，子类可以实现该方法，用于初始化某些特定的bean。 </p>
+<p>##注册事件监听器</p>
+<p>既然有被观察者，就应该有观察者，事件监听器就是我们的观察者，我们需要将其注册来监听事件消息，针对事件监听器的注册，我们可以以编码的方式进行注册，如果我们将其配置到配置文件中，容器也会自动扫描进行注册：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">registerListeners</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 1.注册所有的编码添加的事件监听器</span></span><br><span class="line">    <span class="keyword">for</span> (ApplicationListener&lt;?&gt; listener : <span class="keyword">this</span>.getApplicationListeners()) &#123;</span><br><span class="line">        <span class="keyword">this</span>.getApplicationEventMulticaster().addApplicationListener(listener);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 2. 扫描注册以配置方式添加的事件监听器（延迟加载）</span></span><br><span class="line">    String[] listenerBeanNames = <span class="keyword">this</span>.getBeanNamesForType(ApplicationListener<span class="class">.<span class="keyword">class</span>, <span class="title">true</span>, <span class="title">false</span>)</span>;</span><br><span class="line">    <span class="keyword">for</span> (String listenerBeanName : listenerBeanNames) &#123;</span><br><span class="line">        <span class="keyword">this</span>.getApplicationEventMulticaster().addApplicationListenerBean(listenerBeanName);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 3. 发布需要提前广播的事件</span></span><br><span class="line">    Set&lt;ApplicationEvent&gt; earlyEventsToProcess = <span class="keyword">this</span>.earlyApplicationEvents;</span><br><span class="line">    <span class="keyword">this</span>.earlyApplicationEvents = <span class="keyword">null</span>;</span><br><span class="line">    <span class="keyword">if</span> (earlyEventsToProcess != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">for</span> (ApplicationEvent earlyEvent : earlyEventsToProcess) &#123;</span><br><span class="line">            <span class="comment">// 通知事件</span></span><br><span class="line">            <span class="keyword">this</span>.getApplicationEventMulticaster().multicastEvent(earlyEvent);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>##实例化所有非延迟加载的单例</p>
+<p>记得最开始学习 Spring 框架的时候，就看到说 BeanFactory 和 ApplicationContext 有一个很大的区别就是 BeanFactory 在初始化容器时不会实例化 bean，而 ApplicationContext 则会实例化所有非延迟加载的单例 bean，而这个加载过程就在这里发生。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">finishBeanFactoryInitialization</span><span class="params">(ConfigurableListableBeanFactory beanFactory)</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 如果存在类型转换器，则进行加载</span></span><br><span class="line">    <span class="keyword">if</span> (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME)</span><br><span class="line">            &amp;&amp; beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService<span class="class">.<span class="keyword">class</span>)) </span>&#123;</span><br><span class="line">        beanFactory.setConversionService(beanFactory.getBean(CONVERSION_SERVICE_BEAN_NAME, ConversionService<span class="class">.<span class="keyword">class</span>))</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 如果不存在 embedded value resolver 则设置一个默认的</span></span><br><span class="line">    <span class="keyword">if</span> (!beanFactory.hasEmbeddedValueResolver()) &#123;</span><br><span class="line">        beanFactory.addEmbeddedValueResolver(<span class="keyword">new</span> StringValueResolver() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> String <span class="title">resolveStringValue</span><span class="params">(String strVal)</span> </span>&#123;</span><br><span class="line">                <span class="keyword">return</span> getEnvironment().resolvePlaceholders(strVal);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// AOP支持，实例化 LoadTimeWeaverAware</span></span><br><span class="line">    String[] weaverAwareNames = beanFactory.getBeanNamesForType(LoadTimeWeaverAware<span class="class">.<span class="keyword">class</span>, <span class="title">false</span>, <span class="title">false</span>)</span>;</span><br><span class="line">    <span class="keyword">for</span> (String weaverAwareName : weaverAwareNames) &#123;</span><br><span class="line">        <span class="keyword">this</span>.getBean(weaverAwareName);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    beanFactory.setTempClassLoader(<span class="keyword">null</span>);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 冻结所有 bean 的定义，不再允许更改</span></span><br><span class="line">    beanFactory.freezeConfiguration();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 实例化所有的非延迟加载的bean（非abstract &amp;&amp; 单例 &amp;&amp; 非延迟加载）</span></span><br><span class="line">    beanFactory.preInstantiateSingletons();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>由上述逻辑可以看到在执行实例化操作之前，容器会先校验一些必要的工具实例，如果之前没有注册则会创建一个默认的代替，然后会冻结所有的 bean 定义，毕竟即将开始实例化，后续的更改也不会再生效。在一些准备工作完毕之后，容器即开始实例化所有满足条件（非abstract &amp;&amp; 单例 &amp;&amp; 非延迟加载）的 bean。</p>
+<p>Spring 4.1 增加了 SmartInitializingSingleton，实现了该接口的单例可以感知所有单例实例化完成的事件，而接口中声明的方法 afterSingletonsInstantiated 也在这里被回调：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">preInstantiateSingletons</span><span class="params">()</span> <span class="keyword">throws</span> BeansException </span>&#123;</span><br><span class="line">    <span class="comment">// 遍历实例化满足条件的 bean</span></span><br><span class="line">    List&lt;String&gt; beanNames = <span class="keyword">new</span> ArrayList&lt;String&gt;(<span class="keyword">this</span>.beanDefinitionNames);</span><br><span class="line">    <span class="keyword">for</span> (String beanName : beanNames) &#123;</span><br><span class="line">        RootBeanDefinition bd = <span class="keyword">this</span>.getMergedLocalBeanDefinition(beanName);</span><br><span class="line">        <span class="comment">// 不是abstract &amp;&amp; 单例 &amp;&amp; 不是延迟加载的</span></span><br><span class="line">        <span class="keyword">if</span> (!bd.isAbstract() &amp;&amp; bd.isSingleton() &amp;&amp; !bd.isLazyInit()) &#123;</span><br><span class="line">            <span class="keyword">if</span> (<span class="keyword">this</span>.isFactoryBean(beanName)) &#123;</span><br><span class="line">                <span class="comment">// 工厂bean</span></span><br><span class="line">                <span class="keyword">final</span> FactoryBean&lt;?&gt; factory = (FactoryBean&lt;?&gt;) getBean(FACTORY_BEAN_PREFIX + beanName);</span><br><span class="line">                <span class="keyword">boolean</span> isEagerInit;</span><br><span class="line">                <span class="keyword">if</span> (System.getSecurityManager() != <span class="keyword">null</span> &amp;&amp; factory <span class="keyword">instanceof</span> SmartFactoryBean) &#123;</span><br><span class="line">                    isEagerInit = AccessController.doPrivileged(<span class="keyword">new</span> PrivilegedAction&lt;Boolean&gt;() &#123;</span><br><span class="line">                        <span class="meta">@Override</span></span><br><span class="line">                        <span class="function"><span class="keyword">public</span> Boolean <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                            <span class="keyword">return</span> ((SmartFactoryBean&lt;?&gt;) factory).isEagerInit();</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;, getAccessControlContext());</span><br><span class="line">                &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                    isEagerInit = (factory <span class="keyword">instanceof</span> SmartFactoryBean &amp;&amp; ((SmartFactoryBean&lt;?&gt;) factory).isEagerInit());</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (isEagerInit) &#123;</span><br><span class="line">                    <span class="keyword">this</span>.getBean(beanName);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                <span class="comment">// 普通单例</span></span><br><span class="line">                <span class="keyword">this</span>.getBean(beanName);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 4.1版本新特性 SmartInitializingSingleton</span></span><br><span class="line">    <span class="keyword">for</span> (String beanName : beanNames) &#123;</span><br><span class="line">        Object singletonInstance = <span class="keyword">this</span>.getSingleton(beanName);</span><br><span class="line">        <span class="comment">// SmartInitializingSingleton 类型</span></span><br><span class="line">        <span class="keyword">if</span> (singletonInstance <span class="keyword">instanceof</span> SmartInitializingSingleton) &#123;</span><br><span class="line">            <span class="keyword">final</span> SmartInitializingSingleton smartSingleton = (SmartInitializingSingleton) singletonInstance;</span><br><span class="line">            <span class="keyword">if</span> (System.getSecurityManager() != <span class="keyword">null</span>) &#123;</span><br><span class="line">                AccessController.doPrivileged(<span class="keyword">new</span> PrivilegedAction&lt;Object&gt;() &#123;</span><br><span class="line">                    <span class="meta">@Override</span></span><br><span class="line">                    <span class="function"><span class="keyword">public</span> Object <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                        smartSingleton.afterSingletonsInstantiated();</span><br><span class="line">                        <span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;, getAccessControlContext());</span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                smartSingleton.afterSingletonsInstantiated();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>##完成刷新过程，发布应用事件</p>
+<p>Spring 很早就提供了 Lifecycle 接口，实现了该接口的 bean 可以感知到容器的启动和关闭状态，对应着接口的 start 和 stop 方法，而 start 方法的回调则位于这个时候发生：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">finishRefresh</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">// 初始化 LifecycleProcessor</span></span><br><span class="line">    <span class="keyword">this</span>.initLifecycleProcessor();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 调用所有实现了 Lifecycle 的 start 方法</span></span><br><span class="line">    <span class="keyword">this</span>.getLifecycleProcessor().onRefresh();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 发布上下文刷新完毕事件</span></span><br><span class="line">    <span class="keyword">this</span>.publishEvent(<span class="keyword">new</span> ContextRefreshedEvent(<span class="keyword">this</span>));</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 注册到 LiveBeansView MBean</span></span><br><span class="line">    LiveBeansView.registerApplicationContext(<span class="keyword">this</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>Lifecycle 对应方法的执行需要依赖于 LifecycleProcessor，我们可以自定义 LifecycleProcessor，否则容器会创建一个默认的 DefaultLifecycleProcessor，然后基于定义的 LifecycleProcessor 来调用满足条件 bean 的 start 方法。在完成了这一操作之后，容器的初始化过程基本上完成，这个时候容器可以将容器刷新完毕事件通知到对应的监听器。</p>
+<h2 id="来源"><a href="#来源" class="headerlink" title="来源"></a>来源</h2><p><a href="https://my.oschina.net/wangzhenchao/blog/918627" target="_blank" rel="noopener">https://my.oschina.net/wangzhenchao/blog/918627</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spring/" rel="tag"># spring</a>
+              <a href="/tags/springframe/" rel="tag"># springframe</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/10/16/spring/spring-core/spring-1-bean%E7%9A%84%E5%88%9B%E5%BB%BA%E5%92%8C%E5%88%9D%E5%A7%8B%E5%8C%96/" rel="prev" title="spring-3-bean的创建和初始化(转)">
+      <i class="fa fa-chevron-left"></i> spring-3-bean的创建和初始化(转)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/12/04/mybatis/mybatis%E9%87%8D%E8%A6%81%E7%B1%BB/" rel="next" title="mybatis重要类">
+      mybatis重要类 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#初始化-refresh-的上下文环境"><span class="nav-number">2.</span> <span class="nav-text">初始化 refresh 的上下文环境</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#初始化-BeanFactory"><span class="nav-number">3.</span> <span class="nav-text">初始化 BeanFactory</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#对-BeanFactory-进行功能增强"><span class="nav-number">4.</span> <span class="nav-text">对 BeanFactory 进行功能增强</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#后置处理器-BeanFactory"><span class="nav-number">5.</span> <span class="nav-text">后置处理器 BeanFactory</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#MessageSource-的设计与简单使用"><span class="nav-number">5.1.</span> <span class="nav-text">MessageSource 的设计与简单使用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#初始化其他特定的bean"><span class="nav-number">6.</span> <span class="nav-text">初始化其他特定的bean</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#来源"><span class="nav-number">7.</span> <span class="nav-text">来源</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2019/10/16/spring/spring-core/spring-4-%E5%BA%94%E7%94%A8%E4%B8%8A%E4%B8%8B%E6%96%87%E7%9A%84refresh/",
+            identifier: "2019/10/16/spring/spring-core/spring-4-应用上下文的refresh/",
+            title: "spring-4-应用上下文的refresh方法(转)"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

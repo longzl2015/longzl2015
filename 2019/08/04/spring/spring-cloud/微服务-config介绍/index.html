@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="SpringCloudConfig 主要用于应用的配置热更新。本章主要介绍SpringCloudConfig的热更新原理">
+<meta property="og:type" content="article">
+<meta property="og:title" content="微服务-config介绍">
+<meta property="og:url" content="https://longzl2015.github.io/2019/08/04/spring/spring-cloud/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="SpringCloudConfig 主要用于应用的配置热更新。本章主要介绍SpringCloudConfig的热更新原理">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://longzl2015.github.io/images/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/54c212da.png">
+<meta property="og:image" content="https://longzl2015.github.io/images/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/d7c77000.png">
+<meta property="article:published_time" content="2019-08-04T16:10:01.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.895Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="spring">
+<meta property="article:tag" content="springcloud">
+<meta property="article:tag" content="config">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://longzl2015.github.io/images/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/54c212da.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2019/08/04/spring/spring-cloud/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>微服务-config介绍 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2019/08/04/spring/spring-cloud/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          微服务-config介绍
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-08-05 00:10:01" itemprop="dateCreated datePublished" datetime="2019-08-05T00:10:01+08:00">2019-08-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index">
+                    <span itemprop="name">spring</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/springcloud/" itemprop="url" rel="index">
+                    <span itemprop="name">springcloud</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/springcloud/config/" itemprop="url" rel="index">
+                    <span itemprop="name">config</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2019/08/04/spring/spring-cloud/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/08/04/spring/spring-cloud/微服务-config介绍/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>SpringCloudConfig 主要用于应用的配置热更新。本章主要介绍SpringCloudConfig的热更新原理</p>
+<a id="more"></a>
+
+<h2 id="数据流"><a href="#数据流" class="headerlink" title="数据流"></a>数据流</h2><p>SpringCloudConfig 的 工作流程:</p>
+<p><img src="/images/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/54c212da.png" alt=""></p>
+<ol>
+<li>将修改的配置信息提交到Git，触发 WebHook。WebHook用 Http 的形式向 ConfigServer 发送 refresh 请求。</li>
+<li>ConfigServer 将这个消息发送给 spring cloud bus（用kafka或者rabbitMQ实现）</li>
+<li>每个应用实例中有一个 config-client，将会收到这个 refresh 消息</li>
+<li>如果 destination 和自己匹配，就执行刷新动作。 向 config-server 请求配置</li>
+<li>config-server 拉取配置仓库中的最新配置文件并转成相应的json格式</li>
+<li>回传给 config-client，随后 config-client 将内容更新到上下文中。</li>
+</ol>
+<h2 id="配置刷新原理"><a href="#配置刷新原理" class="headerlink" title="配置刷新原理"></a>配置刷新原理</h2><p>当触发热更新的时候，会调用 ContextRefresher 的 refresh()。方法的实现如下:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> Set&lt;String&gt; <span class="title">refresh</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    Set&lt;String&gt; keys = refreshEnvironment();</span><br><span class="line">    <span class="keyword">this</span>.scope.refreshAll();</span><br><span class="line">    <span class="keyword">return</span> keys;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">synchronized</span> Set&lt;String&gt; <span class="title">refreshEnvironment</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="comment">//1</span></span><br><span class="line">    Map&lt;String, Object&gt; before = extract(</span><br><span class="line">            <span class="keyword">this</span>.context.getEnvironment().getPropertySources());</span><br><span class="line">    <span class="comment">//2</span></span><br><span class="line">    addConfigFilesToEnvironment();</span><br><span class="line">    <span class="comment">//3</span></span><br><span class="line">    Set&lt;String&gt; keys = changes(before,</span><br><span class="line">            extract(<span class="keyword">this</span>.context.getEnvironment().getPropertySources())).keySet();</span><br><span class="line">    <span class="comment">//4</span></span><br><span class="line">    <span class="keyword">this</span>.context.publishEvent(<span class="keyword">new</span> EnvironmentChangeEvent(<span class="keyword">this</span>.context, keys));</span><br><span class="line">    <span class="keyword">return</span> keys;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="extract方法"><a href="#extract方法" class="headerlink" title="extract方法"></a>extract方法</h3><p>这个方法接收了环境中所有的 PropertySource ，并将其中的<code>非标准属性源</code>的所有属性汇总到一个 Map 。</p>
+<p>这里的<code>标准属性源</code>如下所示:</p>
+<ul>
+<li>systemProperties</li>
+<li>systemEnvironment</li>
+<li>servletContextInitParams</li>
+<li>servletConfigInitParams</li>
+<li>configurationProperties</li>
+<li>jndiProperties</li>
+</ul>
+<p>StandardEnvironment 会注册系统变量（<code>System Properties</code>）和环境变量（<code>System Environment</code>）</p>
+<p>StandardServletEnvironment 会注册 Servlet 环境下的 <code>Servlet Context</code> 和 Servlet Config 的初始参数（<code>Init Params</code>）和<code>JNDI</code> 的属性。</p>
+<p>###addConfigFilesToEnvironment方法</p>
+<p><code>addConfigFilesToEnvironment()</code> 的实现逻辑:</p>
+<ul>
+<li>创建新的SpingBoot来获取新的属性源</li>
+<li>对比新旧数据源: 1、将旧的数据源替换成新的数据源；2、将全新的数据源添加到 this.context.getEnvironment中。</li>
+</ul>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br></pre></td><td class="code"><pre><span class="line"><span class="function">ConfigurableApplicationContext <span class="title">addConfigFilesToEnvironment</span><span class="params">()</span> </span>&#123;</span><br><span class="line">	ConfigurableApplicationContext capture = <span class="keyword">null</span>;</span><br><span class="line">	<span class="keyword">try</span> &#123;</span><br><span class="line">     <span class="comment">//复制得到的 environment 主要包含</span></span><br><span class="line">     <span class="comment">//systemProperties、systemEnvironment、refreshArgs和defaultProperties</span></span><br><span class="line">		StandardEnvironment environment = copyEnvironment(</span><br><span class="line">				<span class="keyword">this</span>.context.getEnvironment());</span><br><span class="line">     <span class="comment">//利用SpringApplicationBuilder，重新加载最新的属性源</span></span><br><span class="line">		SpringApplicationBuilder builder = <span class="keyword">new</span> SpringApplicationBuilder(Empty<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class">				.<span class="title">bannerMode</span>(<span class="title">Mode</span>.<span class="title">OFF</span>).<span class="title">web</span>(<span class="title">WebApplicationType</span>.<span class="title">NONE</span>)</span></span><br><span class="line"><span class="class">				.<span class="title">environment</span>(<span class="title">environment</span>)</span>;</span><br><span class="line">		builder.application()</span><br><span class="line">				.setListeners(Arrays.asList(<span class="keyword">new</span> BootstrapApplicationListener(),</span><br><span class="line">						<span class="keyword">new</span> ConfigFileApplicationListener()));</span><br><span class="line">		capture = builder.run();</span><br><span class="line">		<span class="keyword">if</span> (environment.getPropertySources().contains(REFRESH_ARGS_PROPERTY_SOURCE)) &#123;</span><br><span class="line">			environment.getPropertySources().remove(REFRESH_ARGS_PROPERTY_SOURCE);</span><br><span class="line">		&#125;</span><br><span class="line">     <span class="comment">//使用新加载的属性源替换原属性源。</span></span><br><span class="line">		MutablePropertySources target = <span class="keyword">this</span>.context.getEnvironment()</span><br><span class="line">				.getPropertySources();</span><br><span class="line">		String targetName = <span class="keyword">null</span>;</span><br><span class="line">		<span class="keyword">for</span> (PropertySource&lt;?&gt; source : environment.getPropertySources()) &#123;</span><br><span class="line">			String name = source.getName();</span><br><span class="line">			<span class="keyword">if</span> (target.contains(name)) &#123;</span><br><span class="line">				targetName = name;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">if</span> (!<span class="keyword">this</span>.standardSources.contains(name)) &#123;</span><br><span class="line">				<span class="keyword">if</span> (target.contains(name)) &#123;</span><br><span class="line">					target.replace(name, source);</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">else</span> &#123;</span><br><span class="line">					<span class="keyword">if</span> (targetName != <span class="keyword">null</span>) &#123;</span><br><span class="line">						target.addAfter(targetName, source);</span><br><span class="line">					&#125;</span><br><span class="line">					<span class="keyword">else</span> &#123;</span><br><span class="line">						<span class="comment">// targetName was null so we are at the start of the list</span></span><br><span class="line">						target.addFirst(source);</span><br><span class="line">						targetName = name;</span><br><span class="line">					&#125;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">finally</span> &#123;</span><br><span class="line">      <span class="comment">//忽略</span></span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> capture;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>###属性源更新后处理</p>
+<ol>
+<li>通过 <code>changes方法</code> 收集发生改变的key集合。</li>
+<li>通过 <code>publishEvent方法</code> 发送<a href="#EnvironmentChangeEvent">EnvironmentChangeEvent</a> 事件</li>
+<li>调用 <a href="#RefreshScope">RefreshScope.refreshAll</a> 方法: 将refresh scope中的Bean 缓存失效,当再次从refresh scope中获取这个Bean时，发现取不到，就会重新触发一次Bean的初始化过程。</li>
+</ol>
+<p>##EnvironmentChangeEvent</p>
+<p>EnvironmentChangeEvent 主要触发两个行为:</p>
+<ol>
+<li>重新绑定上下文中所有使用了 <code>@ConfigurationProperties</code> 注解的 Spring Bean。</li>
+<li>如果 <code>logging.level.*</code> 配置发生了改变，重新设置日志级别。</li>
+</ol>
+<p>这两段逻辑分别可以在 <code>ConfigurationPropertiesRebinder</code> 和 <code>LoggingRebinder</code> 中看到。</p>
+<p>###ConfigurationPropertiesRebinder</p>
+<p>ConfigurationPropertiesRebinder 类的监控方法<code>onApplicationEvent</code> 很简单，主要就是遍历每个 Bean，destroyBean和initializeBean每个bean。</p>
+<p>需要注意的是: ConfigurationPropertiesRebinder的beans字段 只包含<code>@ConfigurationProperties</code>注解的Bean。因此配置的热更新只会影响 <code>@ConfigurationProperties</code>注解的Bean.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@ManagedOperation</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">rebind</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="keyword">this</span>.errors.clear();</span><br><span class="line">  <span class="comment">// this.beans 表示的是包含@ConfigurationProperties注解的Bean。</span></span><br><span class="line">  <span class="keyword">for</span> (String name : <span class="keyword">this</span>.beans.getBeanNames()) &#123;</span><br><span class="line">    rebind(name);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@ManagedOperation</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">rebind</span><span class="params">(String name)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (!<span class="keyword">this</span>.beans.getBeanNames().contains(name)) &#123;</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.applicationContext != <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">try</span> &#123;</span><br><span class="line">      Object bean = <span class="keyword">this</span>.applicationContext.getBean(name);</span><br><span class="line">      <span class="keyword">if</span> (AopUtils.isAopProxy(bean)) &#123;</span><br><span class="line">        bean = ProxyUtils.getTargetObject(bean);</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (bean != <span class="keyword">null</span>) &#123;</span><br><span class="line">        <span class="keyword">this</span>.applicationContext.getAutowireCapableBeanFactory()</span><br><span class="line">          .destroyBean(bean);</span><br><span class="line">        <span class="keyword">this</span>.applicationContext.getAutowireCapableBeanFactory()</span><br><span class="line">          .initializeBean(bean, name);</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (RuntimeException e) &#123;</span><br><span class="line">      <span class="keyword">this</span>.errors.put(name, e);</span><br><span class="line">      <span class="keyword">throw</span> e;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">      <span class="keyword">this</span>.errors.put(name, e);</span><br><span class="line">      <span class="keyword">throw</span> <span class="keyword">new</span> IllegalStateException(<span class="string">"Cannot rebind to "</span> + name, e);</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>###LoggingRebinder</p>
+<p>LoggingRebinder 的逻辑很简单，只是调用了 <code>LoggingSystem</code> 的方法重新设置了日志级别.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">onApplicationEvent</span><span class="params">(EnvironmentChangeEvent event)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">if</span> (<span class="keyword">this</span>.environment == <span class="keyword">null</span>) &#123;</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line">  &#125;</span><br><span class="line">  LoggingSystem system = LoggingSystem.get(LoggingSystem<span class="class">.<span class="keyword">class</span>.<span class="title">getClassLoader</span>())</span>;</span><br><span class="line">  setLogLevels(system, <span class="keyword">this</span>.environment);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">protected</span> <span class="keyword">void</span> <span class="title">setLogLevels</span><span class="params">(LoggingSystem system, Environment environment)</span> </span>&#123;</span><br><span class="line">  Map&lt;String, String&gt; levels = Binder.get(environment)</span><br><span class="line">    .bind(<span class="string">"logging.level"</span>, STRING_STRING_MAP)</span><br><span class="line">    .orElseGet(Collections::emptyMap);</span><br><span class="line">  <span class="keyword">for</span> (Entry&lt;String, String&gt; entry : levels.entrySet()) &#123;</span><br><span class="line">    setLogLevel(system, environment, entry.getKey(), entry.getValue().toString());</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">setLogLevel</span><span class="params">(LoggingSystem system, Environment environment, String name,</span></span></span><br><span class="line"><span class="function"><span class="params">                         String level)</span> </span>&#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (name.equalsIgnoreCase(<span class="string">"root"</span>)) &#123;</span><br><span class="line">      name = <span class="keyword">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    level = environment.resolvePlaceholders(level);</span><br><span class="line">    system.setLogLevel(name, LogLevel.valueOf(level.toUpperCase()));</span><br><span class="line">  &#125;</span><br><span class="line">  <span class="keyword">catch</span> (RuntimeException ex) &#123;</span><br><span class="line">    <span class="keyword">this</span>.logger.error(<span class="string">"Cannot set level: "</span> + level + <span class="string">" for '"</span> + name + <span class="string">"'"</span>);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>##RefreshScope</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">refreshAll</span><span class="params">()</span> </span>&#123;</span><br><span class="line">  <span class="comment">//清空Refresh Scope 中的缓存</span></span><br><span class="line">  <span class="keyword">super</span>.destroy();</span><br><span class="line">  <span class="keyword">this</span>.context.publishEvent(<span class="keyword">new</span> RefreshScopeRefreshedEvent());</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>RefreshScope 是用来存放 scope 类型为 refresh 类型的 Bean（即: 使用RefreshScope注解标识的Bean）。</p>
+<p>当一个 Bean 既不是 singleton 也不是 prototype 时，就会从自定义的 Scope 中去获取 Bean ( Spring 允许自定义 Scope )，然后调用Scope的get方法来获取一个实例。</p>
+<p>Spring Cloud 扩展了Scope，从而控制了整个 Bean 的生命周期。当配置需要动态刷新的时候， 调用this.scope.refreshAll()这个方法，就会将整个RefreshScope的缓存清空，完成配置可动态刷新的可能。</p>
+<p><a href="https://www.cnblogs.com/noahsark/p/spring-scope-analysis.html" target="_blank" rel="noopener">Scope 的相关介绍</a></p>
+<p><img src="/images/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/d7c77000.png" alt=""></p>
+<h2 id="数据源-种类"><a href="#数据源-种类" class="headerlink" title="数据源 种类"></a>数据源 种类</h2><ul>
+<li>使用 jdbc</li>
+<li>使用 远程git</li>
+<li>使用 本地文件 </li>
+</ul>
+<h2 id="实践问题"><a href="#实践问题" class="headerlink" title="实践问题"></a>实践问题</h2><p>需要在配置中心中添加 force-pull 信息</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">spring:</span></span><br><span class="line">  <span class="attr">cloud:</span></span><br><span class="line">    <span class="attr">config:</span></span><br><span class="line">      <span class="attr">server:</span></span><br><span class="line">        <span class="attr">git:</span></span><br><span class="line">          <span class="comment"># 由于默认将git文件下载到tmp目录，某些os会修改文件，因此需要 强制 pull</span></span><br><span class="line">          <span class="attr">force-pull:</span> <span class="literal">true</span></span><br></pre></td></tr></table></figure>
+
+
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="http://www.scienjus.com/spring-cloud-refresh/" target="_blank" rel="noopener">Spring Cloud 是如何实现热更新的</a></p>
+<p><a href="https://docs.google.com/presentation/d/1bF8PpsQjUCppsjqq70KtECQSPUtPHyG335OSc3vSLog/edit?usp=sharing" target="_blank" rel="noopener">ppt</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spring/" rel="tag"># spring</a>
+              <a href="/tags/springcloud/" rel="tag"># springcloud</a>
+              <a href="/tags/config/" rel="tag"># config</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/08/04/spring/spring-cloud/%E6%9C%8D%E5%8A%A1%E5%8F%91%E7%8E%B0%E7%9A%84%E5%90%84%E7%A7%8D%E5%AE%9E%E7%8E%B0/" rel="prev" title="服务发现的各种实现">
+      <i class="fa fa-chevron-left"></i> 服务发现的各种实现
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/08/04/spring/spring-cloud/%E5%BE%AE%E6%9C%8D%E5%8A%A1-eureka/" rel="next" title="微服务-eureka">
+      微服务-eureka <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#数据流"><span class="nav-number">1.</span> <span class="nav-text">数据流</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置刷新原理"><span class="nav-number">2.</span> <span class="nav-text">配置刷新原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#extract方法"><span class="nav-number">2.1.</span> <span class="nav-text">extract方法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#数据源-种类"><span class="nav-number">3.</span> <span class="nav-text">数据源 种类</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实践问题"><span class="nav-number">4.</span> <span class="nav-text">实践问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">5.</span> <span class="nav-text">参考</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2019/08/04/spring/spring-cloud/%E5%BE%AE%E6%9C%8D%E5%8A%A1-config%E4%BB%8B%E7%BB%8D/",
+            identifier: "2019/08/04/spring/spring-cloud/微服务-config介绍/",
+            title: "微服务-config介绍"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

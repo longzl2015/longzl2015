@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="本文简单介绍 java 动态编译。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="8_java动态编译">
+<meta property="og:url" content="https://longzl2015.github.io/2019/09/11/2%E8%AF%AD%E8%A8%80/java/java%E5%9F%BA%E7%A1%80/8_java%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本文简单介绍 java 动态编译。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://longzl2015.github.io/images/8_java%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91/%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91%E8%BF%87%E7%A8%8B.png">
+<meta property="article:published_time" content="2019-09-11T06:40:39.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.733Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="java">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://longzl2015.github.io/images/8_java%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91/%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91%E8%BF%87%E7%A8%8B.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2019/09/11/2%E8%AF%AD%E8%A8%80/java/java%E5%9F%BA%E7%A1%80/8_java%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>8_java动态编译 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2019/09/11/2%E8%AF%AD%E8%A8%80/java/java%E5%9F%BA%E7%A1%80/8_java%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          8_java动态编译
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-09-11 14:40:39" itemprop="dateCreated datePublished" datetime="2019-09-11T14:40:39+08:00">2019-09-11</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%AD%E8%A8%80/" itemprop="url" rel="index">
+                    <span itemprop="name">语言</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%AD%E8%A8%80/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%AD%E8%A8%80/java/java%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index">
+                    <span itemprop="name">java基础</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2019/09/11/2%E8%AF%AD%E8%A8%80/java/java%E5%9F%BA%E7%A1%80/8_java%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/09/11/2语言/java/java基础/8_java动态编译/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>本文简单介绍 java 动态编译。 </p>
+<a id="more"></a>
+
+<h3 id="动态编译过程"><a href="#动态编译过程" class="headerlink" title="动态编译过程"></a>动态编译过程</h3><p><img src="/images/8_java%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91/%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91%E8%BF%87%E7%A8%8B.png" alt="动态编译过程"></p>
+<h2 id="相关类介绍"><a href="#相关类介绍" class="headerlink" title="相关类介绍"></a>相关类介绍</h2><h3 id="JavaCompiler"><a href="#JavaCompiler" class="headerlink" title="JavaCompiler"></a>JavaCompiler</h3><p>JavaCompiler 为动态编译的入口。JavaCompiler的实现类，可以通过如下语句获取</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();</span><br></pre></td></tr></table></figure>
+
+<h3 id="JavaFileObject"><a href="#JavaFileObject" class="headerlink" title="JavaFileObject"></a>JavaFileObject</h3><p>在编译过程中，通常需要容器存储 java源文件 和 class文件。JavaFileObject 就是这个容器。</p>
+<p>JavaFileObject 有一个 kind 字段，分为以下四种:</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> Kind &#123;</span><br><span class="line">    SOURCE(<span class="string">".java"</span>),  <span class="comment">// java 源文件</span></span><br><span class="line">    CLASS(<span class="string">".class"</span>),  <span class="comment">// jvm 能识别的 class 文件</span></span><br><span class="line">    HTML(<span class="string">".html"</span>),   </span><br><span class="line">    OTHER(<span class="string">""</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="DiagnosticCollector"><a href="#DiagnosticCollector" class="headerlink" title="DiagnosticCollector"></a>DiagnosticCollector</h3><p>DiagnosticCollector 为编译的诊断器，当编译结果为失败时，可以通过该类获取 编译失败的原因.</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> String <span class="title">simplifyDiagnostic</span><span class="params">(DiagnosticCollector&lt;JavaFileObject&gt; collector)</span> </span>&#123;</span><br><span class="line">    StringBuilder builder = <span class="keyword">new</span> StringBuilder();</span><br><span class="line">    <span class="keyword">for</span> (Diagnostic&lt;? extends JavaFileObject&gt; diagnostic : collector.getDiagnostics()) &#123;</span><br><span class="line">        builder.append(<span class="string">"编译出错原因: "</span>)</span><br><span class="line">                .append(diagnostic.getMessage(Locale.getDefault())).append(<span class="string">"\n"</span>)</span><br><span class="line">                .append(<span class="string">"  行数 "</span>).append(diagnostic.getLineNumber()).append(<span class="string">"\n"</span>)</span><br><span class="line">                .append(<span class="string">"  列数 "</span>).append(diagnostic.getColumnNumber()).append(<span class="string">"\n"</span>)</span><br><span class="line">                .append(<span class="string">"\n"</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">return</span> builder.toString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="JavaFileManager"><a href="#JavaFileManager" class="headerlink" title="JavaFileManager"></a>JavaFileManager</h3><p>JavaFileManager 用来创建JavaFileObject，包括从特定位置输出和输入一个 JavaFileObject。</p>
+<p>如: 在编译过程中，编译器会通过 JavaFileManager.getJavaFileForOutput() 方法创建一个 JavaFileObject 对象，然后将编译成功的 class 信息写入新生成的 JavaFileObject 中</p>
+<p>在 jdk 中有个默认的 JavacFileManager 实现，它会将编译得到的 class 以本地文件的实现保存下来。</p>
+<p>如果我们想要实现内存形式的JavaFileManager，我们可以继承 ForwardingJavaFileManager ，并重写 getJavaFileForOutput() 方法。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 用于管理 编译生成的 Class 类:</span></span><br><span class="line"><span class="comment"> * &lt;p&gt;</span></span><br><span class="line"><span class="comment"> * 自定义了一个 classMap 字段。该字段用于存储 编译生成的 Class 类</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">MemJavaFileManager</span> <span class="keyword">extends</span> <span class="title">ForwardingJavaFileManager</span>&lt;<span class="title">JavaFileManager</span>&gt; </span>&#123;</span><br><span class="line">    <span class="keyword">private</span> Map&lt;String, CharSequenceJavaFileObject&gt; javaFileObjectMap;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">MemJavaFileManager</span><span class="params">(JavaFileManager fileManager)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">super</span>(fileManager);</span><br><span class="line">        javaFileObjectMap = <span class="keyword">new</span> ConcurrentHashMap&lt;&gt;();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 返回一个 JavaFileObject。在之后的阶段，生成的class字节码会被写入该 JavaFileObject 中。</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> JavaFileObject <span class="title">getJavaFileForOutput</span><span class="params">(Location location, String qualifiedClassName, JavaFileObject.Kind kind, FileObject sibling)</span> </span>&#123;</span><br><span class="line">        CharSequenceJavaFileObject javaFileObject = <span class="keyword">new</span> CharSequenceJavaFileObject(qualifiedClassName, kind);</span><br><span class="line">        javaFileObjectMap.put(qualifiedClassName, javaFileObject);</span><br><span class="line">        <span class="keyword">return</span> javaFileObject;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 在 CompilationTask 执行完后，可以通过该方法获取 编译后的</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="keyword">public</span> Map&lt;String, <span class="keyword">byte</span>[]&gt; getClassMap() &#123;</span><br><span class="line">        Map&lt;String, <span class="keyword">byte</span>[]&gt; map = <span class="keyword">new</span> HashMap&lt;&gt;();</span><br><span class="line">        javaFileObjectMap.forEach(</span><br><span class="line">                (k, v) -&gt; map.put(k, v.getCompiledBytes())</span><br><span class="line">        );</span><br><span class="line">        <span class="keyword">return</span> map;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="ClassLoader"><a href="#ClassLoader" class="headerlink" title="ClassLoader"></a>ClassLoader</h3><p>在动态编译完成之后，我们需要将其加载到JVM中使用。因此我们需要自定义一个类加载器用于加载 class。</p>
+<p>自定义的类加载器，牵扯到双亲委派机制。这个坑暂时先留着。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> zl.compiler.hot;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.util.Map;</span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 自定义了一个 ClassLoader，用于加载 动态编译生成的 class</span></span><br><span class="line"><span class="comment"> * &lt;p&gt;</span></span><br><span class="line"><span class="comment"> * classMap 字段: 保存 class 字节码</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HotClassLoader</span> <span class="keyword">extends</span> <span class="title">ClassLoader</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Map&lt;String, <span class="keyword">byte</span>[]&gt; classMap;</span><br><span class="line"></span><br><span class="line">   <span class="function"><span class="keyword">public</span> <span class="title">HotClassLoader</span><span class="params">(Map&lt;String, <span class="keyword">byte</span>[]&gt; classMap)</span> </span>&#123;</span><br><span class="line">        <span class="keyword">this</span>.classMap = classMap;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 在调用 loadClass() 时，</span></span><br><span class="line"><span class="comment">     * 如果父类无法加载该类，则会使用 findClass() 加载类。</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> Class&lt;?&gt; findClass(String name) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">        <span class="keyword">byte</span>[] bytes = classMap.get(name);</span><br><span class="line">        <span class="keyword">if</span> (bytes != <span class="keyword">null</span>) &#123;</span><br><span class="line">            <span class="keyword">return</span> defineClass(name, bytes, <span class="number">0</span>, bytes.length);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">throw</span> <span class="keyword">new</span> ClassNotFoundException(<span class="string">"源文件中找不到类:"</span> + name);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="实例"><a href="#实例" class="headerlink" title="实例"></a>实例</h2><p>见 github <a href="https://github.com/longzl2015/compiler" target="_blank" rel="noopener">https://github.com/longzl2015/compiler</a></p>
+<h2 id="动态编译内存泄露问题"><a href="#动态编译内存泄露问题" class="headerlink" title="动态编译内存泄露问题"></a>动态编译内存泄露问题</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">Java 7 introduced this bug: </span><br><span class="line">in an attempt to speed up compilation, they introduced the SharedNameTable, which uses soft references to avoid reallocations, but unfortunately just causes the JVM to bloat out of control, as those soft references will never be reclaimed until the JVM hits its -Xmx memory limit. Allegedly it will be fixed in Java 9. </span><br><span class="line">In the meantime, there&#39;s an (undocumented) compiler option to disable it: </span><br><span class="line">  -XDuseUnsharedTable.</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://stackoverflow.com/questions/14617340/memory-leak-when-using-jdk-compiler-at-runtime" target="_blank" rel="noopener">https://stackoverflow.com/questions/14617340/memory-leak-when-using-jdk-compiler-at-runtime</a></p>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><p><a href="http://pfmiles.github.io/blog/dynamic-java/" target="_blank" rel="noopener">JavaCompilerAPI中文指南</a><br><a href="https://www.ibm.com/developerworks/cn/java/j-jcomp/index.html" target="_blank" rel="noopener">使用 javax.tools 创建动态应用程序</a><br><a href="https://www.jianshu.com/p/0d8d6ec256c2" target="_blank" rel="noopener">从java源码到字节码</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"># java</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/09/11/2%E8%AF%AD%E8%A8%80/java/java%E5%9F%BA%E7%A1%80/9_nio/" rel="prev" title="9_nio">
+      <i class="fa fa-chevron-left"></i> 9_nio
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/09/12/2%E8%AF%AD%E8%A8%80/java/%E5%B7%A5%E5%85%B7%E7%B1%BB/" rel="next" title="工具类">
+      工具类 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#动态编译过程"><span class="nav-number">1.</span> <span class="nav-text">动态编译过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#相关类介绍"><span class="nav-number"></span> <span class="nav-text">相关类介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#JavaCompiler"><span class="nav-number">1.</span> <span class="nav-text">JavaCompiler</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JavaFileObject"><span class="nav-number">2.</span> <span class="nav-text">JavaFileObject</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DiagnosticCollector"><span class="nav-number">3.</span> <span class="nav-text">DiagnosticCollector</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#JavaFileManager"><span class="nav-number">4.</span> <span class="nav-text">JavaFileManager</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#ClassLoader"><span class="nav-number">5.</span> <span class="nav-text">ClassLoader</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#实例"><span class="nav-number"></span> <span class="nav-text">实例</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#动态编译内存泄露问题"><span class="nav-number"></span> <span class="nav-text">动态编译内存泄露问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考资料"><span class="nav-number"></span> <span class="nav-text">参考资料</span></a></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2019/09/11/2%E8%AF%AD%E8%A8%80/java/java%E5%9F%BA%E7%A1%80/8_java%E5%8A%A8%E6%80%81%E7%BC%96%E8%AF%91/",
+            identifier: "2019/09/11/2语言/java/java基础/8_java动态编译/",
+            title: "8_java动态编译"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

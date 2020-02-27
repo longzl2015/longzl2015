@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="springboot 国际化支持。本文主要介绍国际化过程中比较重要的几个类。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spring-5-i18n">
+<meta property="og:url" content="https://longzl2015.github.io/2019/10/14/spring/spring-core/spring-5-i18n/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="springboot 国际化支持。本文主要介绍国际化过程中比较重要的几个类。">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-10-14T01:00:06.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.900Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="spring">
+<meta property="article:tag" content="springframe">
+<meta property="article:tag" content="i18n">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://longzl2015.github.io/2019/10/14/spring/spring-core/spring-5-i18n/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>spring-5-i18n | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2019/10/14/spring/spring-core/spring-5-i18n/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          spring-5-i18n
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-10-14 09:00:06" itemprop="dateCreated datePublished" datetime="2019-10-14T09:00:06+08:00">2019-10-14</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index">
+                    <span itemprop="name">spring</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/spring-core/" itemprop="url" rel="index">
+                    <span itemprop="name">spring-core</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2019/10/14/spring/spring-core/spring-5-i18n/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/10/14/spring/spring-core/spring-5-i18n/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>springboot 国际化支持。本文主要介绍国际化过程中比较重要的几个类。</p>
+<a id="more"></a>
+
+<p>##LocaleResolver</p>
+<p>区域解析器。主要用于获取和设置 Locale 信息。</p>
+<p>该类主要有两个方法</p>
+<ul>
+<li>Locale resolveLocale(HttpServletRequest x) </li>
+<li>void setLocale(HttpServletRequest x,  HttpServletResponse y, Locale z) </li>
+</ul>
+<p>在 controller 处理请求前，FrameworkServlet 会调用 LocaleResolver.resolveLocale() 方法。</p>
+<p>LocaleResolver 有几个重要的子类。下面一一介绍。</p>
+<h3 id="LocaleContextResolver"><a href="#LocaleContextResolver" class="headerlink" title="LocaleContextResolver"></a>LocaleContextResolver</h3><p>该类主要用于添加 Locale 的上下文支持。如 session基本和 cookie 级别。</p>
+<p>添加了2个方法:</p>
+<ul>
+<li>LocaleContext resolveLocaleContext(HttpServletRequest x)</li>
+<li>void setLocaleContext(HttpServletRequest x,  HttpServletResponse y, LocaleContext z);</li>
+</ul>
+<p>###AcceptHeaderLocaleResolver</p>
+<p>AcceptHeaderLocaleResolver 是springboot 默认的LocaleResolver</p>
+<p>LocaleResolver实现了 LocaleResolver 接口。</p>
+<ul>
+<li><p>对于 LocaleResolver.resolveLocale() 的实现逻辑是 <code>通过检验HTTP请求的accept-language头部来获取Locale</code></p>
+</li>
+<li><p>对于 LocaleResolver.setLocale()的实现逻辑是 <code>直接抛出UnsupportedOperationException异常</code></p>
+</li>
+</ul>
+<p>总结来说: AcceptHeaderLocaleResolver通过检验HTTP请求的accept-language头部来解析Locale信息，而accept-language是由用户的web浏览器根据底层操作系统的区域设置进行设定。同时 AcceptHeaderLocaleResolver 不允许修改 Locale。</p>
+<h3 id="SessionLocaleResolver"><a href="#SessionLocaleResolver" class="headerlink" title="SessionLocaleResolver"></a>SessionLocaleResolver</h3><p>实现了LocaleContextResolver接口。</p>
+<p>SessionLocaleResolver 该类的主要作用是添加 session 作用域范围的 Locale 信息。</p>
+<p>当一个请求过来时，会从 session作用域中获取Locale信息。同时允许修改session作用域中的Locale信息。</p>
+<p>###CookieLocaleResolver</p>
+<p>同样实现了LocaleContextResolver接口。</p>
+<p>与session类似，实现了 cookie 作用域的Locale信息。</p>
+<h3 id="FixedLocaleResolver"><a href="#FixedLocaleResolver" class="headerlink" title="FixedLocaleResolver"></a>FixedLocaleResolver</h3><p>一直使用固定的Local,改变Local 是不支持的。一旦启动时设定，则是固定的，无法改变Local</p>
+<h2 id="LocaleChangeInterceptor"><a href="#LocaleChangeInterceptor" class="headerlink" title="LocaleChangeInterceptor"></a>LocaleChangeInterceptor</h2><p>除了使用 LocaleResolver 来处理Locale信息之外，还可以通过添加LocaleChangeInterceptor来处理Locale信息。</p>
+<p>LocaleChangeInterceptor 主要处理逻辑:</p>
+<ol>
+<li>通过解析 request 中的 Parameter参数，</li>
+<li>将Parameter参数的信息同步到 Locale对象中</li>
+</ol>
+<p>当同时设置了 LocaleResolver 和 LocaleChangeInterceptor时，需要搞清楚 请求过程中 Locale 的先后处理逻辑:</p>
+<ol>
+<li>请求到达服务器</li>
+<li>FrameworkServlet  调用 LocaleResolver 处理 Locale 信息</li>
+<li>FrameworkServlet 委托 DispatcherServlet 处理请求</li>
+<li>DispatcherServlet 调用 LocaleChangeInterceptor 来处理 Locale 信息。</li>
+</ol>
+<p>从上面的流程中可以看出 LocaleChangeInterceptor 的结果会覆盖 LocaleResolver的结果。</p>
+<h2 id="MessageSource"><a href="#MessageSource" class="headerlink" title="MessageSource"></a>MessageSource</h2><p>主要方法是 getMessage()。用于通过 code 获取对应的国际化字符串。</p>
+<p>MessageSource 三个重要的实现类: </p>
+<ul>
+<li>ReloadableResourceBundleMessageSource</li>
+<li>StaticMessageSource</li>
+<li>ResourceBundleMessageSource</li>
+</ul>
+<p>简单介绍下 <code>ResourceBundleMessageSource</code>这个类的几个属性值：</p>
+<ul>
+<li><code>alwaysUseMessageFormat</code>：默认值为false, 即默认不对返回信息做格式化处理。</li>
+<li><code>useCodeAsDefaultMessage</code>：默认值为false，设置成true时，当无法通过<code>code</code>参数返回信息时，会默认将<code>code</code>的值进行返回。</li>
+<li><code>fallbackToSystemLocale</code>：默认值为true，当根据<code>code</code>和<code>locale</code>参数无法获取对应的<code>ResourceBundle</code>时，会根据当前的环境设置获取<code>defaultLocale</code>，然后获取对应的<code>ResourceBundle</code></li>
+</ul>
+<h2 id="springboot配置"><a href="#springboot配置" class="headerlink" title="springboot配置"></a>springboot配置</h2><figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#设置国际化配置文件存放在classpath:/i18n目录下</span></span><br><span class="line"><span class="attr">spring.messages.basename:</span> <span class="string">i18n/messages</span></span><br><span class="line"><span class="comment">#设置加载资源的缓存失效时间，-1表示永久有效，默认为-1</span></span><br><span class="line"><span class="attr">spring.messages.cache-seconds:</span> <span class="number">3600</span></span><br><span class="line"><span class="comment">#设定message bundles编码方式，默认为UTF-8</span></span><br><span class="line"><span class="comment">#spring.messages.encoding=UTF-8</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="工具类"><a href="#工具类" class="headerlink" title="工具类"></a>工具类</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">import lombok.extern.slf4j.Slf4j;</span><br><span class="line">import org.springframework.beans.factory.annotation.Autowired;</span><br><span class="line">import org.springframework.context.MessageSource;</span><br><span class="line">import org.springframework.context.i18n.LocaleContextHolder;</span><br><span class="line">import org.springframework.stereotype.Component;</span><br><span class="line"></span><br><span class="line">import java.util.Locale;</span><br><span class="line"></span><br><span class="line">@Slf4j</span><br><span class="line">@Component</span><br><span class="line">public class LocaleMessageSourceUtil &#123;</span><br><span class="line"></span><br><span class="line">    @Autowired</span><br><span class="line">    private MessageSource messageSource;</span><br><span class="line"></span><br><span class="line">    public LocaleMessageSourceUtil() &#123;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public String getMessage(String code) &#123;</span><br><span class="line">        return getMessage(code, (Object[]) null);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public String getMessage(String code, Object... args) &#123;</span><br><span class="line">        return getMessage(code, args, &quot;&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public String getMessage(String code, Object[] args, String defaultMessage) &#123;</span><br><span class="line">        Locale locale &#x3D; LocaleContextHolder.getLocale();</span><br><span class="line">        return messageSource.getMessage(code, args, defaultMessage, locale);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>##参考</p>
+<p><a href="https://juejin.im/post/5cc25d6ef265da036d79c11a" target="_blank" rel="noopener">聊聊国际化MessageSource</a></p>
+<p><a href="https://segmentfault.com/a/1190000010757338" target="_blank" rel="noopener">Spring boot 国际化自动加载资源文件问题</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spring/" rel="tag"># spring</a>
+              <a href="/tags/springframe/" rel="tag"># springframe</a>
+              <a href="/tags/i18n/" rel="tag"># i18n</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/10/07/2%E8%AF%AD%E8%A8%80/java/jvm/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/" rel="prev" title="类加载器">
+      <i class="fa fa-chevron-left"></i> 类加载器
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/10/14/spring/spring-boot/springboot-%E7%83%AD%E9%83%A8%E7%BD%B2%E5%8E%9F%E7%90%86-%E8%BD%AC/" rel="next" title="springboot-热部署原理-转">
+      springboot-热部署原理-转 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#LocaleContextResolver"><span class="nav-number">1.</span> <span class="nav-text">LocaleContextResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SessionLocaleResolver"><span class="nav-number">2.</span> <span class="nav-text">SessionLocaleResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#FixedLocaleResolver"><span class="nav-number">3.</span> <span class="nav-text">FixedLocaleResolver</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LocaleChangeInterceptor"><span class="nav-number"></span> <span class="nav-text">LocaleChangeInterceptor</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#MessageSource"><span class="nav-number"></span> <span class="nav-text">MessageSource</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#springboot配置"><span class="nav-number"></span> <span class="nav-text">springboot配置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#工具类"><span class="nav-number">1.</span> <span class="nav-text">工具类</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2019/10/14/spring/spring-core/spring-5-i18n/",
+            identifier: "2019/10/14/spring/spring-core/spring-5-i18n/",
+            title: "spring-5-i18n"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

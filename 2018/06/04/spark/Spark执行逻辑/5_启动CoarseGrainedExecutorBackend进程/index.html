@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="启动CoarseGrainedExecutorBackend进程Executor负责计算任务，即执行task，而Executor对象的创建及维护是由CoarseGrainedExecutorBackend负责的，CoarseGrainedExecutorBackend在spark运行期是一个单独的进程. ##一、CoarseGrainedExecutorBackend类   CoarseGrain">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spark5-启动CoarseGrainedExecutorBackend进程">
+<meta property="og:url" content="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/5_%E5%90%AF%E5%8A%A8CoarseGrainedExecutorBackend%E8%BF%9B%E7%A8%8B/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="启动CoarseGrainedExecutorBackend进程Executor负责计算任务，即执行task，而Executor对象的创建及维护是由CoarseGrainedExecutorBackend负责的，CoarseGrainedExecutorBackend在spark运行期是一个单独的进程. ##一、CoarseGrainedExecutorBackend类   CoarseGrain">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://longzl2015.github.io/images/5_%E5%90%AF%E5%8A%A8CoarseGrainedExecutorBackend%E8%BF%9B%E7%A8%8B/CoarseGrainedExecutorBackend%E7%B1%BB%E5%9B%BE.png">
+<meta property="og:image" content="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBjb250ZW50U2NyaXB0VHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCIgY29udGVudFN0eWxlVHlwZT0idGV4dC9jc3MiIGhlaWdodD0iNDE2cHgiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiIHN0eWxlPSJ3aWR0aDo2NThweDtoZWlnaHQ6NDE2cHg7IiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA2NTggNDE2IiB3aWR0aD0iNjU4cHgiIHpvb21BbmRQYW49Im1hZ25pZnkiPjxkZWZzPjxmaWx0ZXIgaGVpZ2h0PSIzMDAlIiBpZD0iZjZjc3NzaG9iaW5vZCIgd2lkdGg9IjMwMCUiIHg9Ii0xIiB5PSItMSI+PGZlR2F1c3NpYW5CbHVyIHJlc3VsdD0iYmx1ck91dCIgc3RkRGV2aWF0aW9uPSIyLjAiLz48ZmVDb2xvck1hdHJpeCBpbj0iYmx1ck91dCIgcmVzdWx0PSJibHVyT3V0MiIgdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIC40IDAiLz48ZmVPZmZzZXQgZHg9IjQuMCIgZHk9IjQuMCIgaW49ImJsdXJPdXQyIiByZXN1bHQ9ImJsdXJPdXQzIi8+PGZlQmxlbmQgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iYmx1ck91dDMiIG1vZGU9Im5vcm1hbCIvPjwvZmlsdGVyPjwvZGVmcz48Zz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIzMzgiIHg9IjE2MCIgeT0iMjYuNzA4Ij5Db2Fyc2VHcmFpbmVkRXhlY3V0b3JCYWNrZW5k55qE5ZCv5YqoPC90ZXh0PjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjExNiIgeDI9IjExNiIgeTE9IjczLjI1IiB5Mj0iMzc2LjMxMjUiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNS4wLDUuMDsiIHgxPSIyMjIuNSIgeDI9IjIyMi41IiB5MT0iNzMuMjUiIHkyPSIzNzYuMzEyNSIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjM1OC41IiB4Mj0iMzU4LjUiIHkxPSI3My4yNSIgeTI9IjM3Ni4zMTI1Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IHN0cm9rZS1kYXNoYXJyYXk6IDUuMCw1LjA7IiB4MT0iNDk0LjUiIHgyPSI0OTQuNSIgeTE9IjczLjI1IiB5Mj0iMzc2LjMxMjUiLz48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iNDkiIHg9IjkwIiB5PSIzNy45NTMxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMzUiIHg9Ijk3IiB5PSI1Ny45NDgyIj5Xb3JrPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNmNzc3Nob2Jpbm9kKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI0OSIgeD0iOTAiIHk9IjM3NS4zMTI1Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMzUiIHg9Ijk3IiB5PSIzOTUuMzA3NiI+V29yazwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTI2IiB4PSIxNTcuNSIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjExMiIgeD0iMTY0LjUiIHk9IjU3Ljk0ODIiPkV4ZWN1dG9yUnVubmVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNmNzc3Nob2Jpbm9kKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMjYiIHg9IjE1Ny41IiB5PSIzNzUuMzEyNSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjExMiIgeD0iMTY0LjUiIHk9IjM5NS4zMDc2Ij5FeGVjdXRvclJ1bm5lcjwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTE4IiB4PSIyOTcuNSIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEwNCIgeD0iMzA0LjUiIHk9IjU3Ljk0ODIiPlByb2Nlc3NCdWlsZGVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNmNzc3Nob2Jpbm9kKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMTgiIHg9IjI5Ny41IiB5PSIzNzUuMzEyNSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEwNCIgeD0iMzA0LjUiIHk9IjM5NS4zMDc2Ij5Qcm9jZXNzQnVpbGRlcjwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTI3IiB4PSI0MjkuNSIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjExMyIgeD0iNDM2LjUiIHk9IjU3Ljk0ODIiPkxpbnV4X0NvbW1hbmQ8L3RleHQ+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2Y2Y3Nzc2hvYmlub2QpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjEyNyIgeD0iNDI5LjUiIHk9IjM3NS4zMTI1Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTEzIiB4PSI0MzYuNSIgeT0iMzk1LjMwNzYiPkxpbnV4X0NvbW1hbmQ8L3RleHQ+PHBhdGggZD0iTTgsODguMjUgTDgsMTEzLjI1IEwyMjEsMTEzLjI1IEwyMjEsOTguMjUgTDIxMSw4OC4yNSBMOCw4OC4yNSAiIGZpbGw9IiNGQkZCNzciIGZpbHRlcj0idXJsKCNmNmNzc3Nob2Jpbm9kKSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHBhdGggZD0iTTIxMSw4OC4yNSBMMjExLDk4LjI1IEwyMjEsOTguMjUgTDIxMSw4OC4yNSAiIGZpbGw9IiNGQkZCNzciIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjE5MiIgeD0iMTQiIHk9IjEwNS4zMTY5Ij5yZWNlaXZlKGNhc2UgTGF1bmNoRXhlY3V0b3IpPC90ZXh0Pjxwb2x5Z29uIGZpbGw9IiNBODAwMzYiIHBvaW50cz0iMjEwLjUsMTM5LjUxNTYsMjIwLjUsMTQzLjUxNTYsMjEwLjUsMTQ3LjUxNTYsMjE0LjUsMTQzLjUxNTYiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjExNi41IiB4Mj0iMjE2LjUiIHkxPSIxNDMuNTE1NiIgeTI9IjE0My41MTU2Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODIiIHg9IjEyMy41IiB5PSIxMzguNDQ5NyI+5Yib5bu6RXhlY3V0b3I8L3RleHQ+PHBhdGggZD0iTTE5NSwxNTYuNTE1NiBMMTk1LDE4MS41MTU2IEwyNDYsMTgxLjUxNTYgTDI0NiwxNjYuNTE1NiBMMjM2LDE1Ni41MTU2IEwxOTUsMTU2LjUxNTYgIiBmaWxsPSIjRkJGQjc3IiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwYXRoIGQ9Ik0yMzYsMTU2LjUxNTYgTDIzNiwxNjYuNTE1NiBMMjQ2LDE2Ni41MTU2IEwyMzYsMTU2LjUxNTYgIiBmaWxsPSIjRkJGQjc3IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIzMCIgeD0iMjAxIiB5PSIxNzMuNTgyNSI+c3RhcnQ8L3RleHQ+PHBhdGggZD0iTTE0MSwxOTUuNjQ4NCBMMTQxLDIyMC42NDg0IEwyOTksMjIwLjY0ODQgTDI5OSwyMDUuNjQ4NCBMMjg5LDE5NS42NDg0IEwxNDEsMTk1LjY0ODQgIiBmaWxsPSIjRkJGQjc3IiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwYXRoIGQ9Ik0yODksMTk1LjY0ODQgTDI4OSwyMDUuNjQ4NCBMMjk5LDIwNS42NDg0IEwyODksMTk1LjY0ODQgIiBmaWxsPSIjRkJGQjc3IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMzciIHg9IjE0NyIgeT0iMjEyLjcxNTMiPmZldGNoQW5kUnVuRXhlY3V0b3I8L3RleHQ+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIzNDYuNSwyNDYuOTE0MSwzNTYuNSwyNTAuOTE0MSwzNDYuNSwyNTQuOTE0MSwzNTAuNSwyNTAuOTE0MSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMjIyLjUiIHgyPSIzNTIuNSIgeTE9IjI1MC45MTQxIiB5Mj0iMjUwLjkxNDEiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIyNiIgeD0iMjI5LjUiIHk9IjI0NS44NDgxIj7osIPnlKg8L3RleHQ+PHBhdGggZD0iTTMzMSwyNjMuOTE0MSBMMzMxLDI4OC45MTQxIEwzODIsMjg4LjkxNDEgTDM4MiwyNzMuOTE0MSBMMzcyLDI2My45MTQxIEwzMzEsMjYzLjkxNDEgIiBmaWxsPSIjRkJGQjc3IiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwYXRoIGQ9Ik0zNzIsMjYzLjkxNDEgTDM3MiwyNzMuOTE0MSBMMzgyLDI3My45MTQxIEwzNzIsMjYzLjkxNDEgIiBmaWxsPSIjRkJGQjc3IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIzMCIgeD0iMzM3IiB5PSIyODAuOTgxIj5zdGFydDwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjQ4MywzMTUuMTc5Nyw0OTMsMzE5LjE3OTcsNDgzLDMyMy4xNzk3LDQ4NywzMTkuMTc5NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMzU4LjUiIHgyPSI0ODkiIHkxPSIzMTkuMTc5NyIgeTI9IjMxOS4xNzk3Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjM2NS41IiB5PSIzMTQuMTEzOCI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik0zNDAsMzMyLjE3OTcgTDM0MCwzNTcuMTc5NyBMNjQ2LDM1Ny4xNzk3IEw2NDYsMzQyLjE3OTcgTDYzNiwzMzIuMTc5NyBMMzQwLDMzMi4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2Y3Nzc2hvYmlub2QpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNjM2LDMzMi4xNzk3IEw2MzYsMzQyLjE3OTcgTDY0NiwzNDIuMTc5NyBMNjM2LDMzMi4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjg1IiB4PSIzNDYiIHk9IjM0OS4yNDY2Ij5qYXZhIC1zZXJ2ZXIgQ29hcnNlR3JhaW5lZEV4ZWN1dG9yQmFja2VuZDwvdGV4dD48IS0tTUQ1PVs5ZDViOGEzZWUyNjIzNTU3NGJlMTlhODFiZTBiNmI2Nl0KQHN0YXJ0dW1sDQp0aXRsZTpDb2Fyc2VHcmFpbmVkRXhlY3V0b3JCYWNrZW5k55qE5ZCv5YqoDQoNCm5vdGUgb3ZlciBXb3JrOiByZWNlaXZlKGNhc2UgTGF1bmNoRXhlY3V0b3IpDQpXb3JrIC0+IEV4ZWN1dG9yUnVubmVyOiDliJvlu7pFeGVjdXRvcg0Kbm90ZSBvdmVyIEV4ZWN1dG9yUnVubmVyOiBzdGFydA0Kbm90ZSBvdmVyIEV4ZWN1dG9yUnVubmVyOiBmZXRjaEFuZFJ1bkV4ZWN1dG9yDQpFeGVjdXRvclJ1bm5lciAtPiBQcm9jZXNzQnVpbGRlcjog6LCD55SoDQpub3RlIG92ZXIgUHJvY2Vzc0J1aWxkZXI6IHN0YXJ0DQpQcm9jZXNzQnVpbGRlciAtPiBMaW51eF9Db21tYW5kOiDosIPnlKgNCm5vdGUgb3ZlciBMaW51eF9Db21tYW5kOiBqYXZhIC1zZXJ2ZXIgQ29hcnNlR3JhaW5lZEV4ZWN1dG9yQmFja2VuZA0KQGVuZHVtbA0KClBsYW50VU1MIHZlcnNpb24gMS4yMDIwLjAyYmV0YTUoVW5rbm93biBjb21waWxlIHRpbWUpCihHUEwgc291cmNlIGRpc3RyaWJ1dGlvbikKSmF2YSBSdW50aW1lOiBKYXZhKFRNKSBTRSBSdW50aW1lIEVudmlyb25tZW50CkpWTTogSmF2YSBIb3RTcG90KFRNKSA2NC1CaXQgU2VydmVyIFZNCkphdmEgVmVyc2lvbjogMS43LjBfMjUtYjE1Ck9wZXJhdGluZyBTeXN0ZW06IExpbnV4CkRlZmF1bHQgRW5jb2Rpbmc6IFVURi04Ckxhbmd1YWdlOiBlbgpDb3VudHJ5OiBVUwotLT48L2c+PC9zdmc+">
+<meta property="article:published_time" content="2018-06-04T15:22:05.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.859Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="spark">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://longzl2015.github.io/images/5_%E5%90%AF%E5%8A%A8CoarseGrainedExecutorBackend%E8%BF%9B%E7%A8%8B/CoarseGrainedExecutorBackend%E7%B1%BB%E5%9B%BE.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/5_%E5%90%AF%E5%8A%A8CoarseGrainedExecutorBackend%E8%BF%9B%E7%A8%8B/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>spark5-启动CoarseGrainedExecutorBackend进程 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/5_%E5%90%AF%E5%8A%A8CoarseGrainedExecutorBackend%E8%BF%9B%E7%A8%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          spark5-启动CoarseGrainedExecutorBackend进程
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2018-06-04 23:22:05" itemprop="dateCreated datePublished" datetime="2018-06-04T23:22:05+08:00">2018-06-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/" itemprop="url" rel="index">
+                    <span itemprop="name">spark</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90/" itemprop="url" rel="index">
+                    <span itemprop="name">源码解析</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/5_%E5%90%AF%E5%8A%A8CoarseGrainedExecutorBackend%E8%BF%9B%E7%A8%8B/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2018/06/04/spark/Spark执行逻辑/5_启动CoarseGrainedExecutorBackend进程/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="启动CoarseGrainedExecutorBackend进程"><a href="#启动CoarseGrainedExecutorBackend进程" class="headerlink" title="启动CoarseGrainedExecutorBackend进程"></a>启动CoarseGrainedExecutorBackend进程</h1><p><strong>Executor</strong>负责计算任务，即执行task，而Executor对象的创建及维护是由<code>CoarseGrainedExecutorBackend</code>负责的，CoarseGrainedExecutorBackend在spark运行期是一个单独的进程.</p>
+<p>##一、CoarseGrainedExecutorBackend类</p>
+<p><img src="/images/5_%E5%90%AF%E5%8A%A8CoarseGrainedExecutorBackend%E8%BF%9B%E7%A8%8B/CoarseGrainedExecutorBackend%E7%B1%BB%E5%9B%BE.png" alt="sparkExecutor类图"></p>
+<ol>
+<li><code>CoarseGrainedExecutorBackend</code>是<strong>RpcEndpoint</strong>的子类，能够和Driver进行RPC通信。</li>
+<li><code>CoarseGrainedExecutorBackend</code>维护了两个属性executor和driver，executor负责运行task，driver负责和Driver通信。</li>
+<li>ExecutorBackend有抽象方法statusUpdate，负责将Executor的计算结果返回给Driver。</li>
+</ol>
+<p>最后，CoarseGrainedExecutorBackend是spark运行期的一个进程，Executor运行在该进程内。</p>
+<h2 id="二、启动过程"><a href="#二、启动过程" class="headerlink" title="二、启动过程"></a>二、启动过程</h2><h3 id="2-1-uml"><a href="#2-1-uml" class="headerlink" title="2.1 uml"></a>2.1 uml</h3><img src='data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiBjb250ZW50U2NyaXB0VHlwZT0iYXBwbGljYXRpb24vZWNtYXNjcmlwdCIgY29udGVudFN0eWxlVHlwZT0idGV4dC9jc3MiIGhlaWdodD0iNDE2cHgiIHByZXNlcnZlQXNwZWN0UmF0aW89Im5vbmUiIHN0eWxlPSJ3aWR0aDo2NThweDtoZWlnaHQ6NDE2cHg7IiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA2NTggNDE2IiB3aWR0aD0iNjU4cHgiIHpvb21BbmRQYW49Im1hZ25pZnkiPjxkZWZzPjxmaWx0ZXIgaGVpZ2h0PSIzMDAlIiBpZD0iZjZjc3NzaG9iaW5vZCIgd2lkdGg9IjMwMCUiIHg9Ii0xIiB5PSItMSI+PGZlR2F1c3NpYW5CbHVyIHJlc3VsdD0iYmx1ck91dCIgc3RkRGV2aWF0aW9uPSIyLjAiLz48ZmVDb2xvck1hdHJpeCBpbj0iYmx1ck91dCIgcmVzdWx0PSJibHVyT3V0MiIgdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIC40IDAiLz48ZmVPZmZzZXQgZHg9IjQuMCIgZHk9IjQuMCIgaW49ImJsdXJPdXQyIiByZXN1bHQ9ImJsdXJPdXQzIi8+PGZlQmxlbmQgaW49IlNvdXJjZUdyYXBoaWMiIGluMj0iYmx1ck91dDMiIG1vZGU9Im5vcm1hbCIvPjwvZmlsdGVyPjwvZGVmcz48Zz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIzMzgiIHg9IjE2MCIgeT0iMjYuNzA4Ij5Db2Fyc2VHcmFpbmVkRXhlY3V0b3JCYWNrZW5k55qE5ZCv5YqoPC90ZXh0PjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjExNiIgeDI9IjExNiIgeTE9IjczLjI1IiB5Mj0iMzc2LjMxMjUiLz48bGluZSBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsgc3Ryb2tlLWRhc2hhcnJheTogNS4wLDUuMDsiIHgxPSIyMjIuNSIgeDI9IjIyMi41IiB5MT0iNzMuMjUiIHkyPSIzNzYuMzEyNSIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyBzdHJva2UtZGFzaGFycmF5OiA1LjAsNS4wOyIgeDE9IjM1OC41IiB4Mj0iMzU4LjUiIHkxPSI3My4yNSIgeTI9IjM3Ni4zMTI1Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IHN0cm9rZS1kYXNoYXJyYXk6IDUuMCw1LjA7IiB4MT0iNDk0LjUiIHgyPSI0OTQuNSIgeTE9IjczLjI1IiB5Mj0iMzc2LjMxMjUiLz48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iNDkiIHg9IjkwIiB5PSIzNy45NTMxIi8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMzUiIHg9Ijk3IiB5PSI1Ny45NDgyIj5Xb3JrPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNmNzc3Nob2Jpbm9kKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSI0OSIgeD0iOTAiIHk9IjM3NS4zMTI1Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMzUiIHg9Ijk3IiB5PSIzOTUuMzA3NiI+V29yazwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTI2IiB4PSIxNTcuNSIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjExMiIgeD0iMTY0LjUiIHk9IjU3Ljk0ODIiPkV4ZWN1dG9yUnVubmVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNmNzc3Nob2Jpbm9kKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMjYiIHg9IjE1Ny41IiB5PSIzNzUuMzEyNSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjExMiIgeD0iMTY0LjUiIHk9IjM5NS4zMDc2Ij5FeGVjdXRvclJ1bm5lcjwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTE4IiB4PSIyOTcuNSIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEwNCIgeD0iMzA0LjUiIHk9IjU3Ljk0ODIiPlByb2Nlc3NCdWlsZGVyPC90ZXh0PjxyZWN0IGZpbGw9IiNGRUZFQ0UiIGZpbHRlcj0idXJsKCNmNmNzc3Nob2Jpbm9kKSIgaGVpZ2h0PSIzMC4yOTY5IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuNTsiIHdpZHRoPSIxMTgiIHg9IjI5Ny41IiB5PSIzNzUuMzEyNSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjEwNCIgeD0iMzA0LjUiIHk9IjM5NS4zMDc2Ij5Qcm9jZXNzQnVpbGRlcjwvdGV4dD48cmVjdCBmaWxsPSIjRkVGRUNFIiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIGhlaWdodD0iMzAuMjk2OSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjU7IiB3aWR0aD0iMTI3IiB4PSI0MjkuNSIgeT0iMzcuOTUzMSIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjExMyIgeD0iNDM2LjUiIHk9IjU3Ljk0ODIiPkxpbnV4X0NvbW1hbmQ8L3RleHQ+PHJlY3QgZmlsbD0iI0ZFRkVDRSIgZmlsdGVyPSJ1cmwoI2Y2Y3Nzc2hvYmlub2QpIiBoZWlnaHQ9IjMwLjI5NjkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS41OyIgd2lkdGg9IjEyNyIgeD0iNDI5LjUiIHk9IjM3NS4zMTI1Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMTEzIiB4PSI0MzYuNSIgeT0iMzk1LjMwNzYiPkxpbnV4X0NvbW1hbmQ8L3RleHQ+PHBhdGggZD0iTTgsODguMjUgTDgsMTEzLjI1IEwyMjEsMTEzLjI1IEwyMjEsOTguMjUgTDIxMSw4OC4yNSBMOCw4OC4yNSAiIGZpbGw9IiNGQkZCNzciIGZpbHRlcj0idXJsKCNmNmNzc3Nob2Jpbm9kKSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHBhdGggZD0iTTIxMSw4OC4yNSBMMjExLDk4LjI1IEwyMjEsOTguMjUgTDIxMSw4OC4yNSAiIGZpbGw9IiNGQkZCNzciIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjx0ZXh0IGZpbGw9IiMwMDAwMDAiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEzIiBsZW5ndGhBZGp1c3Q9InNwYWNpbmdBbmRHbHlwaHMiIHRleHRMZW5ndGg9IjE5MiIgeD0iMTQiIHk9IjEwNS4zMTY5Ij5yZWNlaXZlKGNhc2UgTGF1bmNoRXhlY3V0b3IpPC90ZXh0Pjxwb2x5Z29uIGZpbGw9IiNBODAwMzYiIHBvaW50cz0iMjEwLjUsMTM5LjUxNTYsMjIwLjUsMTQzLjUxNTYsMjEwLjUsMTQ3LjUxNTYsMjE0LjUsMTQzLjUxNTYiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxsaW5lIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIgeDE9IjExNi41IiB4Mj0iMjE2LjUiIHkxPSIxNDMuNTE1NiIgeTI9IjE0My41MTU2Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iODIiIHg9IjEyMy41IiB5PSIxMzguNDQ5NyI+5Yib5bu6RXhlY3V0b3I8L3RleHQ+PHBhdGggZD0iTTE5NSwxNTYuNTE1NiBMMTk1LDE4MS41MTU2IEwyNDYsMTgxLjUxNTYgTDI0NiwxNjYuNTE1NiBMMjM2LDE1Ni41MTU2IEwxOTUsMTU2LjUxNTYgIiBmaWxsPSIjRkJGQjc3IiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwYXRoIGQ9Ik0yMzYsMTU2LjUxNTYgTDIzNiwxNjYuNTE1NiBMMjQ2LDE2Ni41MTU2IEwyMzYsMTU2LjUxNTYgIiBmaWxsPSIjRkJGQjc3IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIzMCIgeD0iMjAxIiB5PSIxNzMuNTgyNSI+c3RhcnQ8L3RleHQ+PHBhdGggZD0iTTE0MSwxOTUuNjQ4NCBMMTQxLDIyMC42NDg0IEwyOTksMjIwLjY0ODQgTDI5OSwyMDUuNjQ4NCBMMjg5LDE5NS42NDg0IEwxNDEsMTk1LjY0ODQgIiBmaWxsPSIjRkJGQjc3IiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwYXRoIGQ9Ik0yODksMTk1LjY0ODQgTDI4OSwyMDUuNjQ4NCBMMjk5LDIwNS42NDg0IEwyODksMTk1LjY0ODQgIiBmaWxsPSIjRkJGQjc3IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIxMzciIHg9IjE0NyIgeT0iMjEyLjcxNTMiPmZldGNoQW5kUnVuRXhlY3V0b3I8L3RleHQ+PHBvbHlnb24gZmlsbD0iI0E4MDAzNiIgcG9pbnRzPSIzNDYuNSwyNDYuOTE0MSwzNTYuNSwyNTAuOTE0MSwzNDYuNSwyNTQuOTE0MSwzNTAuNSwyNTAuOTE0MSIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMjIyLjUiIHgyPSIzNTIuNSIgeTE9IjI1MC45MTQxIiB5Mj0iMjUwLjkxNDEiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIyNiIgeD0iMjI5LjUiIHk9IjI0NS44NDgxIj7osIPnlKg8L3RleHQ+PHBhdGggZD0iTTMzMSwyNjMuOTE0MSBMMzMxLDI4OC45MTQxIEwzODIsMjg4LjkxNDEgTDM4MiwyNzMuOTE0MSBMMzcyLDI2My45MTQxIEwzMzEsMjYzLjkxNDEgIiBmaWxsPSIjRkJGQjc3IiBmaWx0ZXI9InVybCgjZjZjc3NzaG9iaW5vZCkiIHN0eWxlPSJzdHJva2U6ICNBODAwMzY7IHN0cm9rZS13aWR0aDogMS4wOyIvPjxwYXRoIGQ9Ik0zNzIsMjYzLjkxNDEgTDM3MiwyNzMuOTE0MSBMMzgyLDI3My45MTQxIEwzNzIsMjYzLjkxNDEgIiBmaWxsPSIjRkJGQjc3IiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48dGV4dCBmaWxsPSIjMDAwMDAwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMyIgbGVuZ3RoQWRqdXN0PSJzcGFjaW5nQW5kR2x5cGhzIiB0ZXh0TGVuZ3RoPSIzMCIgeD0iMzM3IiB5PSIyODAuOTgxIj5zdGFydDwvdGV4dD48cG9seWdvbiBmaWxsPSIjQTgwMDM2IiBwb2ludHM9IjQ4MywzMTUuMTc5Nyw0OTMsMzE5LjE3OTcsNDgzLDMyMy4xNzk3LDQ4NywzMTkuMTc5NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PGxpbmUgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7IiB4MT0iMzU4LjUiIHgyPSI0ODkiIHkxPSIzMTkuMTc5NyIgeTI9IjMxOS4xNzk3Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjYiIHg9IjM2NS41IiB5PSIzMTQuMTEzOCI+6LCD55SoPC90ZXh0PjxwYXRoIGQ9Ik0zNDAsMzMyLjE3OTcgTDM0MCwzNTcuMTc5NyBMNjQ2LDM1Ny4xNzk3IEw2NDYsMzQyLjE3OTcgTDYzNiwzMzIuMTc5NyBMMzQwLDMzMi4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgZmlsdGVyPSJ1cmwoI2Y2Y3Nzc2hvYmlub2QpIiBzdHlsZT0ic3Ryb2tlOiAjQTgwMDM2OyBzdHJva2Utd2lkdGg6IDEuMDsiLz48cGF0aCBkPSJNNjM2LDMzMi4xNzk3IEw2MzYsMzQyLjE3OTcgTDY0NiwzNDIuMTc5NyBMNjM2LDMzMi4xNzk3ICIgZmlsbD0iI0ZCRkI3NyIgc3R5bGU9InN0cm9rZTogI0E4MDAzNjsgc3Ryb2tlLXdpZHRoOiAxLjA7Ii8+PHRleHQgZmlsbD0iIzAwMDAwMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTMiIGxlbmd0aEFkanVzdD0ic3BhY2luZ0FuZEdseXBocyIgdGV4dExlbmd0aD0iMjg1IiB4PSIzNDYiIHk9IjM0OS4yNDY2Ij5qYXZhIC1zZXJ2ZXIgQ29hcnNlR3JhaW5lZEV4ZWN1dG9yQmFja2VuZDwvdGV4dD48IS0tTUQ1PVs5ZDViOGEzZWUyNjIzNTU3NGJlMTlhODFiZTBiNmI2Nl0KQHN0YXJ0dW1sDQp0aXRsZTpDb2Fyc2VHcmFpbmVkRXhlY3V0b3JCYWNrZW5k55qE5ZCv5YqoDQoNCm5vdGUgb3ZlciBXb3JrOiByZWNlaXZlKGNhc2UgTGF1bmNoRXhlY3V0b3IpDQpXb3JrIC0+IEV4ZWN1dG9yUnVubmVyOiDliJvlu7pFeGVjdXRvcg0Kbm90ZSBvdmVyIEV4ZWN1dG9yUnVubmVyOiBzdGFydA0Kbm90ZSBvdmVyIEV4ZWN1dG9yUnVubmVyOiBmZXRjaEFuZFJ1bkV4ZWN1dG9yDQpFeGVjdXRvclJ1bm5lciAtPiBQcm9jZXNzQnVpbGRlcjog6LCD55SoDQpub3RlIG92ZXIgUHJvY2Vzc0J1aWxkZXI6IHN0YXJ0DQpQcm9jZXNzQnVpbGRlciAtPiBMaW51eF9Db21tYW5kOiDosIPnlKgNCm5vdGUgb3ZlciBMaW51eF9Db21tYW5kOiBqYXZhIC1zZXJ2ZXIgQ29hcnNlR3JhaW5lZEV4ZWN1dG9yQmFja2VuZA0KQGVuZHVtbA0KClBsYW50VU1MIHZlcnNpb24gMS4yMDIwLjAyYmV0YTUoVW5rbm93biBjb21waWxlIHRpbWUpCihHUEwgc291cmNlIGRpc3RyaWJ1dGlvbikKSmF2YSBSdW50aW1lOiBKYXZhKFRNKSBTRSBSdW50aW1lIEVudmlyb25tZW50CkpWTTogSmF2YSBIb3RTcG90KFRNKSA2NC1CaXQgU2VydmVyIFZNCkphdmEgVmVyc2lvbjogMS43LjBfMjUtYjE1Ck9wZXJhdGluZyBTeXN0ZW06IExpbnV4CkRlZmF1bHQgRW5jb2Rpbmc6IFVURi04Ckxhbmd1YWdlOiBlbgpDb3VudHJ5OiBVUwotLT48L2c+PC9zdmc+'>
+
+<h3 id="2-2-详细过程"><a href="#2-2-详细过程" class="headerlink" title="2.2 详细过程"></a>2.2 详细过程</h3><p>在Worker进程收到LauncherExecutor消息后，Worker 会将消息封装为<strong>ExecutorRunner</strong>对象，调用其start方法。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">receive</span></span>: <span class="type">PartialFunction</span>[<span class="type">Any</span>, <span class="type">Unit</span>] = synchronized &#123;</span><br><span class="line">   <span class="keyword">case</span> <span class="type">LaunchExecutor</span>(masterUrl, appId, execId, appDesc, cores_, memory_) =&gt;</span><br><span class="line">     <span class="keyword">if</span> (masterUrl != activeMasterUrl) &#123;</span><br><span class="line">       logWarning(<span class="string">"Invalid Master ("</span> + masterUrl + <span class="string">") attempted to launch executor."</span>)</span><br><span class="line">     &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">       <span class="keyword">try</span> &#123;</span><br><span class="line">        ....</span><br><span class="line">         <span class="keyword">val</span> manager = <span class="keyword">new</span> <span class="type">ExecutorRunner</span>(</span><br><span class="line">           appId,</span><br><span class="line">           execId,</span><br><span class="line">           appDesc.copy(command = <span class="type">Worker</span>.maybeUpdateSSLSettings(appDesc.command, conf)),</span><br><span class="line">           cores_,</span><br><span class="line">           memory_,</span><br><span class="line">           self,</span><br><span class="line">           workerId,</span><br><span class="line">           host,</span><br><span class="line">           webUi.boundPort,</span><br><span class="line">           publicAddress,</span><br><span class="line">           sparkHome,</span><br><span class="line">           executorDir,</span><br><span class="line">           workerUri,</span><br><span class="line">           conf,</span><br><span class="line">           appLocalDirs, <span class="type">ExecutorState</span>.<span class="type">RUNNING</span>)</span><br><span class="line">         executors(appId + <span class="string">"/"</span> + execId) = manager</span><br><span class="line">         manager.start()</span><br><span class="line">         coresUsed += cores_</span><br><span class="line">         memoryUsed += memory_</span><br><span class="line">         sendToMaster(<span class="type">ExecutorStateChanged</span>(appId, execId, manager.state, <span class="type">None</span>, <span class="type">None</span>))</span><br><span class="line">       &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">        ....</span><br><span class="line">       &#125;</span><br><span class="line">     &#125;</span><br><span class="line">    ......</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>start方法启动线程，调用ExecutorRunner的fetchAndRunExecutor方法，</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span>[worker] <span class="function"><span class="keyword">def</span> <span class="title">start</span></span>() &#123;</span><br><span class="line">  workerThread = <span class="keyword">new</span> <span class="type">Thread</span>(<span class="string">"ExecutorRunner for "</span> + fullId) &#123;</span><br><span class="line">    <span class="keyword">override</span> <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>() &#123; fetchAndRunExecutor() &#125;</span><br><span class="line">  &#125;</span><br><span class="line">  workerThread.start()</span><br><span class="line">  shutdownHook = <span class="type">ShutdownHookManager</span>.addShutdownHook &#123; () =&gt;</span><br><span class="line">    <span class="keyword">if</span> (state == <span class="type">ExecutorState</span>.<span class="type">RUNNING</span>) &#123;</span><br><span class="line">      state = <span class="type">ExecutorState</span>.<span class="type">FAILED</span></span><br><span class="line">    &#125;</span><br><span class="line">    killProcess(<span class="type">Some</span>(<span class="string">"Worker shutting down"</span>)) &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>fetchAndRunExecutor方法中将收到的信息拼接为Linux命令，然后使用<strong>ProcessBuilder</strong>执行Linux命令启动CoarseGrainedExecutorBackend</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">fetchAndRunExecutor</span></span>() &#123;</span><br><span class="line">  <span class="keyword">try</span> &#123;</span><br><span class="line">    <span class="comment">// Launch the process</span></span><br><span class="line">    <span class="keyword">val</span> builder = <span class="type">CommandUtils</span>.buildProcessBuilder(appDesc.command, <span class="keyword">new</span> <span class="type">SecurityManager</span>(conf),</span><br><span class="line">      memory, sparkHome.getAbsolutePath, substituteVariables)</span><br><span class="line">    <span class="keyword">val</span> command = builder.command()</span><br><span class="line">    <span class="keyword">val</span> formattedCommand = command.asScala.mkString(<span class="string">"\""</span>, <span class="string">"\" \""</span>, <span class="string">"\""</span>)</span><br><span class="line">    logInfo(<span class="string">s"Launch command: <span class="subst">$formattedCommand</span>"</span>)</span><br><span class="line"></span><br><span class="line">    builder.directory(executorDir)</span><br><span class="line">    builder.environment.put(<span class="string">"SPARK_EXECUTOR_DIRS"</span>, appLocalDirs.mkString(<span class="type">File</span>.pathSeparator))</span><br><span class="line">    <span class="comment">// In case we are running this from within the Spark Shell, avoid creating a "scala"</span></span><br><span class="line">    <span class="comment">// parent process for the executor command</span></span><br><span class="line">    builder.environment.put(<span class="string">"SPARK_LAUNCH_WITH_SCALA"</span>, <span class="string">"0"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Add webUI log urls</span></span><br><span class="line">    <span class="keyword">val</span> baseUrl =</span><br><span class="line">      <span class="keyword">if</span> (conf.getBoolean(<span class="string">"spark.ui.reverseProxy"</span>, <span class="literal">false</span>)) &#123;</span><br><span class="line">        <span class="string">s"/proxy/<span class="subst">$workerId</span>/logPage/?appId=<span class="subst">$appId</span>&amp;executorId=<span class="subst">$execId</span>&amp;logType="</span></span><br><span class="line">      &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">        <span class="string">s"http://<span class="subst">$publicAddress</span>:<span class="subst">$webUiPort</span>/logPage/?appId=<span class="subst">$appId</span>&amp;executorId=<span class="subst">$execId</span>&amp;logType="</span></span><br><span class="line">      &#125;</span><br><span class="line">    builder.environment.put(<span class="string">"SPARK_LOG_URL_STDERR"</span>, <span class="string">s"<span class="subst">$&#123;baseUrl&#125;</span>stderr"</span>)</span><br><span class="line">    builder.environment.put(<span class="string">"SPARK_LOG_URL_STDOUT"</span>, <span class="string">s"<span class="subst">$&#123;baseUrl&#125;</span>stdout"</span>)</span><br><span class="line"></span><br><span class="line">    process = builder.start()</span><br><span class="line">    <span class="keyword">val</span> header = <span class="string">"Spark Executor Command: %s\n%s\n\n"</span>.format(</span><br><span class="line">      formattedCommand, <span class="string">"="</span> * <span class="number">40</span>)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Redirect its stdout and stderr to files</span></span><br><span class="line">    <span class="keyword">val</span> stdout = <span class="keyword">new</span> <span class="type">File</span>(executorDir, <span class="string">"stdout"</span>)</span><br><span class="line">    stdoutAppender = <span class="type">FileAppender</span>(process.getInputStream, stdout, conf)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">val</span> stderr = <span class="keyword">new</span> <span class="type">File</span>(executorDir, <span class="string">"stderr"</span>)</span><br><span class="line">    <span class="type">Files</span>.write(header, stderr, <span class="type">StandardCharsets</span>.<span class="type">UTF_8</span>)</span><br><span class="line">    stderrAppender = <span class="type">FileAppender</span>(process.getErrorStream, stderr, conf)</span><br><span class="line"></span><br><span class="line">    <span class="comment">// Wait for it to exit; executor may exit with code 0 (when driver instructs it to shutdown)</span></span><br><span class="line">    <span class="comment">// or with nonzero exit code</span></span><br><span class="line">    <span class="keyword">val</span> exitCode = process.waitFor()</span><br><span class="line">    state = <span class="type">ExecutorState</span>.<span class="type">EXITED</span></span><br><span class="line">    <span class="keyword">val</span> message = <span class="string">"Command exited with code "</span> + exitCode</span><br><span class="line">    worker.send(<span class="type">ExecutorStateChanged</span>(appId, execId, state, <span class="type">Some</span>(message), <span class="type">Some</span>(exitCode)))</span><br><span class="line">  &#125; <span class="keyword">catch</span> &#123;</span><br><span class="line">    <span class="keyword">case</span> interrupted: <span class="type">InterruptedException</span> =&gt;</span><br><span class="line">      logInfo(<span class="string">"Runner thread for executor "</span> + fullId + <span class="string">" interrupted"</span>)</span><br><span class="line">      state = <span class="type">ExecutorState</span>.<span class="type">KILLED</span></span><br><span class="line">      killProcess(<span class="type">None</span>)</span><br><span class="line">    <span class="keyword">case</span> e: <span class="type">Exception</span> =&gt;</span><br><span class="line">      logError(<span class="string">"Error running executor"</span>, e)</span><br><span class="line">      state = <span class="type">ExecutorState</span>.<span class="type">FAILED</span></span><br><span class="line">      killProcess(<span class="type">Some</span>(e.toString))</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>ProcessBuilder执行的Linux命令大致如下</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">.&#x2F;jdk-8u161-linux-x64.tar.gz&#x2F;jdk1.8.0_161&#x2F;bin&#x2F;java </span><br><span class="line">-server -Xmx4096m </span><br><span class="line">-Djava.io.tmpdir&#x3D;&#x2F;home&#x2F;hadoop&#x2F;tmp&#x2F;nm-local-dir&#x2F;usercache&#x2F;xxxxx&#x2F;appcache&#x2F;application_1519271509270_0745&#x2F;container_1519271509270_0745_01_000003&#x2F;tmp </span><br><span class="line">&#39;-Dspark.ui.port&#x3D;0&#39; </span><br><span class="line">&#39;-Dspark.driver.port&#x3D;37011&#39; </span><br><span class="line">-Dspark.yarn.app.container.log.dir&#x3D;&#x2F;home&#x2F;hadoop&#x2F;hadoop-2.7.3&#x2F;logs&#x2F;userlogs&#x2F;application_1519271509270_0745&#x2F;container_1519271509270_0745_01_000003 </span><br><span class="line">-XX:OnOutOfMemoryError&#x3D;&#39;kill %p&#39; </span><br><span class="line">org.apache.spark.executor.CoarseGrainedExecutorBackend </span><br><span class="line">--driver-url spark:&#x2F;&#x2F;CoarseGrainedScheduler@10.100.1.131:37011 </span><br><span class="line">--executor-id 2 </span><br><span class="line">--hostname slave131 </span><br><span class="line">--cores 8 </span><br><span class="line">--app-id application_1519271509270_0745 </span><br><span class="line">--user-class-path file:&#x2F;home&#x2F;hadoop&#x2F;tmp&#x2F;nm-local-dir&#x2F;usercache&#x2F;xxxxx&#x2F;appcache&#x2F;application_1519271509270_0745&#x2F;container_1519271509270_0745_01_000003&#x2F;__app__.jar </span><br><span class="line">1&gt;&#x2F;home&#x2F;hadoop&#x2F;hadoop-2.7.3&#x2F;logs&#x2F;userlogs&#x2F;application_1519271509270_0745&#x2F;container_1519271509270_0745_01_000003&#x2F;stdout </span><br><span class="line">2&gt;&#x2F;home&#x2F;hadoop&#x2F;hadoop-2.7.3&#x2F;logs&#x2F;userlogs&#x2F;application_1519271509270_0745&#x2F;container_1519271509270_0745_01_000003&#x2F;stderr</span><br></pre></td></tr></table></figure>
+
+<p>java命令会调用CoarseGrainedExecutorBackend的main方法，main方法中处理命令行传入的参数，将参赛传给run方法，然后run方法中创建RpcEnv，并注册CoarseGrainedExecutorBackend</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="function"><span class="keyword">def</span> <span class="title">run</span></span>(</span><br><span class="line">      driverUrl: <span class="type">String</span>,</span><br><span class="line">      executorId: <span class="type">String</span>,</span><br><span class="line">      hostname: <span class="type">String</span>,</span><br><span class="line">      cores: <span class="type">Int</span>,</span><br><span class="line">      appId: <span class="type">String</span>,</span><br><span class="line">      workerUrl: <span class="type">Option</span>[<span class="type">String</span>],</span><br><span class="line">      userClassPath: <span class="type">Seq</span>[<span class="type">URL</span>]) &#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">Utils</span>.initDaemon(log)</span><br><span class="line"></span><br><span class="line">    <span class="type">SparkHadoopUtil</span>.get.runAsSparkUser &#123; () =&gt;</span><br><span class="line">      <span class="comment">// Debug code</span></span><br><span class="line">      <span class="type">Utils</span>.checkHost(hostname)</span><br><span class="line"></span><br><span class="line">      <span class="comment">// Bootstrap to fetch the driver's Spark properties.</span></span><br><span class="line">      <span class="keyword">val</span> executorConf = <span class="keyword">new</span> <span class="type">SparkConf</span></span><br><span class="line">      <span class="keyword">val</span> port = executorConf.getInt(<span class="string">"spark.executor.port"</span>, <span class="number">0</span>)</span><br><span class="line">      <span class="keyword">val</span> fetcher = <span class="type">RpcEnv</span>.create(</span><br><span class="line">        <span class="string">"driverPropsFetcher"</span>,</span><br><span class="line">        hostname,</span><br><span class="line">        port,</span><br><span class="line">        executorConf,</span><br><span class="line">        <span class="keyword">new</span> <span class="type">SecurityManager</span>(executorConf),</span><br><span class="line">        clientMode = <span class="literal">true</span>)</span><br><span class="line">      <span class="keyword">val</span> driver = fetcher.setupEndpointRefByURI(driverUrl)</span><br><span class="line">      <span class="keyword">val</span> cfg = driver.askSync[<span class="type">SparkAppConfig</span>](<span class="type">RetrieveSparkAppConfig</span>)</span><br><span class="line">      <span class="keyword">val</span> props = cfg.sparkProperties ++ <span class="type">Seq</span>[(<span class="type">String</span>, <span class="type">String</span>)]((<span class="string">"spark.app.id"</span>, appId))</span><br><span class="line">      fetcher.shutdown()</span><br><span class="line"></span><br><span class="line">      <span class="comment">// Create SparkEnv using properties we fetched from the driver.</span></span><br><span class="line">      <span class="keyword">val</span> driverConf = <span class="keyword">new</span> <span class="type">SparkConf</span>()</span><br><span class="line">      <span class="keyword">for</span> ((key, value) &lt;- props) &#123;</span><br><span class="line">        <span class="comment">// this is required for SSL in standalone mode</span></span><br><span class="line">        <span class="keyword">if</span> (<span class="type">SparkConf</span>.isExecutorStartupConf(key)) &#123;</span><br><span class="line">          driverConf.setIfMissing(key, value)</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">          driverConf.set(key, value)</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">      <span class="keyword">if</span> (driverConf.contains(<span class="string">"spark.yarn.credentials.file"</span>)) &#123;</span><br><span class="line">        logInfo(<span class="string">"Will periodically update credentials from: "</span> +</span><br><span class="line">          driverConf.get(<span class="string">"spark.yarn.credentials.file"</span>))</span><br><span class="line">        <span class="type">SparkHadoopUtil</span>.get.startCredentialUpdater(driverConf)</span><br><span class="line">      &#125;</span><br><span class="line"></span><br><span class="line">      <span class="keyword">val</span> env = <span class="type">SparkEnv</span>.createExecutorEnv(</span><br><span class="line">        driverConf, executorId, hostname, port, cores, cfg.ioEncryptionKey, isLocal = <span class="literal">false</span>)</span><br><span class="line"></span><br><span class="line">      env.rpcEnv.setupEndpoint(<span class="string">"Executor"</span>, <span class="keyword">new</span> <span class="type">CoarseGrainedExecutorBackend</span>(</span><br><span class="line">        env.rpcEnv, driverUrl, executorId, hostname, cores, userClassPath, env))</span><br><span class="line">      workerUrl.foreach &#123; url =&gt;</span><br><span class="line">        env.rpcEnv.setupEndpoint(<span class="string">"WorkerWatcher"</span>, <span class="keyword">new</span> <span class="type">WorkerWatcher</span>(env.rpcEnv, url))</span><br><span class="line">      &#125;</span><br><span class="line">      env.rpcEnv.awaitTermination()</span><br><span class="line">      <span class="type">SparkHadoopUtil</span>.get.stopCredentialUpdater()</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p><a href="http://blog.csdn.net/u011564172/article/details/69703662" target="_blank" rel="noopener">Spark 任务调度之启动CoarseGrainedExecutorBackend</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spark/" rel="tag"># spark</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/4_%E5%90%AF%E5%8A%A8Executor/" rel="prev" title="spark4-启动Executor">
+      <i class="fa fa-chevron-left"></i> spark4-启动Executor
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/6_%E5%88%9B%E5%BB%BAexecutor%E8%BF%87%E7%A8%8B/" rel="next" title="spark6-创建executor 过程">
+      spark6-创建executor 过程 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#启动CoarseGrainedExecutorBackend进程"><span class="nav-number">1.</span> <span class="nav-text">启动CoarseGrainedExecutorBackend进程</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#二、启动过程"><span class="nav-number">1.1.</span> <span class="nav-text">二、启动过程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-uml"><span class="nav-number">1.1.1.</span> <span class="nav-text">2.1 uml</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-详细过程"><span class="nav-number">1.1.2.</span> <span class="nav-text">2.2 详细过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">1.2.</span> <span class="nav-text">参考</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2018/06/04/spark/Spark%E6%89%A7%E8%A1%8C%E9%80%BB%E8%BE%91/5_%E5%90%AF%E5%8A%A8CoarseGrainedExecutorBackend%E8%BF%9B%E7%A8%8B/",
+            identifier: "2018/06/04/spark/Spark执行逻辑/5_启动CoarseGrainedExecutorBackend进程/",
+            title: "spark5-启动CoarseGrainedExecutorBackend进程"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

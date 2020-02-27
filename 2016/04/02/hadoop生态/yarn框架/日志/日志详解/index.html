@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="一. Hadoop 日志存放路径详解Hadoop的日志大致可以分为两大类，且这两类的日志存放的路径是不一样的。本文基于Hadoop 2.x 版本进行说明的。  Hadoop 系统服务输出的日志 Mapreduce 程序输出来的日志 ( 作业运行日志 、任务运行日志 (Container 日志))  在 Hadoop 2.0 中，Mapreduce 程序的日志包含两部分，作业运行日志 和 任务运行日">
+<meta property="og:type" content="article">
+<meta property="og:title" content="日志详解">
+<meta property="og:url" content="https://longzl2015.github.io/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/%E6%97%A5%E5%BF%97/%E6%97%A5%E5%BF%97%E8%AF%A6%E8%A7%A3/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="一. Hadoop 日志存放路径详解Hadoop的日志大致可以分为两大类，且这两类的日志存放的路径是不一样的。本文基于Hadoop 2.x 版本进行说明的。  Hadoop 系统服务输出的日志 Mapreduce 程序输出来的日志 ( 作业运行日志 、任务运行日志 (Container 日志))  在 Hadoop 2.0 中，Mapreduce 程序的日志包含两部分，作业运行日志 和 任务运行日">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2016-04-02T14:46:48.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.841Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="yarn">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://longzl2015.github.io/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/%E6%97%A5%E5%BF%97/%E6%97%A5%E5%BF%97%E8%AF%A6%E8%A7%A3/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>日志详解 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/%E6%97%A5%E5%BF%97/%E6%97%A5%E5%BF%97%E8%AF%A6%E8%A7%A3/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          日志详解
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2016-04-02 22:46:48" itemprop="dateCreated datePublished" datetime="2016-04-02T22:46:48+08:00">2016-04-02</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hadoop%E7%94%9F%E6%80%81/" itemprop="url" rel="index">
+                    <span itemprop="name">hadoop生态</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/hadoop%E7%94%9F%E6%80%81/yarn/" itemprop="url" rel="index">
+                    <span itemprop="name">yarn</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/%E6%97%A5%E5%BF%97/%E6%97%A5%E5%BF%97%E8%AF%A6%E8%A7%A3/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2016/04/02/hadoop生态/yarn框架/日志/日志详解/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="一-Hadoop-日志存放路径详解"><a href="#一-Hadoop-日志存放路径详解" class="headerlink" title="一. Hadoop 日志存放路径详解"></a>一. Hadoop 日志存放路径详解</h2><p>Hadoop的日志大致可以分为两大类，且这两类的日志存放的路径是不一样的。本文基于Hadoop 2.x 版本进行说明的。</p>
+<ol>
+<li>Hadoop 系统服务输出的日志</li>
+<li>Mapreduce 程序输出来的日志 ( 作业运行日志 、任务运行日志 (Container 日志))</li>
+</ol>
+<p>在 Hadoop 2.0 中，Mapreduce 程序的日志包含两部分，<strong>作业运行日志</strong> 和 <strong>任务运行日志(Container 日志)</strong></p>
+<h3 id="1-1-Hadoop系统服务输出的日志"><a href="#1-1-Hadoop系统服务输出的日志" class="headerlink" title="1.1 Hadoop系统服务输出的日志"></a>1.1 Hadoop系统服务输出的日志</h3><p>诸如 NameNode、DataNode、ResourceManage 等系统自带的服务输出来的日志默认是存放在 <code>${HADOOP_HOME}/logs</code>目录下。比如 resourcemanager 的输出日志为 <code>yarn-${USER}-resourcemanager-${hostname}.log</code></p>
+<ul>
+<li>yarn 指的就是该日志的属性即为 YARN，其他类似的有 mapred、hadoop 等</li>
+<li><code>${USER}s</code> 是指启动 resourcemanager 进程的用户</li>
+<li>resourcemanager 就是指明 resourcemanager 进程，其他类似的有 namenode、zkfc、historyserver 等</li>
+<li><code>${hostname}</code> 是 resourcemanager 进程所在机器的 hostname</li>
+</ul>
+<p>当日志到达一定的大小（可以在 <code>${HADOOP_HOME}/etc/hadoop/log4j.properties</code> 文件中配置）将会被切割出一个新的文件，切割出来的日志文件名类似 <code>yarn-${USER}-resourcemanager-${hostname}.log.数字</code> 的形式，后面的数字越大，代表日志越旧。在默认情况下，只保存前 20 个日志文件，比如下面：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">[hadoop@master logs]$ ll</span><br><span class="line">总用量 7360356</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop   6251772 10月 16 13:59 hadoop-hadoop-datanode-devhost21.log</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 10月 16 10:52 hadoop-hadoop-datanode-devhost21.out</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 9月  17 15:09 hadoop-hadoop-datanode-devhost21.out.1</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 9月  15 23:10 hadoop-hadoop-datanode-devhost21.out.2</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 8月  17 20:34 hadoop-hadoop-datanode-devhost21.out.3</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop 151078937 2月   8 19:16 hadoop-hadoop-datanode-master.log</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop 268479664 12月  8 10:00 hadoop-hadoop-datanode-master.log.1</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop 268471403 11月 14 11:34 hadoop-hadoop-datanode-master.log.2</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop 268439864 11月  8 08:30 hadoop-hadoop-datanode-master.log.3</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop 268435710 8月  17 19:00 hadoop-hadoop-datanode-master.log.4</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop 268445084 8月  16 21:33 hadoop-hadoop-datanode-master.log.5</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 1月   4 14:09 hadoop-hadoop-datanode-master.out</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 12月 20 10:49 hadoop-hadoop-datanode-master.out.1</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 12月 18 16:13 hadoop-hadoop-datanode-master.out.2</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 10月 30 15:20 hadoop-hadoop-datanode-master.out.3</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 10月 30 15:17 hadoop-hadoop-datanode-master.out.4</span><br><span class="line">-rw-rw-r--. 1 hadoop hadoop       722 10月 30 13:14 hadoop-hadoop-datanode-master.out.5</span><br></pre></td></tr></table></figure>
+
+
+
+
+<h3 id="1-2-配置-Hadoop-系统服务日志"><a href="#1-2-配置-Hadoop-系统服务日志" class="headerlink" title="1.2 配置 Hadoop 系统服务日志"></a>1.2 配置 Hadoop 系统服务日志</h3><p><strong>1. 配置 log4j 日志的属性参数</strong></p>
+<p>比如 resourcemanager（在 <code>${HADOOP_HOME}/etc/hadoop/log4j.properties</code>）：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">log4j.logger.org.apache.hadoop.yarn.server.resourcemanager.RMAppManager</span><br><span class="line">          $ApplicationSummary&#x3D;$&#123;yarn.server.resourcemanager.appsummary.logger&#125;</span><br><span class="line">log4j.additivity.org.apache.hadoop.yarn.server.resourcemanager</span><br><span class="line">                                    .RMAppManager$ApplicationSummary&#x3D;false</span><br><span class="line">log4j.appender.RMSUMMARY&#x3D;org.apache.log4j.RollingFileAppender</span><br><span class="line">log4j.appender.RMSUMMARY.File&#x3D;$&#123;hadoop.log.dir&#125;&#x2F;</span><br><span class="line">                        $&#123;yarn.server.resourcemanager.appsummary.log.file&#125;</span><br><span class="line">log4j.appender.RMSUMMARY.MaxFileSize&#x3D;256MB（多大切割日志）</span><br><span class="line">log4j.appender.RMSUMMARY.MaxBackupIndex&#x3D;20（说明保存最近20个日志文件）</span><br><span class="line">log4j.appender.RMSUMMARY.layout&#x3D;org.apache.log4j.PatternLayout</span><br><span class="line">log4j.appender.RMSUMMARY.layout.ConversionPattern&#x3D;%d&#123;ISO8601&#125; %p %c&#123;2&#125;: %m%n</span><br></pre></td></tr></table></figure>
+
+<p><strong>2. 配置 resourcemanager 日志存放路径</strong></p>
+<p>在 <code>${HADOOP_HOME}/etc/hadoop/yarn-env.sh</code> 文件中</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># default log directory &amp; file</span></span><br><span class="line"><span class="keyword">if</span> [ <span class="string">"<span class="variable">$YARN_LOG_DIR</span>"</span> = <span class="string">""</span> ]; <span class="keyword">then</span></span><br><span class="line">  YARN_LOG_DIR=<span class="string">"<span class="variable">$HADOOP_YARN_HOME</span>/logs"</span></span><br><span class="line"><span class="keyword">fi</span></span><br></pre></td></tr></table></figure>
+
+<p>只需要修改 <code>YARN_LOG_DIR</code> 的值，这时候，yarn 相关的日志记录都将存放在你配置的目录下。</p>
+<h2 id="二-历史服务器-JobHistory-Server"><a href="#二-历史服务器-JobHistory-Server" class="headerlink" title="二. 历史服务器 (JobHistory Server)"></a>二. 历史服务器 (JobHistory Server)</h2><p>MapReduce 的 JobHistory Server，这是一个独立的服务，可通过 web UI 展示历史作业日志，之所以将其独立出来，是为了减轻 ResourceManager 负担。JobHistory Server 将会分析作业运行日志，并展示作业的启动时间、结束时间、各个任务的运行时间，各种Counter数据等，并产生一个指向作业和任务日志的链接，其默认端口号为 19888。<strong>通常可以启动在一台独立的机器上</strong>。</p>
+<h3 id="2-1-历史服务器配置"><a href="#2-1-历史服务器配置" class="headerlink" title="2.1 历史服务器配置"></a>2.1 历史服务器配置</h3><p>你需在 <strong>mapred-site.xml</strong> 中对其进行配置</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.jobhistory.address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">value</span>&gt;</span>0.0.0.0:10020<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.jobhistory.webapp.address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">value</span>&gt;</span>0.0.0.0:19888<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>上面的参数是在 mapred-site.xml 文件中进行配置，mapreduce.jobhistory.address 和 mapreduce.jobhistory.webapp.address 默认的值分别是 0.0.0.0:10020 和 0.0.0.0:19888，大家可以一定要根据自己的情况进行相应的配置，<strong>最好别用默认的 0.0.0.0</strong> ，参数的格式是 host:port。</p>
+<p>在 Hadoop 历史服务器的 WEB UI 上最多显示 20000 个历史的作业记录信息；其实我们可以在 mapred-site.xml 文件中通过下面的参数进行配置，然后重启一下 Hadoop jobhistory 即可。</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.jobhistory.joblist.cache.size<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>20000<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+<h3 id="2-2-关于-HA-模式下的历史服务器配置的结论"><a href="#2-2-关于-HA-模式下的历史服务器配置的结论" class="headerlink" title="2.2 关于 HA 模式下的历史服务器配置的结论"></a>2.2 关于 HA 模式下的历史服务器配置的结论</h3><p>笔者的集群是 HA 模式的( HDFS 和 ResourceManager HA)。在 <a href="http://blog.csdn.net/u011414200/article/details/50283401" target="_blank" rel="noopener">” Hadoop-2.5.0-cdh5.3.2 HA 安装＂</a> 中详细讲解了关于 HA 模式的搭建，这里就不再赘述。但网上直接将关于 HA 模式下的历史服务器的配置资料却很少。</p>
+<p>笔者在思考，如果配置在 mapred-site.xml 中就设置一台历史服务器，那么当这台机器挂了，那么能不能有另一台机器来承担历史服务器的责任，也就是笔者理想当然的 jobhistory server HA 模式。后面经过各自尝试，得出来的结论是笔者我太年轻了，概念没有搞懂，先总结如下:</p>
+<ul>
+<li>历史服务器是个独立的服务，其不会受到 namenode 和 resourcemanager 的 active/standby 切换所带来的影响</li>
+<li>当历史服务器突然失效了，那些日志文件依旧存在 HDFS 上。当历史服务器又恢复正常，还是能看到在历史服务器失效期间的运行日志</li>
+<li>可以很简单地把历史服务器当成是存在 HDFS 上日志文件的 Web 浏览器。当且仅当历史服务器启动后，才可以通过 Web 查看，比如 <code>http://10.6.3.43:19888/jobhistory</code></li>
+<li>实际上，每台机器的 MapReduce 历史服务器的配置可以不同，当在哪台机器上执行程序时，那么所指向的历史服务器地址其实就是 mapred-site.xml 文件中 mapreduce.jobhistory.webapp.address 配置参数所指定的那台机器</li>
+</ul>
+<p><strong>所以 Hadoop HA 模式下的历史服务器配置和非 HA 模式是一样样的</strong>，如果你自作聪明（比如笔者），在 mapred-site.xml 文件中，添加了两个运行 namenode(resourcemanager) 进程的主备节点的主机名（或IP地址）。</p>
+<p>但是真正在两台主机上同时启动历史服务器进程时，会报如下的类似错误：</p>
+<blockquote>
+<p>INFO org.apache.hadoop.http.HttpServer2: HttpServer.start() threw a non Bind IOException<br>77504 java.net.BindException: Port in use: master52:19888<br>Caused by: java.net.BindException: Cannot assign requested address<br>INFO org.apache.hadoop.service.AbstractService: Service HistoryClientService failed in state STARTED; cause: org.apache.hadoop.yarn.webapp.WebAppException: Error starting http server<br>INFO org.apache.hadoop.util.ExitUtil: Exiting with status -1</p>
+</blockquote>
+<p>原因就是端口被占用了，很明显如果不改变端口，有且仅有一个 历史服务器成功启动，且启动的那个服务器是在 mapred-site.xml 文件中设置位置最下面的那个，及后面的配置参数将覆盖前一个配置参数。就算改变端口也没卵用…</p>
+<p>Note：以上这些是笔者一边操作，一边对比总结，有些结论未必是正确的，还请各位指正…</p>
+<h3 id="2-3-启动历史服务器"><a href="#2-3-启动历史服务器" class="headerlink" title="2.3 启动历史服务器"></a>2.3 启动历史服务器</h3><p>配置完上述的参数之后，重新启动 Hadoop jobhistory，这样我们就可以在 mapreduce.jobhistory.webapp.address 参数配置的主机上对 Hadoop 历史作业情况经行查看。</p>
+<p><strong>只能在 mapred-site.xml 文件中 mapreduce.jobhistory.webapp.address 配置参数所指定的那台机器上执行：</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sbin&#x2F;mr-jobhistory-daemon.sh start jobhistoryserver</span><br></pre></td></tr></table></figure>
+
+<p>这样我们就可以在相应机器的 19888 端口上打开历史服务器的 WEB UI 界面。可以查看已经运行完的作业情况。且在 HDFS 上可以看到如下目录：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;tmp</span><br><span class="line">&#x2F;tmp&#x2F;hadoop-yarn</span><br><span class="line">&#x2F;tmp&#x2F;hadoop-yarn&#x2F;staging</span><br><span class="line">&#x2F;tmp&#x2F;hadoop-yarn&#x2F;staging&#x2F;history</span><br><span class="line">&#x2F;tmp&#x2F;hadoop-yarn&#x2F;staging&#x2F;history&#x2F;done</span><br><span class="line">&#x2F;tmp&#x2F;hadoop-yarn&#x2F;staging&#x2F;history&#x2F;done_intermediate</span><br></pre></td></tr></table></figure>
+
+
+
+<h2 id="三-作业运行日志"><a href="#三-作业运行日志" class="headerlink" title="三. 作业运行日志"></a>三. 作业运行日志</h2><h3 id="3-1-作业运行日志概念"><a href="#3-1-作业运行日志概念" class="headerlink" title="3.1 作业运行日志概念"></a>3.1 作业运行日志概念</h3><p>作业运行由 MRAppMaster（MapReduce 作业的 ApplicationMaster）产生，详细记录了作业启动时间、运行时间，每个任务启动时间、运行时间、Counter 值等信息，与 Hadoop 1.0 中的 JobHistory 日志是基本一致。MapReduce 作业的 ApplicationMaster 也运行在 Container 中，且是编号为 000001 的 Container，比如 <code>container_1385051297072_0001_01_000001</code>，它自身可认为是一个特殊的 task，因此，也有自己的运行日志，该日志与 Map Task 和 Reduce Task 类似，但并不是前面介绍的”作业运行日志”。</p>
+<p>ApplicationMaster 产生的作业运行日志举例如下，日志采用 apache avro（作为日志存储格式是 Hadoop 2.0 唯一使用到 Avro 的地方）工具，以 json 的格式保存：</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line"><span class="attr">"type"</span>:<span class="string">"JOB_SUBMITTED"</span>,</span><br><span class="line"><span class="attr">"event"</span>:</span><br><span class="line">    &#123;<span class="attr">"org.apache.hadoop.mapreduce.jobhistory.JobSubmitted"</span>:</span><br><span class="line">    	&#123;<span class="attr">"jobid"</span>:<span class="string">"job_1385051297072_0002″,</span></span><br><span class="line"><span class="string">         "</span>jobName<span class="string">":"</span>QuasiMonteCarlo<span class="string">",</span></span><br><span class="line"><span class="string">         "</span>userName<span class="string">":"</span>yarn<span class="string">", </span></span><br><span class="line"><span class="string">         "</span>submitTime<span class="string">":1385393834983,</span></span><br><span class="line"><span class="string">         "</span>jobConfPath<span class="string">":"</span>hdfs:<span class="comment">//hadoop-test/tmp/hadoop-yarn/staging/yarn/.staging/job_1385051297072_0002/job.xml",</span></span><br><span class="line">         <span class="string">"acls"</span>:&#123;&#125;,</span><br><span class="line">         <span class="attr">"jobQueueName"</span>:<span class="string">"default"</span>,</span><br><span class="line">         <span class="attr">"workflowId"</span>:<span class="string">""</span>,</span><br><span class="line">         <span class="attr">"workflowName"</span>:<span class="string">""</span>,</span><br><span class="line">         <span class="attr">"workflowNodeName"</span>:<span class="string">""</span>,</span><br><span class="line">         <span class="attr">"workflowAdjacencies"</span>:<span class="string">""</span>,</span><br><span class="line">         <span class="attr">"workflowTags"</span>:<span class="string">""</span></span><br><span class="line">         &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">&#123;</span><br><span class="line"><span class="attr">"type"</span>:<span class="string">"JOB_INITED"</span>,</span><br><span class="line"><span class="attr">"event"</span>:</span><br><span class="line">   &#123;<span class="attr">"org.apache.hadoop.mapreduce.jobhistory.JobInited"</span>:</span><br><span class="line">        &#123;<span class="attr">"jobid"</span>:<span class="string">"job_1385051297072_0002″,</span></span><br><span class="line"><span class="string">         "</span>launchTime<span class="string">":1385393974505,</span></span><br><span class="line"><span class="string">         "</span>totalMaps<span class="string">":8,</span></span><br><span class="line"><span class="string">    	 "</span>totalReduces<span class="string">":1,</span></span><br><span class="line"><span class="string">         "</span>jobStatus<span class="string">":"</span>INITED<span class="string">",</span></span><br><span class="line"><span class="string">         "</span>uberized<span class="string">":false&#125;</span></span><br><span class="line"><span class="string">   &#125;</span></span><br><span class="line"><span class="string">&#125;</span></span><br><span class="line"><span class="string">&#123;</span></span><br><span class="line"><span class="string"> "</span>type<span class="string">":"</span>JOB_INFO_CHANGED<span class="string">",</span></span><br><span class="line"><span class="string"> "</span>event<span class="string">":</span></span><br><span class="line"><span class="string">    &#123;"</span>org.apache.hadoop.mapreduce.jobhistory.JobInfoChange<span class="string">":</span></span><br><span class="line"><span class="string">		&#123;"</span>jobid<span class="string">":"</span>job_1385051297072_0002″,</span><br><span class="line"> 		 <span class="attr">"submitTime"</span>:<span class="number">1385393834983</span>,</span><br><span class="line"> 		 <span class="attr">"launchTime"</span>:<span class="number">1385393974505</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-2-作业运行日志配置"><a href="#3-2-作业运行日志配置" class="headerlink" title="3.2 作业运行日志配置"></a>3.2 作业运行日志配置</h3><p>历史作业的记录里面包含了一个作业用了多少个 Map、用了多少个 Reduce、作业提交时间、作业启动时间、作业完成时间等信息；这些信息对分析作业是很有帮助的，我们可以通过这些历史作业记录得到每天有多少个作业运行成功、有多少个作业运行失败、每个队列作业运行了多少个作业等很有用的信息。这些历史作业的信息是通过下面的信息配置的：</p>
+<p>在 mapred-site.xml 文件中进行配置：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.jobhistory.done-dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>$&#123;yarn.app.mapreduce.am.staging-dir&#125;/history/done<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>mapreduce.jobhistory.intermediate-done-dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>$&#123;yarn.app.mapreduce.am.staging-dir&#125;/history/done_intermediate<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.app.mapreduce.am.staging-dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>/tmp/hadoop-yarn/staging<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<h3 id="3-3-作业运行日志产生过程"><a href="#3-3-作业运行日志产生过程" class="headerlink" title="3.3 作业运行日志产生过程"></a>3.3 作业运行日志产生过程</h3><p><strong>1. 启动作业的 ApplicationMaster 并写日志至 HDFS</strong></p>
+<ul>
+<li>ResourceManager 启动作业的 ApplicationMaster</li>
+<li>ApplicationMaster 运行过程中，将日志写到 <code>${yarn.app.mapreduce.am.staging-dir}/yarn/.staging/job_XXXXX_XXX/</code> 下</li>
+<li>参数 <code>yarn.app.mapreduce.am.staging-dir</code> 的默认值是 <code>/tmp/hadoop-yarn/staging</code></li>
+<li>该目录下将存在3个文件，分别是以 “<strong>.jhist</strong>“、”<strong>.summary</strong>” 和 “<strong>.xml</strong>” 结尾的文件，分别表示作业运行日志、作业概要信息和作业配置属性，其中，作业概要信息只有一句话，举例如下：</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">jobId&#x3D;job_1385051297072_0002,submitTime&#x3D;1385393834983,launchTime&#x3D;1385393974505,</span><br><span class="line">firstMapTaskLaunchTime&#x3D;1385393976706,firstReduceTaskLaunchTime&#x3D;1385393982581,</span><br><span class="line">finishTime&#x3D;1385393985417,resourcesPerMap&#x3D;1024,resourcesPerReduce&#x3D;1024,</span><br><span class="line">numMaps&#x3D;8,numReduces&#x3D;1,user&#x3D;yarn,queue&#x3D;default,status&#x3D;SUCCEEDED,</span><br><span class="line">mapSlotSeconds&#x3D;47,reduceSlotSeconds&#x3D;5,jobName&#x3D;QuasiMonteCarlo</span><br></pre></td></tr></table></figure>
+
+<p><strong>2. HDFS 内转移历史运行日志</strong></p>
+<ul>
+<li>所有任务运行完成后，意味着，该作业运行完成</li>
+<li>此时 ApplicationMaster 将三个文件拷贝到 <code>${ mapreduce.jobhistory.intermediate-done-dir}/${username}</code> 目录下，拷贝后的文件名后面添加 <code>&quot;_tmp&quot;</code></li>
+<li>其中 mapreduce.jobhistory.intermediate-done-dir 默认值是 <code>${yarn.app.mapreduce.am.staging-dir}/history/done_intermediate</code></li>
+<li>ApplicationMaster 将拷贝完成的三个文件重新命名成 “.jhist”、”.summary” 和 “.xml” 结尾的文件（去掉 <code>&quot;_tmp&quot;</code>）</li>
+</ul>
+<p><strong>3. 周期转移 done_intermediate 中的日志文件到 done 目录</strong></p>
+<ul>
+<li>周期性扫描线程定期将 done_intermediate 的日志文件转移到 done 目录</li>
+<li>通过参数 mapreduce.jobhistory.done-dir 配置，默认值为 <code>${yarn.app.mapreduce.am.staging-dir}/history/done）</code>下</li>
+<li>同时删除 “.summary” 文件（该文件中的信息，.jhist 文件中都有）</li>
+<li>ApplicationMaster 移除 <code>${yarn.app.mapreduce.am.staging-dir}/yarn/.staging/job_XXXXX_XXX/</code> 目录</li>
+</ul>
+<h2 id="四-任务运行日志-Container-日志"><a href="#四-任务运行日志-Container-日志" class="headerlink" title="四. 任务运行日志 (Container 日志)"></a>四. 任务运行日志 (Container 日志)</h2><h3 id="4-1-Container-日志基本概念"><a href="#4-1-Container-日志基本概念" class="headerlink" title="4.1 Container 日志基本概念"></a>4.1 Container 日志基本概念</h3><p>默认情况下，任务运行日志 (Container 日志) 产只会存放在各 NodeManager 的本地磁盘上，且 NodeManager 将日志保存到 yarn.nodemanager.log-dirs 下 ，该属性缺省值为 <code>${yarn.log.dir}/userlogs</code>，也就是 Hadoop 安装目录下的 logs/userlogs 目录中，通常为了分摊磁盘负载，我们会为该参数设置多个路径。</p>
+<p>需要注意的是，ApplicationMaster 的自身的日志也存放在该路目下，因为它也运行在 Container 之中，是一个特殊的 task。举例如下，其中，第一个是某个作业的 ApplicationMaster 日志（编号是000001）。且里面包含 stderr 、stdout 、 syslog 三个文件。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">container_1449861199315_0036_01_000001</span><br><span class="line">container_1449861199315_0036_01_000023</span><br><span class="line">container_1449861199315_0036_01_000061</span><br><span class="line">container_1449861199315_0036_01_000099</span><br><span class="line">container_1449861199315_0036_01_000137</span><br></pre></td></tr></table></figure>
+
+<p>因为默认情况下，任务运行日志产只会存放在各 NodeManager 的本地磁盘上，而一个集群又有多个 NodeManager，将作业和任务日志存放在各个节点上肯定不便于统一管理和分析，为此，我们可以启用<strong>日志聚集</strong>功能。打开该功能后，各个任务运行完成后，会将生成的日志推送到 HDFS 的一个目录下，以便集中管理和分析（<strong>之前的并不会立即删除，在 HDFS 上，每个任务产生的三个文件，即 syslog、stderr 和 stdout 将合并一个文件，并通过索引记录各自位置</strong>）。</p>
+<h3 id="4-2-不开启日志聚合时的日志配置"><a href="#4-2-不开启日志聚合时的日志配置" class="headerlink" title="4.2 不开启日志聚合时的日志配置"></a>4.2 不开启日志聚合时的日志配置</h3><p>Container 日志包含 ApplicationMaster 日志和普通 Task 日志等信息。默认情况下，这些日志信息是存放在 <code>${HADOOP_HOME}/logs/userlogs</code> 目录下（在那些 NodeManager 的机子上），我们可以通过下面的配置进行修改：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">description</span>&gt;</span></span><br><span class="line">      Where to store container logs. An application's localized log directory </span><br><span class="line">      will be found in $&#123;yarn.nodemanager.log-dirs&#125;/application_$&#123;appid&#125;.</span><br><span class="line">      Individual containers' log directories will be below this, in </span><br><span class="line">      directories  named container_&#123;$contid&#125;. Each container directory will </span><br><span class="line">      contain the files stderr, stdin, and syslog generated by that container.</span><br><span class="line">    <span class="tag">&lt;/<span class="name">description</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">name</span>&gt;</span>yarn.nodemanager.log-dirs<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">value</span>&gt;</span>$&#123;yarn.log.dir&#125;/userlogs<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+
+<h3 id="4-3-开启日志聚合时的配置参数"><a href="#4-3-开启日志聚合时的配置参数" class="headerlink" title="4.3 开启日志聚合时的配置参数"></a>4.3 开启日志聚合时的配置参数</h3><p><strong>日志聚集是 YARN 提供的日志中央化管理功能</strong>，它能将运行完成的 Container/ 任务日志上传到 HDFS 上，从而减轻 NodeManager 负载，且提供一个中央化存储和分析机制。默认情况下，Container/ 任务日志存在在各个 NodeManager 上，如果启用日志聚集功能需要额外的配置。</p>
+<p>在 <strong>yarn-site.xml</strong> 中设置</p>
+<p><strong>1. yarn.log-aggregation-enable</strong></p>
+<ul>
+<li>参数解释：是否启用日志聚集功能。</li>
+<li>默认值：false</li>
+</ul>
+<p><strong>2. yarn.log-aggregation.retain-seconds</strong></p>
+<ul>
+<li>参数解释：在 HDFS 上聚集的日志最多保存多长时间。</li>
+<li>默认值：-1</li>
+</ul>
+<p><strong>3. yarn.log-aggregation.retain-check-interval-seconds</strong></p>
+<ul>
+<li>参数解释：多长时间检查一次日志，并将满足条件的删除，如果是 0 或者负数，则为上一个值的 1/10。</li>
+<li>默认值：-1</li>
+</ul>
+<p><strong>4. yarn.nodemanager.remote-app-log-dir</strong></p>
+<ul>
+<li>参数解释：当应用程序运行结束后，日志被转移到的HDFS目录（启用日志聚集功能时有效）</li>
+<li>默认值：/tmp/logs</li>
+</ul>
+<p><strong>5. yarn.nodemanager.remote-app-log-dir-suffix</strong></p>
+<ul>
+<li>参数解释：远程日志目录子目录名称（启用日志聚集功能时有效）</li>
+<li>默认值：日志将被转移到目录 <code>${yarn.nodemanager.remote-app-log-dir}/${user}/${thisParam}</code> 下</li>
+</ul>
+<h3 id="4-4-其他配置指导"><a href="#4-4-其他配置指导" class="headerlink" title="4.4 其他配置指导"></a>4.4 其他配置指导</h3><ul>
+<li>远端的聚合日志的地址的文件夹权限应该是 1777, <code>${NMUser}</code>和 <code>${NMGroup}</code> 是所有者和所有组.</li>
+<li>每个应用层次的日志的权限是 770, 但是文件夹所有人是应用的提交者, 文件夹的所有群组是 <code>${NMGroup}</code>, 这样安排可以让应用的提交者能访问到聚合后的日志, 并且<code>${NMGroup}</code>可以访问和修改日志.</li>
+<li><code>${NMGroup}</code> 应该是一个有限访问的群组, 这样才不会造成访问泄露.</li>
+</ul>
+<h2 id="五-扩展知识"><a href="#五-扩展知识" class="headerlink" title="五. 扩展知识"></a>五. 扩展知识</h2><h3 id="5-1-mapred-site-xml-和-yarn-site-xml-的作用"><a href="#5-1-mapred-site-xml-和-yarn-site-xml-的作用" class="headerlink" title="5.1 mapred-site.xml 和 yarn-site.xml 的作用"></a>5.1 mapred-site.xml 和 yarn-site.xml 的作用</h3><p><strong>1. yarn-site.xml</strong><br>yarn-site.xml 是 YARN 相关的配置文件，客户端、ResourceManager 和 NodeManager 需要改配置文件，为了简单，可让这三类节点上的该文件是一致的。</p>
+<p><strong>2. Mapred-site.xml</strong><br>Mapred-site.xml 是 MapReduce 特有的配置文件，在 YARN 中，mapreduce 已经变成了一个客户端编程库，因此只有客户端和 jobhistory server 需要该配置文件，其他节点，比如 resourceManager 和 NodeManager 不需要，除非你们也把这些节点作为客户端提供给用户使用，另外，一定要让客户端和 jobhistory server 上的 mapres-site.xml 一致。</p>
+<h3 id="5-2-权限相关配置参数"><a href="#5-2-权限相关配置参数" class="headerlink" title="5.2 权限相关配置参数"></a>5.2 权限相关配置参数</h3><p>注意，配置这些参数前，应充分理解这几个参数的含义，以防止误配给集群带来的隐患。另外，这些参数均需要在 <code>yarn-site.xml</code> 中配置。</p>
+<p>这里的权限由三部分组成，分别是：</p>
+<p><strong>1. 管理员和普通用户如何区分</strong><br>管理员列表由参数 yarn.admin.acl 指定。</p>
+<p><strong>2. 服务级别的权限</strong><br>比如哪些用户可以向集群提交 ResourceManager 提交应用程序，服务级别的权限是通过配置 hadoop-policy.xml 实现的，这个与 Hadoop 1.0 类似。</p>
+<p><strong>3. 队列级别的权限</strong><br>比如哪些用户可以向队列A提交作业等。队列级别的权限是由对应的资源调度器内部配置的，比如 Fair Scheduler 或者 Capacity Scheduler 等。</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/yarn/" rel="tag"># yarn</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2016/04/02/7%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/pmml/PMML%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/" rel="prev" title="PMML 标准化(转)">
+      <i class="fa fa-chevron-left"></i> PMML 标准化(转)
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/%E6%97%A5%E5%BF%97/%E6%97%A5%E5%BF%97%E8%8E%B7%E5%8F%96api/" rel="next" title="日志获取API">
+      日志获取API <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#一-Hadoop-日志存放路径详解"><span class="nav-number">1.</span> <span class="nav-text">一. Hadoop 日志存放路径详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-Hadoop系统服务输出的日志"><span class="nav-number">1.1.</span> <span class="nav-text">1.1 Hadoop系统服务输出的日志</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-配置-Hadoop-系统服务日志"><span class="nav-number">1.2.</span> <span class="nav-text">1.2 配置 Hadoop 系统服务日志</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二-历史服务器-JobHistory-Server"><span class="nav-number">2.</span> <span class="nav-text">二. 历史服务器 (JobHistory Server)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-历史服务器配置"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 历史服务器配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-关于-HA-模式下的历史服务器配置的结论"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 关于 HA 模式下的历史服务器配置的结论</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-启动历史服务器"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 启动历史服务器</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三-作业运行日志"><span class="nav-number">3.</span> <span class="nav-text">三. 作业运行日志</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-作业运行日志概念"><span class="nav-number">3.1.</span> <span class="nav-text">3.1 作业运行日志概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-作业运行日志配置"><span class="nav-number">3.2.</span> <span class="nav-text">3.2 作业运行日志配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-作业运行日志产生过程"><span class="nav-number">3.3.</span> <span class="nav-text">3.3 作业运行日志产生过程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#四-任务运行日志-Container-日志"><span class="nav-number">4.</span> <span class="nav-text">四. 任务运行日志 (Container 日志)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-Container-日志基本概念"><span class="nav-number">4.1.</span> <span class="nav-text">4.1 Container 日志基本概念</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-不开启日志聚合时的日志配置"><span class="nav-number">4.2.</span> <span class="nav-text">4.2 不开启日志聚合时的日志配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-开启日志聚合时的配置参数"><span class="nav-number">4.3.</span> <span class="nav-text">4.3 开启日志聚合时的配置参数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-其他配置指导"><span class="nav-number">4.4.</span> <span class="nav-text">4.4 其他配置指导</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#五-扩展知识"><span class="nav-number">5.</span> <span class="nav-text">五. 扩展知识</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#5-1-mapred-site-xml-和-yarn-site-xml-的作用"><span class="nav-number">5.1.</span> <span class="nav-text">5.1 mapred-site.xml 和 yarn-site.xml 的作用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-2-权限相关配置参数"><span class="nav-number">5.2.</span> <span class="nav-text">5.2 权限相关配置参数</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2016/04/02/hadoop%E7%94%9F%E6%80%81/yarn%E6%A1%86%E6%9E%B6/%E6%97%A5%E5%BF%97/%E6%97%A5%E5%BF%97%E8%AF%A6%E8%A7%A3/",
+            identifier: "2016/04/02/hadoop生态/yarn框架/日志/日志详解/",
+            title: "日志详解"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

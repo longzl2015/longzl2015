@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="HandlerMethodArgumentResolver参数解析器前文《spring-6-controller参数解析原理》介绍了 Controller 的整体参数解析原理。 本文章主要介绍集中介绍 HandlerMethodArgumentResolver在SpringMVC中的使用，介绍几个HandlerMethodArgumentResolver具体的使用情况，然后说明HandlerMet">
+<meta property="og:type" content="article">
+<meta property="og:title" content="spring-6-HandlerMethodArgumentResolver参数解析器">
+<meta property="og:url" content="https://longzl2015.github.io/2019/06/09/spring/spring-mvc/spring-6-HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="HandlerMethodArgumentResolver参数解析器前文《spring-6-controller参数解析原理》介绍了 Controller 的整体参数解析原理。 本文章主要介绍集中介绍 HandlerMethodArgumentResolver在SpringMVC中的使用，介绍几个HandlerMethodArgumentResolver具体的使用情况，然后说明HandlerMet">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://longzl2015.github.io/images/spring-6-HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8/springmvc_handlerMethod.png">
+<meta property="article:published_time" content="2019-06-09T03:09:06.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.906Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="springmvc">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://longzl2015.github.io/images/spring-6-HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8/springmvc_handlerMethod.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2019/06/09/spring/spring-mvc/spring-6-HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>spring-6-HandlerMethodArgumentResolver参数解析器 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2019/06/09/spring/spring-mvc/spring-6-HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          spring-6-HandlerMethodArgumentResolver参数解析器
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-06-09 11:09:06" itemprop="dateCreated datePublished" datetime="2019-06-09T11:09:06+08:00">2019-06-09</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/" itemprop="url" rel="index">
+                    <span itemprop="name">spring</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spring/springmvc/" itemprop="url" rel="index">
+                    <span itemprop="name">springmvc</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2019/06/09/spring/spring-mvc/spring-6-HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/06/09/spring/spring-mvc/spring-6-HandlerMethodArgumentResolver参数解析器/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="HandlerMethodArgumentResolver参数解析器"><a href="#HandlerMethodArgumentResolver参数解析器" class="headerlink" title="HandlerMethodArgumentResolver参数解析器"></a>HandlerMethodArgumentResolver参数解析器</h1><p>前文《spring-6-controller参数解析原理》介绍了 Controller 的整体参数解析原理。</p>
+<p>本文章主要介绍集中介绍 HandlerMethodArgumentResolver在SpringMVC中的使用，介绍几个HandlerMethodArgumentResolver具体的使用情况，然后说明HandlerMethodArgumentResolver的注册来源以及如何自定义注册。</p>
+<h2 id="一、类图"><a href="#一、类图" class="headerlink" title="一、类图"></a>一、类图</h2><p><img src="/images/spring-6-HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8/springmvc_handlerMethod.png" alt="springmvc_handlerMethod"></p>
+<h2 id="二、HandlerMethodArgumentResolver-及其子类"><a href="#二、HandlerMethodArgumentResolver-及其子类" class="headerlink" title="二、HandlerMethodArgumentResolver 及其子类"></a>二、HandlerMethodArgumentResolver 及其子类</h2><h3 id="2-1-HandlerMethodArgumentResolver"><a href="#2-1-HandlerMethodArgumentResolver" class="headerlink" title="2.1 HandlerMethodArgumentResolver"></a>2.1 HandlerMethodArgumentResolver</h3><p>HandlerMethodArgumentResolver接口只有两个方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">HandlerMethodArgumentResolver</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">boolean</span> <span class="title">supportsParameter</span><span class="params">(MethodParameter var1)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="function">Object <span class="title">resolveArgument</span><span class="params">(MethodParameter var1, ModelAndViewContainer var2, NativeWebRequest var3, WebDataBinderFactory var4)</span> <span class="keyword">throws</span> Exception</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-AbstractMessageConverterMethodArgumentResolver"><a href="#2-2-AbstractMessageConverterMethodArgumentResolver" class="headerlink" title="2.2  AbstractMessageConverterMethodArgumentResolver"></a>2.2  AbstractMessageConverterMethodArgumentResolver</h3><p>HandlerMethodArgumentResolver接口的抽象类： 仅仅引入了HttpMessageConverter，即具体的转换工作由这些HttpMessageConverter来完成。 </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">abstract</span> <span class="class"><span class="keyword">class</span> <span class="title">AbstractMessageConverterMethodArgumentResolver</span> <span class="keyword">implements</span> <span class="title">HandlerMethodArgumentResolver</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Set&lt;HttpMethod&gt; SUPPORTED_METHODS =</span><br><span class="line">			EnumSet.of(HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> Object NO_VALUE = <span class="keyword">new</span> Object();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">protected</span> <span class="keyword">final</span> Log logger = LogFactory.getLog(getClass());</span><br><span class="line"></span><br><span class="line">	<span class="keyword">protected</span> <span class="keyword">final</span> List&lt;HttpMessageConverter&lt;?&gt;&gt; messageConverters;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">protected</span> <span class="keyword">final</span> List&lt;MediaType&gt; allSupportedMediaTypes;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> RequestResponseBodyAdviceChain advice;</span><br><span class="line"><span class="comment">//略</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-3-AbstractMessageConverterMethodProcessor"><a href="#2-3-AbstractMessageConverterMethodProcessor" class="headerlink" title="2.3 AbstractMessageConverterMethodProcessor"></a>2.3 AbstractMessageConverterMethodProcessor</h3><p>AbstractMessageConverterMethodArgumentResolver 的抽象子类，加入了对响应数据进行转换的支持。<br>使其不仅可以用来转换请求数据，也可以用来转换响应数据。 </p>
+<p>下面简单介绍AbstractMessageConverterMethodProcessor 的子类：HttpEntityMethodProcessor和RequestResponseBodyMethodProcessor</p>
+<h4 id="2-3-1-HttpEntityMethodProcessor"><a href="#2-3-1-HttpEntityMethodProcessor" class="headerlink" title="2.3.1 HttpEntityMethodProcessor"></a>2.3.1 HttpEntityMethodProcessor</h4><p>AbstractMessageConverterMethodProcessor的子类，支持请求和响应的转换</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">HttpEntityMethodProcessor</span> <span class="keyword">extends</span> <span class="title">AbstractMessageConverterMethodProcessor</span> </span>&#123;</span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsParameter</span><span class="params">(MethodParameter parameter)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> (HttpEntity<span class="class">.<span class="keyword">class</span> </span>== parameter.getParameterType() ||</span><br><span class="line">				RequestEntity<span class="class">.<span class="keyword">class</span> </span>== parameter.getParameterType());</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsReturnType</span><span class="params">(MethodParameter returnType)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> (HttpEntity<span class="class">.<span class="keyword">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">returnType</span>.<span class="title">getParameterType</span>()) &amp;&amp;</span></span><br><span class="line"><span class="class">				!<span class="title">RequestEntity</span>.<span class="title">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">returnType</span>.<span class="title">getParameterType</span>()))</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用场景：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Test</span></span>&#123;</span><br><span class="line">    <span class="meta">@RequestMapping</span>(value=<span class="string">"/test/http"</span>,method=RequestMethod.POST)  </span><br><span class="line">    <span class="meta">@ResponseBody</span>  </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Map&lt;String,Object&gt; <span class="title">testHttp</span><span class="params">(HttpEntity&lt;String&gt; httpEntity)</span></span>&#123;</span><br><span class="line">       <span class="comment">//略   </span></span><br><span class="line">    &#125;  </span><br><span class="line">    <span class="meta">@RequestMapping</span>(value=<span class="string">"/test/httpEntity"</span>,method=RequestMethod.GET)  </span><br><span class="line">    <span class="function"><span class="keyword">public</span> HttpEntity&lt;String&gt; <span class="title">testHttpEntity</span><span class="params">()</span></span>&#123;  </span><br><span class="line">       <span class="comment">//略  </span></span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-2-RequestResponseBodyMethodProcessor"><a href="#2-3-2-RequestResponseBodyMethodProcessor" class="headerlink" title="2.3.2 RequestResponseBodyMethodProcessor"></a>2.3.2 RequestResponseBodyMethodProcessor</h4><p>AbstractMessageConverterMethodProcessor 的子类：支持<code>@RequestBody</code>和<code>@ResponseBody</code></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RequestResponseBodyMethodProcessor</span> <span class="keyword">extends</span> <span class="title">AbstractMessageConverterMethodProcessor</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Override</span> </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsParameter</span><span class="params">(MethodParameter parameter)</span> </span>&#123; </span><br><span class="line">       <span class="comment">//查找参数中是否含有@RequestBody注解 </span></span><br><span class="line">       <span class="keyword">return</span> parameter.hasParameterAnnotation(RequestBody<span class="class">.<span class="keyword">class</span>)</span>; </span><br><span class="line">    &#125; </span><br><span class="line">    <span class="meta">@Override</span> </span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsReturnType</span><span class="params">(MethodParameter returnType)</span> </span>&#123; </span><br><span class="line">    <span class="comment">//查找参数中是否含有@RequestBody注解或者controller类上是否含有@RequestBody </span></span><br><span class="line">    <span class="keyword">return</span> ((AnnotationUtils.findAnnotation(returnType.getContainingClass(), ResponseBody<span class="class">.<span class="keyword">class</span>) !</span>= <span class="keyword">null</span>) || </span><br><span class="line">    (returnType.getMethodAnnotation(ResponseBody<span class="class">.<span class="keyword">class</span>) !</span>= <span class="keyword">null</span>)); </span><br><span class="line">    &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用场景如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Test</span></span>&#123;</span><br><span class="line">    <span class="meta">@RequestMapping</span>(value=<span class="string">"/test/requestBody"</span>,method=RequestMethod.POST)  </span><br><span class="line">    <span class="meta">@ResponseBody</span>  </span><br><span class="line">    <span class="function"><span class="keyword">public</span> Map&lt;String,Object&gt; <span class="title">testrequestBody</span><span class="params">(@RequestBody Map&lt;String,Object&gt; map1)</span></span>&#123;  </span><br><span class="line">       Map&lt;String,Object&gt; map=<span class="keyword">new</span> HashMap&lt;String,Object&gt;();  </span><br><span class="line">       map.put(<span class="string">"name"</span>,<span class="string">"lg"</span>);  </span><br><span class="line">       map.put(<span class="string">"age"</span>,<span class="number">23</span>);  </span><br><span class="line">       map.put(<span class="string">"date"</span>,<span class="keyword">new</span> Date());  </span><br><span class="line">       <span class="keyword">return</span> map;  </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-3-HttpEntityMethodProcessor-解析过程："><a href="#2-3-3-HttpEntityMethodProcessor-解析过程：" class="headerlink" title="2.3.3 HttpEntityMethodProcessor 解析过程："></a>2.3.3 HttpEntityMethodProcessor 解析过程：</h4><p>通过 HttpMessageConverter 来进一步的判断是否支持<code>HttpEntity&lt;T&gt;</code>中我们想要的T类型以及是否支持相应的content-type，如<code>public Map&lt;String,Object&gt; testHttp(HttpEntity&lt;String&gt; httpEntity)</code> ，则会选择StringHttpMessageConverter来进行转换。具体的选择过程如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="meta">@Override</span>  </span><br><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">resolveArgument</span><span class="params">(MethodParameter parameter, ModelAndViewContainer mavContainer,  NativeWebRequest webRequest, WebDataBinderFactory binderFactory)</span>  </span></span><br><span class="line"><span class="function">         <span class="keyword">throws</span> IOException, HttpMediaTypeNotSupportedException </span>&#123;  </span><br><span class="line">	HttpInputMessage inputMessage = createInputMessage(webRequest);  </span><br><span class="line">    Type paramType = getHttpEntityType(parameter);  </span><br><span class="line"></span><br><span class="line">    Object body = readWithMessageConverters(webRequest, parameter, paramType);  </span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> HttpEntity&lt;Object&gt;(body, inputMessage.getHeaders());  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> &lt;T&gt; <span class="function">Object <span class="title">readWithMessageConverters</span><span class="params">(HttpInputMessage inputMessage,  </span></span></span><br><span class="line"><span class="function"><span class="params">            MethodParameter methodParam, Type targetType)</span> <span class="keyword">throws</span> IOException, HttpMediaTypeNotSupportedException </span>&#123;  </span><br><span class="line">	MediaType contentType;  </span><br><span class="line">    <span class="keyword">try</span> &#123;  </span><br><span class="line">       contentType = inputMessage.getHeaders().getContentType();  </span><br><span class="line">    &#125;<span class="keyword">catch</span> (InvalidMediaTypeException ex) &#123;  </span><br><span class="line">       <span class="keyword">throw</span> <span class="keyword">new</span> HttpMediaTypeNotSupportedException(ex.getMessage());  </span><br><span class="line">    &#125;  </span><br><span class="line">    <span class="keyword">if</span> (contentType == <span class="keyword">null</span>) &#123;  </span><br><span class="line">       contentType = MediaType.APPLICATION_OCTET_STREAM;  </span><br><span class="line">    &#125;  </span><br><span class="line">    Class&lt;?&gt; contextClass = methodParam.getContainingClass();  </span><br><span class="line">    <span class="keyword">for</span> (HttpMessageConverter&lt;?&gt; converter : <span class="keyword">this</span>.messageConverters) &#123;  </span><br><span class="line">       <span class="keyword">if</span> (converter <span class="keyword">instanceof</span> GenericHttpMessageConverter) &#123;  </span><br><span class="line">           GenericHttpMessageConverter&lt;?&gt; genericConverter = (GenericHttpMessageConverter&lt;?&gt;) converter;  </span><br><span class="line">       <span class="keyword">if</span> (genericConverter.canRead(targetType, contextClass, contentType)) &#123;  </span><br><span class="line">           <span class="keyword">if</span> (logger.isDebugEnabled()) &#123;  </span><br><span class="line">               logger.debug(<span class="string">"Reading ["</span> + targetType + <span class="string">"] as \""</span> +  </span><br><span class="line">                        contentType + <span class="string">"\" using ["</span> + converter + <span class="string">"]"</span>);  </span><br><span class="line">           &#125;  </span><br><span class="line">           <span class="keyword">return</span> genericConverter.read(targetType, contextClass, inputMessage);  </span><br><span class="line">       &#125;  </span><br><span class="line">    &#125;  </span><br><span class="line">    Class&lt;T&gt; targetClass = (Class&lt;T&gt;) ResolvableType.forMethodParameter(methodParam, targetType).resolve(Object<span class="class">.<span class="keyword">class</span>)</span>;  </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">if</span> (converter.canRead(targetClass, contentType)) &#123;  </span><br><span class="line">       <span class="keyword">if</span> (logger.isDebugEnabled()) &#123;  </span><br><span class="line">          logger.debug(<span class="string">"Reading ["</span> + targetClass.getName() + <span class="string">"] as \""</span> +  </span><br><span class="line">                          contentType + <span class="string">"\" using ["</span> + converter + <span class="string">"]"</span>);                           </span><br><span class="line">          <span class="keyword">return</span> ((HttpMessageConverter&lt;T&gt;) converter).read(targetClass, inputMessage);  </span><br><span class="line">       &#125;  </span><br><span class="line">    &#125;  </span><br><span class="line">    </span><br><span class="line">    <span class="keyword">throw</span> <span class="keyword">new</span> HttpMediaTypeNotSupportedException(contentType, <span class="keyword">this</span>.allSupportedMediaTypes);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-3-4RequestResponseBodyMethodProcessor解析过程"><a href="#2-3-4RequestResponseBodyMethodProcessor解析过程" class="headerlink" title="2.3.4RequestResponseBodyMethodProcessor解析过程"></a>2.3.4RequestResponseBodyMethodProcessor解析过程</h4><p>RequestResponseBodyMethodProcessor也会使用相应的HttpMessageConverter来进行转换。如<code>public Map&lt;String,Object&gt; testrequestBody(@RequestBody Map&lt;String,Object&gt; map1)</code>则会选择MappingJackson2HttpMessageConverter或者MappingJacksonHttpMessageConverter来完成转换。 </p>
+<h3 id="2-4-AbstractNamedValueMethodArgumentResolver"><a href="#2-4-AbstractNamedValueMethodArgumentResolver" class="headerlink" title="2.4 AbstractNamedValueMethodArgumentResolver"></a>2.4 AbstractNamedValueMethodArgumentResolver</h3><p>该类主要用于解析方法入参，他有多个子类，这里简单介绍其中四种类型</p>
+<h4 id="2-4-1-RequestParamMethodArgumentResolver"><a href="#2-4-1-RequestParamMethodArgumentResolver" class="headerlink" title="2.4.1 RequestParamMethodArgumentResolver"></a>2.4.1 RequestParamMethodArgumentResolver</h4><p>RequestParamMethodArgumentResolver支持的类型有，一种是含@RequestParam注解的参数，另一种就是简单类型，如Integer、String、Date、URI、URL、Locale等： </p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsParameter</span><span class="params">(MethodParameter parameter)</span> </span>&#123;  </span><br><span class="line">        Class&lt;?&gt; paramType = parameter.getParameterType();  </span><br><span class="line">        <span class="keyword">if</span> (parameter.hasParameterAnnotation(RequestParam<span class="class">.<span class="keyword">class</span>)) </span>&#123;  </span><br><span class="line">            <span class="keyword">if</span> (Map<span class="class">.<span class="keyword">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">paramType</span>)) </span>&#123;  </span><br><span class="line">                String paramName = parameter.getParameterAnnotation(RequestParam<span class="class">.<span class="keyword">class</span>).<span class="title">value</span>()</span>;  </span><br><span class="line">                <span class="keyword">return</span> StringUtils.hasText(paramName);  </span><br><span class="line">            &#125;  </span><br><span class="line">            <span class="keyword">else</span> &#123;  </span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;  </span><br><span class="line">            &#125;  </span><br><span class="line">        &#125;  </span><br><span class="line">        <span class="keyword">else</span> &#123;  </span><br><span class="line">            <span class="keyword">if</span> (parameter.hasParameterAnnotation(RequestPart<span class="class">.<span class="keyword">class</span>)) </span>&#123;  </span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;  </span><br><span class="line">            &#125;  </span><br><span class="line">            else if (MultipartFile.class.equals(paramType) || "javax.servlet.http.Part".equals(paramType.getName())) &#123;  </span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">true</span>;  </span><br><span class="line">            &#125;  </span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">this</span>.useDefaultResolution) &#123;  </span><br><span class="line">                <span class="keyword">return</span> BeanUtils.isSimpleProperty(paramType);  </span><br><span class="line">            &#125;  </span><br><span class="line">            <span class="keyword">else</span> &#123;  </span><br><span class="line">                <span class="keyword">return</span> <span class="keyword">false</span>;  </span><br><span class="line">            &#125;  </span><br><span class="line">        &#125;  </span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<p>BeanUtils.isSimpleProperty(paramType)判断是否是简单类型的具体内容如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isSimpleProperty</span><span class="params">(Class&lt;?&gt; clazz)</span> </span>&#123;</span><br><span class="line">	Assert.notNull(clazz, <span class="string">"Class must not be null"</span>);</span><br><span class="line">	<span class="keyword">return</span> isSimpleValueType(clazz) || (clazz.isArray() &amp;&amp; isSimpleValueType(clazz.getComponentType()));</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">boolean</span> <span class="title">isSimpleValueType</span><span class="params">(Class&lt;?&gt; clazz)</span> </span>&#123;</span><br><span class="line">	<span class="keyword">return</span> (ClassUtils.isPrimitiveOrWrapper(clazz) || clazz.isEnum() ||</span><br><span class="line">			CharSequence<span class="class">.<span class="keyword">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">clazz</span>) ||</span></span><br><span class="line"><span class="class">			<span class="title">Number</span>.<span class="title">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">clazz</span>) ||</span></span><br><span class="line"><span class="class">			<span class="title">Date</span>.<span class="title">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">clazz</span>) ||</span></span><br><span class="line"><span class="class">			<span class="title">URI</span>.<span class="title">class</span> </span>== clazz || URL<span class="class">.<span class="keyword">class</span> </span>== clazz ||</span><br><span class="line">			Locale<span class="class">.<span class="keyword">class</span> </span>== clazz || Class<span class="class">.<span class="keyword">class</span> </span>== clazz);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>即当请求为 <a href="http://localhost:8080/test?name=abc时，处理函数若为test" target="_blank" rel="noopener">http://localhost:8080/test?name=abc时，处理函数若为test</a>(String name)，则对name的解析就是采用RequestParamMethodArgumentResolver来解析的。 </p>
+<h4 id="2-4-2-RequestHeaderMethodArgumentResolver"><a href="#2-4-2-RequestHeaderMethodArgumentResolver" class="headerlink" title="2.4.2 RequestHeaderMethodArgumentResolver"></a>2.4.2 RequestHeaderMethodArgumentResolver</h4><p>主要用来处理含有@RequestHeader注解的参数，但同时该参数又不是Map类型。如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span>  </span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsParameter</span><span class="params">(MethodParameter parameter)</span> </span>&#123;  </span><br><span class="line">     <span class="keyword">return</span> parameter.hasParameterAnnotation(RequestHeader<span class="class">.<span class="keyword">class</span>)  </span></span><br><span class="line"><span class="class">           &amp;&amp; !<span class="title">Map</span>.<span class="title">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">parameter</span>.<span class="title">getParameterType</span>())</span>;  </span><br><span class="line">&#125;  </span><br><span class="line"> </span><br><span class="line"><span class="meta">@Override</span>  </span><br><span class="line"><span class="function"><span class="keyword">protected</span> Object <span class="title">resolveName</span><span class="params">(String name, MethodParameter parameter, NativeWebRequest request)</span> <span class="keyword">throws</span> Exception </span>&#123;  </span><br><span class="line">     String[] headerValues = request.getHeaderValues(name);  </span><br><span class="line">     <span class="keyword">if</span> (headerValues != <span class="keyword">null</span>) &#123;  </span><br><span class="line">          <span class="keyword">return</span> (headerValues.length == <span class="number">1</span> ? headerValues[<span class="number">0</span>] : headerValues);  </span><br><span class="line">     &#125;  </span><br><span class="line">     <span class="keyword">else</span> &#123;  </span><br><span class="line">          <span class="keyword">return</span> <span class="keyword">null</span>;  </span><br><span class="line">     &#125;  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>使用场景：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping</span>(value=<span class="string">"/test/requestHeader"</span>,method=RequestMethod.GET)  </span><br><span class="line">   <span class="meta">@ResponseBody</span>  </span><br><span class="line">   <span class="function"><span class="keyword">public</span> Map&lt;String,Object&gt; <span class="title">testrequestHeader</span><span class="params">(@RequestHeader String  Accept)</span></span>&#123;  </span><br><span class="line">   ...</span><br><span class="line">   &#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-3RequestHeaderMapMethodArgumentResolver"><a href="#2-4-3RequestHeaderMapMethodArgumentResolver" class="headerlink" title="2.4.3RequestHeaderMapMethodArgumentResolver"></a>2.4.3RequestHeaderMapMethodArgumentResolver</h4><p>用来获取所有的header信息：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">RequestHeaderMapMethodArgumentResolver</span> <span class="keyword">implements</span> <span class="title">HandlerMethodArgumentResolver</span> </span>&#123;</span><br><span class="line"></span><br><span class="line"><span class="comment">//这里已经写明白了，要求参数必须含有@RequestHeader注解，并且是Map类型</span></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsParameter</span><span class="params">(MethodParameter parameter)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> parameter.hasParameterAnnotation(RequestHeader<span class="class">.<span class="keyword">class</span>)</span></span><br><span class="line"><span class="class">				&amp;&amp; <span class="title">Map</span>.<span class="title">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">parameter</span>.<span class="title">getParameterType</span>())</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> Object <span class="title">resolveArgument</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">			MethodParameter parameter, ModelAndViewContainer mavContainer,</span></span></span><br><span class="line"><span class="function"><span class="params">			NativeWebRequest webRequest, WebDataBinderFactory binderFactory)</span></span></span><br><span class="line"><span class="function">			<span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">		Class&lt;?&gt; paramType = parameter.getParameterType();</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (MultiValueMap<span class="class">.<span class="keyword">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">paramType</span>)) </span>&#123;</span><br><span class="line">			MultiValueMap&lt;String, String&gt; result;</span><br><span class="line">			<span class="keyword">if</span> (HttpHeaders<span class="class">.<span class="keyword">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">paramType</span>)) </span>&#123;</span><br><span class="line">				result = <span class="keyword">new</span> HttpHeaders();</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span> &#123;</span><br><span class="line">				result = <span class="keyword">new</span> LinkedMultiValueMap&lt;String, String&gt;();</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">for</span> (Iterator&lt;String&gt; iterator = webRequest.getHeaderNames(); iterator.hasNext();) &#123;</span><br><span class="line">				String headerName = iterator.next();</span><br><span class="line">				<span class="keyword">for</span> (String headerValue : webRequest.getHeaderValues(headerName)) &#123;</span><br><span class="line">					result.add(headerName, headerValue);</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> result;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> &#123;</span><br><span class="line">			Map&lt;String, String&gt; result = <span class="keyword">new</span> LinkedHashMap&lt;String, String&gt;();</span><br><span class="line">			<span class="keyword">for</span> (Iterator&lt;String&gt; iterator = webRequest.getHeaderNames(); iterator.hasNext();) &#123;</span><br><span class="line">				String headerName = iterator.next();</span><br><span class="line">				String headerValue = webRequest.getHeader(headerName);</span><br><span class="line">				result.put(headerName, headerValue);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">return</span> result;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从上面的解析过程可以看出，参数类型可以是普通的Map类型，也可以是MultiValueMap或者进一步的HttpHeaders，他们与普通Map类型的区别是他们对value值后者们是以List形式存放，前者是以String形式存放。 </p>
+<p>使用场景：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping</span>(value=<span class="string">"/test/requestHeader"</span>,method=RequestMethod.GET)  </span><br><span class="line"><span class="meta">@ResponseBody</span>  </span><br><span class="line"><span class="function"><span class="keyword">public</span> Map&lt;String,Object&gt; <span class="title">testrequestHeader</span><span class="params">(@RequestHeader Map&lt;String,Object&gt; map1)</span></span>&#123;  </span><br><span class="line">&#125;  </span><br><span class="line">  </span><br><span class="line"><span class="function"><span class="keyword">public</span> Map&lt;String,Object&gt; <span class="title">testrequestHeader</span><span class="params">(@RequestHeader MultiValueMap&lt;String,Object&gt; map1)</span></span>&#123;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-4-4-PathVariableMethodArgumentResolver"><a href="#2-4-4-PathVariableMethodArgumentResolver" class="headerlink" title="2.4.4 PathVariableMethodArgumentResolver"></a>2.4.4 PathVariableMethodArgumentResolver</h4><p>主要针对含有@PathVariable的参数，代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsParameter</span><span class="params">(MethodParameter parameter)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (!parameter.hasParameterAnnotation(PathVariable<span class="class">.<span class="keyword">class</span>)) </span>&#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">false</span>;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (Map<span class="class">.<span class="keyword">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">parameter</span>.<span class="title">getParameterType</span>())) </span>&#123;</span><br><span class="line">			String paramName = parameter.getParameterAnnotation(PathVariable<span class="class">.<span class="keyword">class</span>).<span class="title">value</span>()</span>;</span><br><span class="line">			<span class="keyword">return</span> StringUtils.hasText(paramName);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">true</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"><span class="meta">@Override</span></span><br><span class="line">	<span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line">	<span class="function"><span class="keyword">protected</span> Object <span class="title">resolveName</span><span class="params">(String name, MethodParameter parameter, NativeWebRequest request)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">		Map&lt;String, String&gt; uriTemplateVars =</span><br><span class="line">			(Map&lt;String, String&gt;) request.getAttribute(</span><br><span class="line">					HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);</span><br><span class="line">		<span class="keyword">return</span> (uriTemplateVars != <span class="keyword">null</span>) ? uriTemplateVars.get(name) : <span class="keyword">null</span>;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>对于支持的类型也说明的很详细。首先必须含有@PathVariable注解，其次如果是Map类型，必须要指定@PathVariable的值，即这个 ArgumentResolver只能获取一个uri变量。</p>
+<h4 id="2-4-5-PathVariableMapMethodArgumentResolver"><a href="#2-4-5-PathVariableMapMethodArgumentResolver" class="headerlink" title="2.4.5 PathVariableMapMethodArgumentResolver"></a>2.4.5 PathVariableMapMethodArgumentResolver</h4><p>获取多个uri变量</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsParameter</span><span class="params">(MethodParameter parameter)</span> </span>&#123;</span><br><span class="line">		PathVariable annot = parameter.getParameterAnnotation(PathVariable<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">		<span class="keyword">return</span> ((annot != <span class="keyword">null</span>) &amp;&amp; (Map<span class="class">.<span class="keyword">class</span>.<span class="title">isAssignableFrom</span>(<span class="title">parameter</span>.<span class="title">getParameterType</span>()))</span></span><br><span class="line"><span class="class">				&amp;&amp; (!<span class="title">StringUtils</span>.<span class="title">hasText</span>(<span class="title">annot</span>.<span class="title">value</span>())))</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">public</span> Object <span class="title">resolveArgument</span><span class="params">(MethodParameter parameter, ModelAndViewContainer mavContainer,</span></span></span><br><span class="line"><span class="function"><span class="params">			NativeWebRequest webRequest, WebDataBinderFactory binderFactory)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">		<span class="meta">@SuppressWarnings</span>(<span class="string">"unchecked"</span>)</span><br><span class="line">		Map&lt;String, String&gt; uriTemplateVars =</span><br><span class="line">				(Map&lt;String, String&gt;) webRequest.getAttribute(</span><br><span class="line">						HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (!CollectionUtils.isEmpty(uriTemplateVars)) &#123;</span><br><span class="line">			<span class="keyword">return</span> <span class="keyword">new</span> LinkedHashMap&lt;String, String&gt;(uriTemplateVars);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="keyword">return</span> Collections.emptyMap();</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>它要求必须含有@PathVariable注解，并且必须是Map类型，并且@PathVariable注解的value没有值。同时我们可以从<code>PathVariableMapMethodArgumentResolver</code>和<code>PathVariableMethodArgumentResolver</code>上面看出，他们的取值都是从request的属性上进行获取的<code>webRequest.getAttribute( HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);</code>也就是说，在解析完@RequestMapping匹配工作后，便将这些参数设置进request的属性上，属性名为HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE。</p>
+<h2 id="三、HandlerMethodArgumentResolver注册来源"><a href="#三、HandlerMethodArgumentResolver注册来源" class="headerlink" title="三、HandlerMethodArgumentResolver注册来源"></a>三、HandlerMethodArgumentResolver注册来源</h2><p>至此，我们就要说明下HandlerMethodArgumentResolver的注册来源：<br>它的来源分为两部分，一部分spring默认的HandlerMethodArgumentResolver，另一部分就是我们自定义的HandlerMethodArgumentResolver。 </p>
+<p>先看mvc:annotation-driven中配置自定义的HandlerMethodArgumentResolver：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">mvc:annotation-driven</span> &gt;</span></span><br><span class="line">		<span class="tag">&lt;<span class="name">mvc:argument-resolvers</span>&gt;</span></span><br><span class="line">			<span class="tag">&lt;<span class="name">bean</span> <span class="attr">class</span>=<span class="string">"xxx"</span>&gt;</span><span class="tag">&lt;/<span class="name">bean</span>&gt;</span></span><br><span class="line">		<span class="tag">&lt;/<span class="name">mvc:argument-resolvers</span>&gt;</span></span><br><span class="line">	<span class="tag">&lt;/<span class="name">mvc:annotation-driven</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在mvc:argument-resolvers标签下配置相应的自定义的HandlerMethodArgumentResolver。<br>然后在mvc:annotation-driven的注解驱动类AnnotationDrivenBeanDefinitionParser中会有这样的代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">ManagedList&lt;?&gt; argumentResolvers = getArgumentResolvers(element, parserContext);</span><br><span class="line"></span><br><span class="line"><span class="comment">//略</span></span><br><span class="line"><span class="keyword">if</span> (argumentResolvers != <span class="keyword">null</span>) &#123;</span><br><span class="line">			handlerAdapterDef.getPropertyValues().add(<span class="string">"customArgumentResolvers"</span>, argumentResolvers);</span><br><span class="line">		&#125;</span><br></pre></td></tr></table></figure>
+
+<p>其中getArgumentResolvers就是获取我们自定义的HandlerMethodArgumentResolver</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> ManagedList&lt;?&gt; getArgumentResolvers(Element element, ParserContext parserContext) &#123;</span><br><span class="line">		Element resolversElement = DomUtils.getChildElementByTagName(element, <span class="string">"argument-resolvers"</span>);</span><br><span class="line">		<span class="keyword">if</span> (resolversElement != <span class="keyword">null</span>) &#123;</span><br><span class="line">			ManagedList&lt;BeanDefinitionHolder&gt; argumentResolvers = extractBeanSubElements(resolversElement, parserContext);</span><br><span class="line">			<span class="keyword">return</span> wrapWebArgumentResolverBeanDefs(argumentResolvers, parserContext);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> <span class="keyword">null</span>;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>从上面的代码可以看出，获取我们自定义的HandlerMethodArgumentResolver然后把它设置进RequestMappingHandlerAdapter的customArgumentResolvers参数中，RequestMappingHandlerAdapter有两个与HandlerMethodArgumentResolver有关的参数：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> List&lt;HandlerMethodArgumentResolver&gt; customArgumentResolvers;  </span><br><span class="line"><span class="keyword">private</span> HandlerMethodArgumentResolverComposite argumentResolvers;</span><br></pre></td></tr></table></figure>
+
+<p>HandlerMethodArgumentResolverComposite 也仅仅是内部存放一个<code>List&lt;HandlerMethodArgumentResolver&gt;</code>集合，同时本身又继承HandlerMethodArgumentResolver，所以它的实现都是靠内部的<code>List&lt;HandlerMethodArgumentResolver&gt;</code>集合来实现的。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">final</span> List&lt;HandlerMethodArgumentResolver&gt; argumentResolvers =</span><br><span class="line">			<span class="keyword">new</span> LinkedList&lt;HandlerMethodArgumentResolver&gt;();</span><br><span class="line"></span><br><span class="line"><span class="comment">//使用了适合高并发的ConcurrentHashMap来进行缓存</span></span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">final</span> Map&lt;MethodParameter, HandlerMethodArgumentResolver&gt; argumentResolverCache =</span><br><span class="line">			<span class="keyword">new</span> ConcurrentHashMap&lt;MethodParameter, HandlerMethodArgumentResolver&gt;(<span class="number">256</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * Return a read-only list with the contained resolvers, or an empty list.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> List&lt;HandlerMethodArgumentResolver&gt; <span class="title">getResolvers</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> Collections.unmodifiableList(<span class="keyword">this</span>.argumentResolvers);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * Whether the given &#123;<span class="doctag">@linkplain</span> MethodParameter method parameter&#125; is supported by any registered</span></span><br><span class="line"><span class="comment">	 * &#123;<span class="doctag">@link</span> HandlerMethodArgumentResolver&#125;.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">boolean</span> <span class="title">supportsParameter</span><span class="params">(MethodParameter parameter)</span> </span>&#123;</span><br><span class="line">		<span class="keyword">return</span> getArgumentResolver(parameter) != <span class="keyword">null</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * Iterate over registered &#123;<span class="doctag">@link</span> HandlerMethodArgumentResolver&#125;s and invoke the one that supports it.</span></span><br><span class="line"><span class="comment">	 * <span class="doctag">@exception</span> IllegalStateException if no suitable &#123;<span class="doctag">@link</span> HandlerMethodArgumentResolver&#125; is found.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> Object <span class="title">resolveArgument</span><span class="params">(</span></span></span><br><span class="line"><span class="function"><span class="params">			MethodParameter parameter, ModelAndViewContainer mavContainer,</span></span></span><br><span class="line"><span class="function"><span class="params">			NativeWebRequest webRequest, WebDataBinderFactory binderFactory)</span></span></span><br><span class="line"><span class="function">			<span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">		HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);</span><br><span class="line">		Assert.notNull(resolver, <span class="string">"Unknown parameter type ["</span> + parameter.getParameterType().getName() + <span class="string">"]"</span>);</span><br><span class="line">		<span class="keyword">return</span> resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/**</span></span><br><span class="line"><span class="comment">	 * Find a registered &#123;<span class="doctag">@link</span> HandlerMethodArgumentResolver&#125; that supports the given method parameter.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="function"><span class="keyword">private</span> HandlerMethodArgumentResolver <span class="title">getArgumentResolver</span><span class="params">(MethodParameter parameter)</span> </span>&#123;</span><br><span class="line">		HandlerMethodArgumentResolver result = <span class="keyword">this</span>.argumentResolverCache.get(parameter);</span><br><span class="line">		<span class="keyword">if</span> (result == <span class="keyword">null</span>) &#123;</span><br><span class="line">			<span class="keyword">for</span> (HandlerMethodArgumentResolver methodArgumentResolver : <span class="keyword">this</span>.argumentResolvers) &#123;</span><br><span class="line">				<span class="keyword">if</span> (logger.isTraceEnabled()) &#123;</span><br><span class="line">					logger.trace(<span class="string">"Testing if argument resolver ["</span> + methodArgumentResolver + <span class="string">"] supports ["</span> +</span><br><span class="line">							parameter.getGenericParameterType() + <span class="string">"]"</span>);</span><br><span class="line">				&#125;</span><br><span class="line">				<span class="keyword">if</span> (methodArgumentResolver.supportsParameter(parameter)) &#123;</span><br><span class="line">					result = methodArgumentResolver;</span><br><span class="line">					<span class="keyword">this</span>.argumentResolverCache.put(parameter, result);</span><br><span class="line">					<span class="keyword">break</span>;</span><br><span class="line">				&#125;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">return</span> result;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在RequestMappingHandlerAdapter完成参数设置后，会调用afterPropertiesSet方法</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Override</span></span><br><span class="line">	<span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">afterPropertiesSet</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.argumentResolvers == <span class="keyword">null</span>) &#123;</span><br><span class="line">			List&lt;HandlerMethodArgumentResolver&gt; resolvers = getDefaultArgumentResolvers();</span><br><span class="line">			<span class="keyword">this</span>.argumentResolvers = <span class="keyword">new</span> HandlerMethodArgumentResolverComposite().addResolvers(resolvers);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.initBinderArgumentResolvers == <span class="keyword">null</span>) &#123;</span><br><span class="line">			List&lt;HandlerMethodArgumentResolver&gt; resolvers = getDefaultInitBinderArgumentResolvers();</span><br><span class="line">			<span class="keyword">this</span>.initBinderArgumentResolvers = <span class="keyword">new</span> HandlerMethodArgumentResolverComposite().addResolvers(resolvers);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (<span class="keyword">this</span>.returnValueHandlers == <span class="keyword">null</span>) &#123;</span><br><span class="line">			List&lt;HandlerMethodReturnValueHandler&gt; handlers = getDefaultReturnValueHandlers();</span><br><span class="line">			<span class="keyword">this</span>.returnValueHandlers = <span class="keyword">new</span> HandlerMethodReturnValueHandlerComposite().addHandlers(handlers);</span><br><span class="line">		&#125;</span><br><span class="line">		initControllerAdviceCache();</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>getDefaultArgumentResolvers方法完成了所有的HandlerMethodArgumentResolver的汇总，如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> List&lt;HandlerMethodArgumentResolver&gt; <span class="title">getDefaultArgumentResolvers</span><span class="params">()</span> </span>&#123;</span><br><span class="line">		List&lt;HandlerMethodArgumentResolver&gt; resolvers = <span class="keyword">new</span> ArrayList&lt;HandlerMethodArgumentResolver&gt;();</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Annotation-based argument resolution</span></span><br><span class="line">		resolvers.add(<span class="keyword">new</span> RequestParamMethodArgumentResolver(getBeanFactory(), <span class="keyword">false</span>));</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> RequestParamMapMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> PathVariableMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> PathVariableMapMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> MatrixVariableMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> MatrixVariableMapMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> ServletModelAttributeMethodProcessor(<span class="keyword">false</span>));</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> RequestResponseBodyMethodProcessor(getMessageConverters()));</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> RequestPartMethodArgumentResolver(getMessageConverters()));</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> RequestHeaderMethodArgumentResolver(getBeanFactory()));</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> RequestHeaderMapMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> ServletCookieValueMethodArgumentResolver(getBeanFactory()));</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> ExpressionValueMethodArgumentResolver(getBeanFactory()));</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Type-based argument resolution</span></span><br><span class="line">		resolvers.add(<span class="keyword">new</span> ServletRequestMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> ServletResponseMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> HttpEntityMethodProcessor(getMessageConverters()));</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> RedirectAttributesMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> ModelMethodProcessor());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> MapMethodProcessor());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> ErrorsMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> SessionStatusMethodArgumentResolver());</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> UriComponentsBuilderMethodArgumentResolver());</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Custom arguments</span></span><br><span class="line"><span class="comment">//获取我们自定义的HandlerMethodArgumentResolver</span></span><br><span class="line">		<span class="keyword">if</span> (getCustomArgumentResolvers() != <span class="keyword">null</span>) &#123;</span><br><span class="line">			resolvers.addAll(getCustomArgumentResolvers());</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">// Catch-all</span></span><br><span class="line">		resolvers.add(<span class="keyword">new</span> RequestParamMethodArgumentResolver(getBeanFactory(), <span class="keyword">true</span>));</span><br><span class="line">		resolvers.add(<span class="keyword">new</span> ServletModelAttributeMethodProcessor(<span class="keyword">true</span>));</span><br><span class="line"></span><br><span class="line">		<span class="keyword">return</span> resolvers;</span><br><span class="line">	&#125;</span><br></pre></td></tr></table></figure>
+
+<p>不仅汇总了spring默认的，同时加进来我们自定义的HandlerMethodArgumentResolver。</p>
+<h2 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h2><p> <a href="http://lgbolgger.iteye.com/blog/2111131" target="_blank" rel="noopener">SpringMVC源码总结（九）HandlerMethodArgumentResolver介绍</a></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/springmvc/" rel="tag"># springmvc</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2019/06/09/spring/spring-mvc/spring-6-controller%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%8E%9F%E7%90%86/" rel="prev" title="spring-6-controller参数解析原理">
+      <i class="fa fa-chevron-left"></i> spring-6-controller参数解析原理
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/06/09/spring/spring-mvc/spring-7-spring%20bean%E7%9A%84%E9%94%80%E6%AF%81%E8%BF%87%E7%A8%8B/" rel="next" title="spring-7-SpringBean的销毁过程(转)">
+      spring-7-SpringBean的销毁过程(转) <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#HandlerMethodArgumentResolver参数解析器"><span class="nav-number">1.</span> <span class="nav-text">HandlerMethodArgumentResolver参数解析器</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、类图"><span class="nav-number">1.1.</span> <span class="nav-text">一、类图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、HandlerMethodArgumentResolver-及其子类"><span class="nav-number">1.2.</span> <span class="nav-text">二、HandlerMethodArgumentResolver 及其子类</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-HandlerMethodArgumentResolver"><span class="nav-number">1.2.1.</span> <span class="nav-text">2.1 HandlerMethodArgumentResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-AbstractMessageConverterMethodArgumentResolver"><span class="nav-number">1.2.2.</span> <span class="nav-text">2.2  AbstractMessageConverterMethodArgumentResolver</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-AbstractMessageConverterMethodProcessor"><span class="nav-number">1.2.3.</span> <span class="nav-text">2.3 AbstractMessageConverterMethodProcessor</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-1-HttpEntityMethodProcessor"><span class="nav-number">1.2.3.1.</span> <span class="nav-text">2.3.1 HttpEntityMethodProcessor</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-2-RequestResponseBodyMethodProcessor"><span class="nav-number">1.2.3.2.</span> <span class="nav-text">2.3.2 RequestResponseBodyMethodProcessor</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-3-HttpEntityMethodProcessor-解析过程："><span class="nav-number">1.2.3.3.</span> <span class="nav-text">2.3.3 HttpEntityMethodProcessor 解析过程：</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-3-4RequestResponseBodyMethodProcessor解析过程"><span class="nav-number">1.2.3.4.</span> <span class="nav-text">2.3.4RequestResponseBodyMethodProcessor解析过程</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-AbstractNamedValueMethodArgumentResolver"><span class="nav-number">1.2.4.</span> <span class="nav-text">2.4 AbstractNamedValueMethodArgumentResolver</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-1-RequestParamMethodArgumentResolver"><span class="nav-number">1.2.4.1.</span> <span class="nav-text">2.4.1 RequestParamMethodArgumentResolver</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-2-RequestHeaderMethodArgumentResolver"><span class="nav-number">1.2.4.2.</span> <span class="nav-text">2.4.2 RequestHeaderMethodArgumentResolver</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-3RequestHeaderMapMethodArgumentResolver"><span class="nav-number">1.2.4.3.</span> <span class="nav-text">2.4.3RequestHeaderMapMethodArgumentResolver</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-4-PathVariableMethodArgumentResolver"><span class="nav-number">1.2.4.4.</span> <span class="nav-text">2.4.4 PathVariableMethodArgumentResolver</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-4-5-PathVariableMapMethodArgumentResolver"><span class="nav-number">1.2.4.5.</span> <span class="nav-text">2.4.5 PathVariableMapMethodArgumentResolver</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三、HandlerMethodArgumentResolver注册来源"><span class="nav-number">1.3.</span> <span class="nav-text">三、HandlerMethodArgumentResolver注册来源</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#参考"><span class="nav-number">1.4.</span> <span class="nav-text">参考</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2019/06/09/spring/spring-mvc/spring-6-HandlerMethodArgumentResolver%E5%8F%82%E6%95%B0%E8%A7%A3%E6%9E%90%E5%99%A8/",
+            identifier: "2019/06/09/spring/spring-mvc/spring-6-HandlerMethodArgumentResolver参数解析器/",
+            title: "spring-6-HandlerMethodArgumentResolver参数解析器"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

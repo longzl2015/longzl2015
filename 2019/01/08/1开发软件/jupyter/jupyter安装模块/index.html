@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="本文来自https:&#x2F;&#x2F;nbviewer.jupyter.org&#x2F;format&#x2F;script&#x2F;url&#x2F;jakevdp.github.com&#x2F;downloads&#x2F;notebooks&#x2F;JupyterInstallation.ipynb。复制到此处用于备份。  该用 conda 还是 pip？  如果使用 Anaconda 安装的 python，就用 conda。如果 conda instal 找不到">
+<meta property="og:type" content="article">
+<meta property="og:title" content="jupyter安装模块">
+<meta property="og:url" content="https://longzl2015.github.io/2019/01/08/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/jupyter/jupyter%E5%AE%89%E8%A3%85%E6%A8%A1%E5%9D%97/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="本文来自https:&#x2F;&#x2F;nbviewer.jupyter.org&#x2F;format&#x2F;script&#x2F;url&#x2F;jakevdp.github.com&#x2F;downloads&#x2F;notebooks&#x2F;JupyterInstallation.ipynb。复制到此处用于备份。  该用 conda 还是 pip？  如果使用 Anaconda 安装的 python，就用 conda。如果 conda instal 找不到">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2019-01-08T05:01:00.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.727Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="jupyter">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://longzl2015.github.io/2019/01/08/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/jupyter/jupyter%E5%AE%89%E8%A3%85%E6%A8%A1%E5%9D%97/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>jupyter安装模块 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2019/01/08/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/jupyter/jupyter%E5%AE%89%E8%A3%85%E6%A8%A1%E5%9D%97/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          jupyter安装模块
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2019-01-08 13:01:00" itemprop="dateCreated datePublished" datetime="2019-01-08T13:01:00+08:00">2019-01-08</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/" itemprop="url" rel="index">
+                    <span itemprop="name">开发软件</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/jupyter/" itemprop="url" rel="index">
+                    <span itemprop="name">jupyter</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2019/01/08/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/jupyter/jupyter%E5%AE%89%E8%A3%85%E6%A8%A1%E5%9D%97/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2019/01/08/1开发软件/jupyter/jupyter安装模块/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <blockquote>
+<p>本文来自<br><a href="https://nbviewer.jupyter.org/format/script/url/jakevdp.github.com/downloads/notebooks/JupyterInstallation.ipynb。" target="_blank" rel="noopener">https://nbviewer.jupyter.org/format/script/url/jakevdp.github.com/downloads/notebooks/JupyterInstallation.ipynb。</a><br>复制到此处用于备份。</p>
+</blockquote>
+<p><strong>该用 conda 还是 pip？</strong></p>
+<blockquote>
+<p>如果使用 Anaconda 安装的 python，就用 conda。如果 conda instal 找不到包，才用 pip</p>
+<p>如果使用其他方式安装的python，则用 pip.</p>
+</blockquote>
+<p> <strong>如何在 jupyter 中安装 python模块？</strong></p>
+<blockquote>
+<p>import sys<br>!{sys.executable} -m pip install hdfs3 –user</p>
+</blockquote>
+<a id="more"></a>
+
+
+<h1 id="Installing-Python-Packages-from-a-Jupyter-Notebook"><a href="#Installing-Python-Packages-from-a-Jupyter-Notebook" class="headerlink" title="Installing Python Packages from a Jupyter Notebook"></a>Installing Python Packages from a Jupyter Notebook</h1><p><em>This notebook originally appeared as a <a href="http://jakevdp.github.io/blog/2017/12/05/installing-python-packages-from-jupyter/" target="_blank" rel="noopener">post</a> on the blog <a href="http://jakevdp.github.io" target="_blank" rel="noopener">Pythonic Perambulations</a>.</em></p>
+<p>In software, it’s said that <a href="https://www.joelonsoftware.com/2002/11/11/the-law-of-leaky-abstractions/" target="_blank" rel="noopener">all abstractions are leaky</a>, and this is true for the Jupyter notebook as it is for any other software.<br>I most often see this manifest itself with the following issue:</p>
+<blockquote>
+<p>I installed <em>package X</em> and now I can’t import it in the notebook. Help!</p>
+</blockquote>
+<p>This issue is a perrennial source of StackOverflow questions (e.g. <a href="https://stackoverflow.com/questions/39007571/running-jupyter-with-multiple-python-and-ipython-paths/" target="_blank" rel="noopener">this</a>, <a href="https://stackoverflow.com/questions/42500142/importerror-no-module-named-jwt-in-jupyter" target="_blank" rel="noopener">that</a>, <a href="https://stackoverflow.com/questions/32777807/importerror-no-module-named-cv2-using-jupyter" target="_blank" rel="noopener">here</a>, <a href="https://stackoverflow.com/questions/42500649/failed-to-import-numpy-as-np-when-i-worked-with-jupyter-notebook" target="_blank" rel="noopener">there</a>, <a href="https://stackoverflow.com/questions/46634660/jupyter-notebook-wrong-sys-path-and-sys-executable" target="_blank" rel="noopener">another</a>, <a href="https://stackoverflow.com/questions/44222513/cannot-import-datashader-installed-using-miniconda" target="_blank" rel="noopener">this one</a>, <a href="https://stackoverflow.com/questions/42178070/jupyter-notebook-importerror-no-module-named-sklearn" target="_blank" rel="noopener">that one</a>, <a href="https://stackoverflow.com/questions/42034508/fail-pandas-in-python3-jupyter-notebook" target="_blank" rel="noopener">and this</a>… etc.).</p>
+<p>Fundamentally the problem is usually rooted in the fact that the <strong>Jupyter kernels are disconnected from Jupyter’s shell</strong>; in other words, the installer points to a different Python version than is being used in the notebook.<br>In the simplest contexts this issue does not arise, but when it does, debugging the problem requires knowledge of the intricacies of the operating system, the intricacies of Python package installation, and the intricacies of Jupyter itself.<br>In other words, the Jupyter notebook, like all abstractions, is leaky.</p>
+<p>In the wake of several discussions on this topic with colleagues, some online (<a href="https://twitter.com/amuellerml/status/932637063748444160" target="_blank" rel="noopener">exhibit A</a>, <a href="https://twitter.com/jakevdp/status/922846245848150016" target="_blank" rel="noopener">exhibit B</a>) and some off, I decided to treat this issue in depth here.<br>This post will address a couple things:</p>
+<ul>
+<li><p><strong>First</strong>, I’ll provide a quick, bare-bones answer to the general question, <strong>how can I install a Python package so it works with my jupyter notebook, using pip and/or conda?</strong>.</p>
+</li>
+<li><p><strong>Second</strong>, I’ll dive into some of the background of exactly <em>what</em> the Jupyter notebook abstraction is doing, how it interacts with the complexities of the operating system, and how you can think about where the “leaks” are, and thus better understand what’s happening when things stop working.</p>
+</li>
+<li><p><strong>Third</strong>, I’ll talk about some ideas the community might consider to help smooth-over these issues, including some changes that the Jupyter, Pip, and Conda developers might consider to ease the cognitive load on users.</p>
+</li>
+</ul>
+<p>This post will focus on two approaches to installing Python packages: <a href="https://pip.pypa.io/en/stable/" target="_blank" rel="noopener">pip</a> and <a href="https://conda.io/docs/" target="_blank" rel="noopener">conda</a>.<br>Other package managers exist (including platform-specific tools like <a href="http://yum.baseurl.org/" target="_blank" rel="noopener">yum</a>, <a href="https://help.ubuntu.com/community/AptGet/Howto#Package_management_with_APT" target="_blank" rel="noopener">apt</a>, <a href="https://brew.sh/" target="_blank" rel="noopener">homebrew</a>, etc., as well as cross-platform tools like <a href="http://enstaller.readthedocs.io/en/latest/" target="_blank" rel="noopener">enstaller</a>), but I’m less familiar with them and won’t be remarking on them further.</p>
+<h2 id="Quick-Fix-How-To-Install-Packages-from-the-Jupyter-Notebook"><a href="#Quick-Fix-How-To-Install-Packages-from-the-Jupyter-Notebook" class="headerlink" title="Quick Fix: How To Install Packages from the Jupyter Notebook"></a>Quick Fix: How To Install Packages from the Jupyter Notebook</h2><p>If you’re just looking for a quick answer to the question, <strong>how do I install packages so they work with the notebook</strong>, then look no further.</p>
+<h3 id="pip-vs-conda"><a href="#pip-vs-conda" class="headerlink" title="pip vs. conda"></a>pip vs. conda</h3><p>First, a few words on <code>pip</code> vs. <code>conda</code>.<br>For many users, the choice between pip and conda can be a confusing one.<br>I wrote <a href="https://jakevdp.github.io/blog/2016/08/25/conda-myths-and-misconceptions/" target="_blank" rel="noopener">way more than you ever want to know</a> about these in a post last year, but the essential difference between the two is this:</p>
+<ul>
+<li><em>pip</em> installs <strong>python</strong> packages in <strong>any environment</strong>.</li>
+<li><em>conda</em> installs <strong>any</strong> package in <strong>conda environments</strong>.</li>
+</ul>
+<p>If you already have a Python installation that you’re using, then the choice of which to use is easy:</p>
+<ul>
+<li><p>If you installed Python using Anaconda or Miniconda, then use <code>conda</code> to install Python packages. If conda tells you the package you want doesn’t exist, then use pip (or try <a href="https://conda-forge.org/" target="_blank" rel="noopener">conda-forge</a>, which has more packages available than the default conda channel).</p>
+</li>
+<li><p>If you installed Python any other way (from source, using pyenv, virtualenv, etc.), then use <code>pip</code> to install Python packages</p>
+</li>
+</ul>
+<p>Finally, because it often comes up, I should mention that you should <strong>never</strong> use <code>sudo pip install</code>.</p>
+<p><em>NEVER.</em></p>
+<p>It will always lead to problems in the long term, even if it seems to solve them in the short-term.<br>For example, if <code>pip install</code> gives you a permission error, it likely means you’re trying to install/update packages in a system python, such as <code>/usr/bin/python</code>. Doing this can have bad consequences, as often the operating system itself depends on particular versions of packages within that Python installation.<br>For day-to-day Python usage, you should isolate your packages from the system Python, using either <a href="https://virtualenv.pypa.io/en/stable/" target="_blank" rel="noopener">virtual environments</a> or <a href="https://conda.io/docs/user-guide/install/download.html" target="_blank" rel="noopener">Anaconda/Miniconda</a> — I personally prefer conda for this, but I know many colleagues who prefer virtualenv.</p>
+<h3 id="How-to-use-Conda-from-the-Jupyter-Notebook"><a href="#How-to-use-Conda-from-the-Jupyter-Notebook" class="headerlink" title="How to use Conda from the Jupyter Notebook"></a>How to use Conda from the Jupyter Notebook</h3><p>If you’re in the jupyter notebook and you want to install a package with conda, you might be tempted to use the <code>!</code> notation to run conda directly as a shell command from the notebook:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"># DON&#39;T DO THIS!</span><br><span class="line">!conda install --yes numpy</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Fetching package metadata ...........</span><br><span class="line">Solving package specifications: .</span><br><span class="line"></span><br><span class="line"># All requested packages already installed.</span><br><span class="line"># packages in environment at &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6:</span><br><span class="line">#</span><br><span class="line">numpy                     1.13.3           py36h2cdce51_0</span><br></pre></td></tr></table></figure>
+
+
+<p>(Note that we use <code>--yes</code> to automatically answer <code>y</code> if and when conda asks for user confirmation)</p>
+<p>For various reasons that I’ll outline more fully below, this <strong>will not generally work</strong> if you want to use these installed packages from the current notebook, though it may work in the simplest cases.</p>
+<p>Here is a short snippet that should work in general:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"># Install a conda package in the current Jupyter kernel</span><br><span class="line">import sys</span><br><span class="line">!conda install --yes --prefix &#123;sys.prefix&#125; numpy</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Fetching package metadata ...........</span><br><span class="line">Solving package specifications: .</span><br><span class="line"></span><br><span class="line"># All requested packages already installed.</span><br><span class="line"># packages in environment at &#x2F;Users&#x2F;jakevdp&#x2F;anaconda:</span><br><span class="line">#</span><br><span class="line">numpy                     1.13.3           py36h2cdce51_0</span><br></pre></td></tr></table></figure>
+
+<p>That bit of extra boiler-plate makes certain that conda installs the package in the currently-running Jupyter kernel (thanks to <a href="https://twitter.com/minrk/status/842067777150169088" target="_blank" rel="noopener">Min Ragan-Kelley</a> for suggesting this approach).<br>I’ll discuss why this is needed momentarily.</p>
+<h3 id="How-to-use-Pip-from-the-Jupyter-Notebook"><a href="#How-to-use-Pip-from-the-Jupyter-Notebook" class="headerlink" title="How to use Pip from the Jupyter Notebook"></a>How to use Pip from the Jupyter Notebook</h3><p>If you’re using the Jupyter notebook and want to install a package with <code>pip</code>, you similarly might be inclined to run pip directly in the shell:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"># DON&#39;T DO THIS</span><br><span class="line">!pip install numpy</span><br><span class="line"></span><br><span class="line">Requirement already satisfied: numpy in &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;lib&#x2F;python3.6&#x2F;site-packages</span><br></pre></td></tr></table></figure>
+
+<p>For various reasons that I’ll outline more fully below, this <strong>will not generally work</strong> if you want to use these installed packages from the current notebook, though it may work in the simplest cases.</p>
+<p>Here is a short snippet that should generally work:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"># Install a pip package in the current Jupyter kernel</span><br><span class="line">import sys</span><br><span class="line">!&#123;sys.executable&#125; -m pip install numpy</span><br><span class="line"></span><br><span class="line">Requirement already satisfied: numpy in &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages</span><br></pre></td></tr></table></figure>
+
+
+<p>That bit of extra boiler-plate makes certain that you are running the <code>pip</code> version associated with the current Python kernel, so that the installed packages can be used in the current notebook.<br>This is related to the fact that, even setting Jupyter notebooks aside, it’s better to install packages using</p>
+<pre><code>$ python -m pip install &lt;package&gt;</code></pre><p>rather than</p>
+<pre><code>$ pip install &lt;package&gt;</code></pre><p>because the former is more explicit about where the package will be installed (more on this below).</p>
+<h2 id="The-Details-Why-is-Installation-from-Jupyter-so-Messy"><a href="#The-Details-Why-is-Installation-from-Jupyter-so-Messy" class="headerlink" title="The Details: Why is Installation from Jupyter so Messy?"></a>The Details: Why is Installation from Jupyter so Messy?</h2><p>Those above solutions should work in all cases… but why is that additional boilerplate necessary?<br>In short, it’s because in Jupyter, <strong>the shell environment and the Python executable are disconnected</strong>.<br>Understanding why that matters depends on a basic understanding of a few different concepts:</p>
+<ol>
+<li>how your operating system locates executable programs,</li>
+<li>how Python installs and locates packages</li>
+<li>how Jupyter decides which Python executable to use.</li>
+</ol>
+<p>For completeness, I’m going to delve briefly into each of these topics (this discussion is partly drawn from <a href="https://stackoverflow.com/questions/39007571/running-jupyter-with-multiple-python-and-ipython-paths/39022003#39022003" target="_blank" rel="noopener">This StackOverflow answer</a> that I wrote last year).</p>
+<p><em>Note: the following discussion assumes Linux, Unix, MacOSX and similar operating systems. Windows has a slightly different architecture, and so some details will differ.</em></p>
+<h3 id="How-your-operating-system-locates-executables"><a href="#How-your-operating-system-locates-executables" class="headerlink" title="How your operating system locates executables"></a>How your operating system locates executables</h3><p>When you’re using the terminal and type a command like <code>python</code>, <code>jupyter</code>, <code>ipython</code>, <code>pip</code>, <code>conda</code>, etc., your operating system contains a well-defined mechanism to find the executable file the name refers to.</p>
+<p>On Linux &amp; Mac systems, the system will first check for an <a href="http://tldp.org/LDP/abs/html/aliases.html" target="_blank" rel="noopener">alias</a> matching the command; if this fails it references the <code>$PATH</code> environment variable:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">!echo $PATH</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin:&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin:&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;bin:&#x2F;usr&#x2F;local&#x2F;bin:&#x2F;usr&#x2F;bin:&#x2F;bin:&#x2F;usr&#x2F;sbin:&#x2F;sbin</span><br></pre></td></tr></table></figure>
+
+
+<p><code>$PATH</code> lists the directories, in order, that will be searched for any executable: for example, if I type <code>python</code> on my system with the above <code>$PATH</code>, it will first look for <code>/Users/jakevdp/anaconda/envs/python3.6/bin/python</code>, and if that doesn’t exist it will look for <code>/Users/jakevdp/anaconda/bin/python</code>, and so on.</p>
+<p>(Parenthetical note: why is the first entry of <code>$PATH</code> repeated twice here? Because every time you launch <code>jupyter notebook</code>, Jupyter prepends the location of the <code>jupyter</code> executable to the beginning of the <code>$PATH</code>. In this case, the location was already at the beginning of the path, and the result is that the entry is duplicated. Duplicate entries add clutter, but cause no harm).</p>
+<p>If you want to know what is actually executed when you type <code>python</code>, you can use the <code>type</code> shell command:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">!type python</span><br><span class="line"></span><br><span class="line">python is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;python</span><br></pre></td></tr></table></figure>
+
+<p>Note that this is true of <em>any</em> command you use from the terminal:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">!type ls</span><br><span class="line"></span><br><span class="line">ls is &#x2F;bin&#x2F;ls</span><br></pre></td></tr></table></figure>
+
+<p>Even built-in commands like <code>type</code> itself:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">!type type</span><br><span class="line"></span><br><span class="line">type is a shell builtin</span><br></pre></td></tr></table></figure>
+
+
+<p>You can optionally add the <code>-a</code> tag to see <em>all available</em> versions of the command in your current shell environment; for example:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line">!type -a python</span><br><span class="line"></span><br><span class="line">python is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;python</span><br><span class="line">python is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;python</span><br><span class="line">python is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;bin&#x2F;python</span><br><span class="line">python is &#x2F;usr&#x2F;bin&#x2F;python</span><br><span class="line"></span><br><span class="line">!type -a conda</span><br><span class="line"></span><br><span class="line">conda is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;conda</span><br><span class="line">conda is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;conda</span><br><span class="line">conda is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;bin&#x2F;conda</span><br><span class="line"></span><br><span class="line">!type -a pip</span><br><span class="line"></span><br><span class="line">pip is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;pip</span><br><span class="line">pip is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;pip</span><br><span class="line">pip is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;bin&#x2F;pip</span><br></pre></td></tr></table></figure>
+
+
+<p>When you have multiple available versions of any command, it is important to keep in mind the role of <code>$PATH</code> in choosing which will be used.</p>
+<h3 id="How-Python-locates-packages"><a href="#How-Python-locates-packages" class="headerlink" title="How Python locates packages"></a>How Python locates packages</h3><p>Python uses a similar mechanism to locate imported packages.<br>The list of paths searched by Python on import is found in <code>sys.path</code>:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">import sys</span><br><span class="line">sys.path</span><br><span class="line"></span><br><span class="line">[&#39;&#39;,</span><br><span class="line"> &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python36.zip&#39;,</span><br><span class="line"> &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#39;,</span><br><span class="line"> &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;lib-dynload&#39;,</span><br><span class="line"> &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#39;,</span><br><span class="line"> &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#x2F;schemapi-0.3.0.dev0+791c7f6-py3.6.egg&#39;,</span><br><span class="line"> &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#x2F;setuptools-27.2.0-py3.6.egg&#39;,</span><br><span class="line"> &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#x2F;IPython&#x2F;extensions&#39;,</span><br><span class="line"> &#39;&#x2F;Users&#x2F;jakevdp&#x2F;.ipython&#39;]</span><br></pre></td></tr></table></figure>
+
+<p>By default, the first place Python looks for a module is an empty path, meaning the current working directory.<br>If the module is not found there, it goes down the list of locations until the module is found.<br>You can find out which location has been used using the <code>__path__</code> attribute of an imported module:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">import numpy</span><br><span class="line">numpy.__path__</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">[&#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#x2F;numpy&#39;]</span><br></pre></td></tr></table></figure>
+
+
+<p>import numpy<br>numpy.<strong>path</strong></p>
+<p>In most cases, a Python package you install with <code>pip</code> or with <code>conda</code> will be put in a directory called <code>site-packages</code>.<br>The important thing to realize is that each Python executable has <strong>its own <code>site-packages</code></strong>: what this means is that when you install a package, it is <strong>associated with particular python executable</strong> and by default can only be used with that Python installation!</p>
+<p>We can see this by printing the <code>sys.path</code> variables for each of the available <code>python</code> executables in my path, using Jupyter’s delightful ability to mix Python and bash commands in a single code block:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">paths &#x3D; !type -a python</span><br><span class="line">for path in set(paths):</span><br><span class="line">    path &#x3D; path.split()[-1]</span><br><span class="line">    print(path)</span><br><span class="line">    !&#123;path&#125; -c &quot;import sys; print(sys.path)&quot;</span><br><span class="line">    print()</span><br><span class="line">    </span><br><span class="line">&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;python</span><br><span class="line">[&#39;&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;lib&#x2F;python36.zip&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;lib&#x2F;python3.6&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;lib&#x2F;python3.6&#x2F;lib-dynload&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#39;]</span><br><span class="line"></span><br><span class="line">&#x2F;usr&#x2F;bin&#x2F;python</span><br><span class="line">[&#39;&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;lib&#x2F;python27.zip&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;lib&#x2F;python2.7&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;lib&#x2F;python2.7&#x2F;plat-darwin&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;lib&#x2F;python2.7&#x2F;plat-mac&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;lib&#x2F;python2.7&#x2F;plat-mac&#x2F;lib-scriptpackages&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;lib&#x2F;python2.7&#x2F;lib-tk&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;lib&#x2F;python2.7&#x2F;lib-old&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;lib&#x2F;python2.7&#x2F;lib-dynload&#39;, &#39;&#x2F;Library&#x2F;Python&#x2F;2.7&#x2F;site-packages&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;Extras&#x2F;lib&#x2F;python&#39;, &#39;&#x2F;System&#x2F;Library&#x2F;Frameworks&#x2F;Python.framework&#x2F;Versions&#x2F;2.7&#x2F;Extras&#x2F;lib&#x2F;python&#x2F;PyObjC&#39;]</span><br><span class="line"></span><br><span class="line">&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;bin&#x2F;python</span><br><span class="line">[&#39;&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python36.zip&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;lib-dynload&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#x2F;schemapi-0.3.0.dev0+791c7f6-py3.6.egg&#39;, &#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#x2F;setuptools-27.2.0-py3.6.egg&#39;]</span><br></pre></td></tr></table></figure>
+
+
+<p>The full details here are not particularly important, but it is important to emphasize that <em>each Python executable has its own distinct paths</em>, and unless you modify <code>sys.path</code> (which should only be done with great care) you cannot import packages installed in a different Python environment.</p>
+<p>When you run <code>pip install</code> or <code>conda install</code>, these commands are associated with a particular Python version:</p>
+<ul>
+<li><code>pip</code> installs packages in the Python in its same path</li>
+<li><code>conda</code> installs packages in the current active conda environment</li>
+</ul>
+<p>So, for example we see that <code>pip install</code> will install to the conda environment named <code>python3.6</code>:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">!type pip</span><br><span class="line"></span><br><span class="line">pip is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;pip</span><br></pre></td></tr></table></figure>
+
+
+<p>And <code>conda install</code> will do the same, because <code>python3.6</code> is the current active environment (notice the <code>*</code> indicating the active environment):</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">!conda env list</span><br><span class="line"></span><br><span class="line"># conda environments:</span><br><span class="line">#</span><br><span class="line">python2.7                &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python2.7</span><br><span class="line">python3.5                &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.5</span><br><span class="line">python3.6             *  &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6</span><br><span class="line">rstats                   &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;rstats</span><br><span class="line">root                     &#x2F;Users&#x2F;jakevdp&#x2F;anaconda</span><br></pre></td></tr></table></figure>
+
+
+<p>The reason both <code>pip</code> and <code>conda</code> default to the conda <code>python3.6</code> environment is that this is the Python environment I used to launch the notebook.</p>
+<p>I’ll say this again for emphasis: <strong>the shell environment in Jupyter notebook matches the Python version used to <em>launch</em> the notebook.</strong></p>
+<h3 id="How-Jupyter-executes-code-Jupyter-Kernels"><a href="#How-Jupyter-executes-code-Jupyter-Kernels" class="headerlink" title="How Jupyter executes code: Jupyter Kernels"></a>How Jupyter executes code: Jupyter Kernels</h3><p>The next relevant question is how Jupyter chooses to execute Python code, and this brings us to the concept of a <em>Jupyter Kernel</em>.</p>
+<p>A Jupyter kernel is a set of files that point Jupyter to some means of executing code within the notebook.<br>For Python kernels, this will point to a particular Python version, but Jupyter is designed to be much more general than this: Jupyter has <a href="https://github.com/jupyter/jupyter/wiki/Jupyter-kernels" target="_blank" rel="noopener">dozens of available kernels</a> for languages including Python 2, Python 3, Julia, R, Ruby, Haskell, and even C++ and Fortran!</p>
+<p>If you’re using the Jupyter notebook, you can change your kernel at any time using the <em>Kernel → Choose Kernel</em> menu item.</p>
+<p>To see the kernels you have available on your system, you can run the following command in the shell:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">!jupyter kernelspec list</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Available kernels:</span><br><span class="line">  python3       &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;lib&#x2F;python3.6&#x2F;site-packages&#x2F;ipykernel&#x2F;resources</span><br><span class="line">  conda-root    &#x2F;Users&#x2F;jakevdp&#x2F;Library&#x2F;Jupyter&#x2F;kernels&#x2F;conda-root</span><br><span class="line">  python2.7     &#x2F;Users&#x2F;jakevdp&#x2F;Library&#x2F;Jupyter&#x2F;kernels&#x2F;python2.7</span><br><span class="line">  python3.5     &#x2F;Users&#x2F;jakevdp&#x2F;Library&#x2F;Jupyter&#x2F;kernels&#x2F;python3.5</span><br><span class="line">  python3.6     &#x2F;Users&#x2F;jakevdp&#x2F;Library&#x2F;Jupyter&#x2F;kernels&#x2F;python3.6</span><br></pre></td></tr></table></figure>
+
+
+<p>Each of these listed kernels is a directory that contains a file called <code>kernel.json</code> which specifies, among other things, which language and executable the kernel should use.<br>For example:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">!cat &#x2F;Users&#x2F;jakevdp&#x2F;Library&#x2F;Jupyter&#x2F;kernels&#x2F;conda-root&#x2F;kernel.json</span><br><span class="line"></span><br><span class="line">&#123;</span><br><span class="line"> &quot;argv&quot;: [</span><br><span class="line">  &quot;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;bin&#x2F;python&quot;,</span><br><span class="line">  &quot;-m&quot;,</span><br><span class="line">  &quot;ipykernel_launcher&quot;,</span><br><span class="line">  &quot;-f&quot;,</span><br><span class="line">  &quot;&#123;connection_file&#125;&quot;</span><br><span class="line"> ],</span><br><span class="line"> &quot;display_name&quot;: &quot;python (conda-root)&quot;,</span><br><span class="line"> &quot;language&quot;: &quot;python&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+<p>If you’d like to create a new kernel, you can do so using the <a href="http://ipython.readthedocs.io/en/stable/install/kernel_install.html#kernels-for-different-environments" target="_blank" rel="noopener">jupyter ipykernel command</a>;<br>for example, I created the above kernels for my primary conda environments using the following as a template:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">$ source activate myenv</span><br><span class="line">$ python -m ipykernel install --user --name myenv --display-name &quot;Python (myenv)&quot;</span><br></pre></td></tr></table></figure>
+
+<h2 id="The-Root-of-the-Issue"><a href="#The-Root-of-the-Issue" class="headerlink" title="The Root of the Issue"></a>The Root of the Issue</h2><p>Now we have the full background to answer our question: <em>Why don’t <code>!pip install</code> or <code>!conda install</code> always work from the notebook</em>?</p>
+<p>The root of the issue is this: the shell environment is determined when the Jupyter notebook is launched, while the Python executable is determined by the kernel, and the two do not necessarily match.<br>In other words, there is no guarantee that the <code>python</code>, <code>pip</code>, and <code>conda</code> in your <code>$PATH</code> will be compatible with the <code>python</code> executable used by the notebook.</p>
+<p>Recall that the <code>python</code> in your path can be determined using</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">!type python</span><br><span class="line"></span><br><span class="line">python is &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;envs&#x2F;python3.6&#x2F;bin&#x2F;python</span><br></pre></td></tr></table></figure>
+
+
+<p>The Python executable being used in the notebook can be determined using</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sys.executable</span><br><span class="line"></span><br><span class="line">&#39;&#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;bin&#x2F;python&#39;</span><br></pre></td></tr></table></figure>
+
+
+<p>In my current notebook environment, the two differ.<br>This is why a simple <code>!pip install</code> or <code>!conda install</code> does not work: the commands install packages in the <code>site-packages</code> of the wrong Python installation.</p>
+<p>As noted above, we can get around this by explicitly identifying where we want packages to be installed.</p>
+<p>For <strong>conda</strong>, you can set the prefix manually in the shell command:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ conda install --yes --prefix &#x2F;Users&#x2F;jakevdp&#x2F;anaconda numpy</span><br></pre></td></tr></table></figure>
+
+<p>or, to automatically use the correct prefix (using syntax available in the notebook)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">!conda install --yes --prefix &#123;sys.prefix&#125; numpy</span><br></pre></td></tr></table></figure>
+
+<p>For <strong>pip</strong>, you can specify the Python executable explicitly:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;bin&#x2F;python -m pip install numpy</span><br></pre></td></tr></table></figure>
+
+<p>or, to automatically use the correct executable (again using notebook shell syntax)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">!&#123;sys.executable&#125; -m pip install numpy</span><br></pre></td></tr></table></figure>
+
+<p>Remember: you need your <em>installation command</em> to match the <em>current python kernel</em> if you want installed packages to be available in the notebook.</p>
+<h2 id="Some-Modest-Proposals"><a href="#Some-Modest-Proposals" class="headerlink" title="Some Modest Proposals"></a>Some Modest Proposals</h2><p>So, in summary, the reason that installation of packages in the Jupyter notebook is fraught with difficulty is fundamentally that <strong>Jupyter’s shell environment and Python kernel are mismatched</strong>, and that means that you have to do more than simply <code>pip install</code> or <code>conda install</code> to make things work.<br>The exception is the special case where you run <code>jupyter notebook</code> from the same Python environment to which your kernel points; in that case the simple installation approach should work.</p>
+<p>But that leaves us in an undesireable place, as it increases the learning curve for novice users who may want to do something they (rightly) presume should be simple: install a package and then use it.<br>So what can we as a community do to smooth-out this issue?</p>
+<p>I have a few ideas, some of which might even be useful:</p>
+<h3 id="Potential-Changes-to-Jupyter"><a href="#Potential-Changes-to-Jupyter" class="headerlink" title="Potential Changes to Jupyter"></a>Potential Changes to Jupyter</h3><p>As I mentioned, the fundamental issue is a mismatch between Jupyter’s shell environment and compute kernel.<br>So, could we massage kernel specifications such that they force the two to match?</p>
+<p>Perhaps: for example, <a href="https://github.com/jupyterhub/jupyterhub/issues/847" target="_blank" rel="noopener">this github issue</a> shows an approach to modifying shell variables as part of kernel startup.</p>
+<p>Basically, in your kernel directory, you can add a script <code>kernel-startup.sh</code> that looks something like this (and make sure you change the permissions so that it’s executable):</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">#!&#x2F;usr&#x2F;bin&#x2F;env bash</span><br><span class="line"></span><br><span class="line"># activate anaconda env</span><br><span class="line">source activate myenv</span><br><span class="line"></span><br><span class="line"># this is the critical part, and should be at the end of your script:</span><br><span class="line">exec python -m ipykernel $@</span><br></pre></td></tr></table></figure>
+
+<p>Then in your <code>kernel.json</code> file, modify the <code>argv</code> field to look like this:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&quot;argv&quot;: [</span><br><span class="line">   &quot;&#x2F;path&#x2F;to&#x2F;kernel-startup.sh&quot;,</span><br><span class="line">   &quot;-f&quot;,</span><br><span class="line">   &quot;&#123;connection_file&#125;&quot;</span><br><span class="line"> ]</span><br></pre></td></tr></table></figure>
+
+<p>Once you do this, switching to the <code>myenv</code> kernel will automatically activate the <code>myenv</code> conda environment, which changes your <code>$CONDA_PREFIX</code>, <code>$PATH</code> and other system variables such that <code>!conda install XXX</code> and <code>!pip install XXX</code> will work correctly. A similar approach could work for virtualenvs or other Python environments.</p>
+<p>There is one tricky issue here: this approach will fail if your <code>myenv</code> environment does not have the <code>ipykernel</code> package installed, and probably also requires it to have a jupyter version compatible with that used to launch the notebook. So it’s not a full solution to the problem by any means, but if Python kernels could be designed to do this sort of shell initialization by default, it would be far less confusing to users: <code>!pip install</code> and <code>!conda install</code> would simply work.</p>
+<h3 id="Potential-Changes-to-pip"><a href="#Potential-Changes-to-pip" class="headerlink" title="Potential Changes to pip"></a>Potential Changes to pip</h3><p>One source of installation confusion, even outside of Jupyter, is the fact that, depending on the nature of your system’s aliases and <code>$PATH</code> variable, <code>pip</code> and <code>python</code> might point to different paths.<br>In this case <code>pip install</code> will install packages to a path inaccessible to the <code>python</code> executable.<br>For this reason, it is safer to use <code>python -m pip install</code>, which explicitly specifies the desired Python version (<a href="https://www.python.org/dev/peps/pep-0020/" target="_blank" rel="noopener">explicit is better than implicit</a>, after all).</p>
+<p>This is one reason that <code>pip install</code> no longer appears in <a href="https://docs.python.org/3/installing/index.html#basic-usage" target="_blank" rel="noopener">Python’s docs</a>, and experienced Python educators like David Beazley <a href="https://twitter.com/dabeaz/status/922859605247643649" target="_blank" rel="noopener">never teach bare pip</a>.<br>CPython developer Nick Coghlan has even <a href="https://twitter.com/ncoghlan_dev/status/922979220711661568" target="_blank" rel="noopener">indicated</a> that the <code>pip</code> executable may someday be deprecated in favor of <code>python -m pip</code>.<br>Even though it’s more verbose, I think forcing users to be explicit would be a useful change, particularly as the use of virtualenvs and conda envs becomes more common.</p>
+<h3 id="Changes-to-Conda"><a href="#Changes-to-Conda" class="headerlink" title="Changes to Conda"></a>Changes to Conda</h3><p>I can think of a couple modifications to conda’s API that may be helpful to users</p>
+<h4 id="Explicit-invocation"><a href="#Explicit-invocation" class="headerlink" title="Explicit invocation"></a>Explicit invocation</h4><p>For symmetry with <code>pip</code>, it would be nice if <code>python -m conda install</code> could be expected to work in the same way the <code>pip</code> counterpart does.<br>You can call <code>conda</code> this way in the root environment, but the conda Python package (as opposed to the conda executable) cannot currently be installed anywhere but the root environment:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">(myenv) jakevdp$ conda install conda</span><br><span class="line">Fetching package metadata ...........</span><br><span class="line"></span><br><span class="line">InstallError: Error: &#39;conda&#39; can only be installed into the root environment</span><br></pre></td></tr></table></figure>
+<p>I suspect that allowing <code>python -m conda install</code> in all conda environments would require a fairly significant redesign of conda’s installation model, so it may not be worth the change just for symmetry with <code>pip</code>‘s API.<br>That said, such a symmetry would certainly be a help to users.</p>
+<h4 id="A-pip-channel-for-conda"><a href="#A-pip-channel-for-conda" class="headerlink" title="A pip channel for conda?"></a>A pip channel for conda?</h4><p>Another useful change conda could make would be to add a channel that essentially mirrors the <a href="https://pypi.python.org/pypi" target="_blank" rel="noopener">Python Package Index</a>, so that when you do <code>conda install some-package</code> it will automatically draw from packages available to <code>pip</code> as well.</p>
+<p>I don’t have a deep enough knowledge of conda’s architecture to know how easy such a feature would be to implement, but I <em>do</em> have loads of experiences helping newcomers to Python and/or conda: I can say with certainty that such a feature would go a long way toward softening their learning curve.</p>
+<h3 id="New-Jupyter-Magic-Functions"><a href="#New-Jupyter-Magic-Functions" class="headerlink" title="New Jupyter Magic Functions"></a>New Jupyter Magic Functions</h3><p>Even if the above changes to the stack are not possible or desirable, we could simplify the user experience somewhat by introducing <code>%pip</code> and <code>%conda</code> magic functions within the Jupyter notebook that detect the current kernel and make certain packages are installed in the correct location.</p>
+<h4 id="pip-magic"><a href="#pip-magic" class="headerlink" title="pip magic"></a>pip magic</h4><p>For example, here’s how you can define a <code>%pip</code> magic function that works in the current kernel:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">from IPython.core.magic import register_line_magic</span><br><span class="line"></span><br><span class="line">@register_line_magic</span><br><span class="line">def pip(args):</span><br><span class="line">    &quot;&quot;&quot;Use pip from the current kernel&quot;&quot;&quot;</span><br><span class="line">    from pip import main</span><br><span class="line">    main(args.split())</span><br></pre></td></tr></table></figure>
+
+
+<p>Running it as follows will install packages in the expected location</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">%pip install numpy</span><br><span class="line">Requirement already satisfied: numpy in &#x2F;Users&#x2F;jakevdp&#x2F;anaconda&#x2F;lib&#x2F;python3.6&#x2F;site-packages</span><br></pre></td></tr></table></figure>
+
+
+<p>Note that Jupyter developer Matthias Bussonnier has published essentially this in his <a href="https://github.com/Carreau/pip_magic" target="_blank" rel="noopener">pip_magic</a> repository, so you can do</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ python -m pip install pip_magic</span><br></pre></td></tr></table></figure>
+<p>and use this right now (that is, assuming you install <code>pip_magic</code> in the right place!)</p>
+<h4 id="conda-magic"><a href="#conda-magic" class="headerlink" title="conda magic"></a>conda magic</h4><p>Similarly, we can define a conda magic that will do the right thing if you type <code>%conda install XXX</code>.<br>This is a bit more involved than the <code>pip</code> magic, because it must first confirm that the environment is conda-compatible, and then (related to the lack of <code>python -m conda install</code>) must call a subprocess to execute the appropriate shell command:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line">from IPython.core.magic import register_line_magic</span><br><span class="line">import sys</span><br><span class="line">import os</span><br><span class="line">from subprocess import Popen, PIPE</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">def is_conda_environment():</span><br><span class="line">    &quot;&quot;&quot;Return True if the current Python executable is in a conda env&quot;&quot;&quot;</span><br><span class="line">    # TODO: make this work with Conda.exe in Windows</span><br><span class="line">    conda_exec &#x3D; os.path.join(os.path.dirname(sys.executable), &#39;conda&#39;)</span><br><span class="line">    conda_history &#x3D; os.path.join(sys.prefix, &#39;conda-meta&#39;, &#39;history&#39;)</span><br><span class="line">    return os.path.exists(conda_exec) and os.path.exists(conda_history)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">@register_line_magic</span><br><span class="line">def conda(args):</span><br><span class="line">    &quot;&quot;&quot;Use conda from the current kernel&quot;&quot;&quot;</span><br><span class="line">    # TODO: make this work with Conda.exe in Windows</span><br><span class="line">    # TODO: fix string encoding to work with Python 2</span><br><span class="line">    if not is_conda_environment():</span><br><span class="line">        raise ValueError(&quot;The python kernel does not appear to be a conda environment.  &quot;</span><br><span class="line">                         &quot;Please use &#96;&#96;%pip install&#96;&#96; instead.&quot;)</span><br><span class="line">    </span><br><span class="line">    conda_executable &#x3D; os.path.join(os.path.dirname(sys.executable), &#39;conda&#39;)</span><br><span class="line">    args &#x3D; [conda_executable] + args.split()</span><br><span class="line">    </span><br><span class="line">    # Add --prefix to point conda installation to the current environment</span><br><span class="line">    if args[1] in [&#39;install&#39;, &#39;update&#39;, &#39;upgrade&#39;, &#39;remove&#39;, &#39;uninstall&#39;, &#39;list&#39;]:</span><br><span class="line">        if &#39;-p&#39; not in args and &#39;--prefix&#39; not in args:</span><br><span class="line">            args.insert(2, &#39;--prefix&#39;)</span><br><span class="line">            args.insert(3, sys.prefix)</span><br><span class="line">            </span><br><span class="line">    # Because the notebook does not allow us to respond &quot;yes&quot; during the</span><br><span class="line">    # installation, we need to insert --yes in the argument list for some commands</span><br><span class="line">    if args[1] in [&#39;install&#39;, &#39;update&#39;, &#39;upgrade&#39;, &#39;remove&#39;, &#39;uninstall&#39;, &#39;create&#39;]:</span><br><span class="line">        if &#39;-y&#39; not in args and &#39;--yes&#39; not in args:</span><br><span class="line">            args.insert(2, &#39;--yes&#39;)</span><br><span class="line">            </span><br><span class="line">    # Call conda from command line with subprocess &amp; send results to stdout &amp; stderr</span><br><span class="line">    with Popen(args, stdout&#x3D;PIPE, stderr&#x3D;PIPE) as process:</span><br><span class="line">        # Read stdout character by character, as it includes real-time progress updates</span><br><span class="line">        for c in iter(lambda: process.stdout.read(1), b&#39;&#39;):</span><br><span class="line">            sys.stdout.write(c.decode(sys.stdout.encoding))</span><br><span class="line">        # Read stderr line by line, because real-time does not matter</span><br><span class="line">        for line in iter(process.stderr.readline, b&#39;&#39;):</span><br><span class="line">            sys.stderr.write(line.decode(sys.stderr.encoding))</span><br></pre></td></tr></table></figure>
+
+
+<p>You can now use <code>%conda install</code> and it will install packages to the correct environment:</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">%conda install numpy</span><br><span class="line"></span><br><span class="line">Fetching package metadata ...........</span><br><span class="line">Solving package specifications: .</span><br><span class="line"></span><br><span class="line"># All requested packages already installed.</span><br><span class="line"># packages in environment at &#x2F;Users&#x2F;jakevdp&#x2F;anaconda:</span><br><span class="line">#</span><br><span class="line">numpy                     1.13.3           py36h2cdce51_0</span><br></pre></td></tr></table></figure>
+
+
+<p>This conda magic still needs some work to be a general solution (cf. the TODO comments in the code), but I think this is a useful start.</p>
+<p>If a pip magic and conda magic similar to the above were added to Jupyter’s default set of magic commands, I think it could go a long way toward solving the common problems that users have when trying to install Python packages for use with Jupyter notebooks.<br>This approach is not without its own dangers, though: these magics are yet another layer of abstraction that, like all abstractions, will inevitably leak.<br>But if they are implemented carefully, I think it would lead to a much nicer overall user experience.</p>
+<h2 id="Summary"><a href="#Summary" class="headerlink" title="Summary"></a>Summary</h2><p>In this post, I tried to answer once and for all the perennial question, <em>how do I install Python packages in the Jupyter notebook</em>.</p>
+<p>After proposing some simple solutions that can be used today, I went into a detailed explanation of <em>why</em> these solutions are necessary: it comes down to the fact that in Jupyter, the kernel is disconnected from the shell.<br>The kernel environment can be changed at runtime, while the shell environment is determined when the notebook is launched.<br>The fact that a full explanation took so many words and touched so many concepts, I think, indicates a real usability issue for the Jupyter ecosystem, and so I proposed a few possible avenues that the community might adopt to try to streamline the experience for users.</p>
+<p>One final addendum: I have a huge amount of respect and appreciation for the developers of Jupyter, conda, pip, and related tools that form the foundations of the Python data science ecosystem.<br>I’m fairly certain those developers have already considered these issues and weighed some of these potential fixes – if any of you are reading this, please feel free to comment and set me straight on anything I’ve overlooked!<br>And, finally, thanks for all that you do for the open source community.</p>
+<p><em>Thanks to Andy Mueller, Craig Citro, and Matthias Bussonnier for helpful comments on an early draft of this post</em>.</p>
+<p><em>This post was written within a Jupyter notebook; you can view a static version <a href="http://nbviewer.jupyter.org/url/jakevdp.github.com/downloads/notebooks/JupyterInstallation.ipynb" target="_blank" rel="noopener">here</a> or download the full notebook <a href="http://jakevdp.github.com/downloads/notebooks/JupyterInstallation.ipynb" target="_blank" rel="noopener">here</a>.</em></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/jupyter/" rel="tag"># jupyter</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2018/12/28/%E8%81%8C%E4%B8%9A%E7%94%9F%E6%B6%AF/%E6%9C%9F%E6%9D%83%E9%97%AE%E9%A2%98/" rel="prev" title="期权问题">
+      <i class="fa fa-chevron-left"></i> 期权问题
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2019/01/10/web/%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6/web%E4%B8%89%E5%A4%A7%E7%BB%84%E4%BB%B6-servlet3%E6%96%B0%E7%89%B9%E5%BE%81/" rel="next" title="web三大组件-servlet3新特性">
+      web三大组件-servlet3新特性 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Installing-Python-Packages-from-a-Jupyter-Notebook"><span class="nav-number">1.</span> <span class="nav-text">Installing Python Packages from a Jupyter Notebook</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Quick-Fix-How-To-Install-Packages-from-the-Jupyter-Notebook"><span class="nav-number">1.1.</span> <span class="nav-text">Quick Fix: How To Install Packages from the Jupyter Notebook</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#pip-vs-conda"><span class="nav-number">1.1.1.</span> <span class="nav-text">pip vs. conda</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#How-to-use-Conda-from-the-Jupyter-Notebook"><span class="nav-number">1.1.2.</span> <span class="nav-text">How to use Conda from the Jupyter Notebook</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#How-to-use-Pip-from-the-Jupyter-Notebook"><span class="nav-number">1.1.3.</span> <span class="nav-text">How to use Pip from the Jupyter Notebook</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Details-Why-is-Installation-from-Jupyter-so-Messy"><span class="nav-number">1.2.</span> <span class="nav-text">The Details: Why is Installation from Jupyter so Messy?</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#How-your-operating-system-locates-executables"><span class="nav-number">1.2.1.</span> <span class="nav-text">How your operating system locates executables</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#How-Python-locates-packages"><span class="nav-number">1.2.2.</span> <span class="nav-text">How Python locates packages</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#How-Jupyter-executes-code-Jupyter-Kernels"><span class="nav-number">1.2.3.</span> <span class="nav-text">How Jupyter executes code: Jupyter Kernels</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Root-of-the-Issue"><span class="nav-number">1.3.</span> <span class="nav-text">The Root of the Issue</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Some-Modest-Proposals"><span class="nav-number">1.4.</span> <span class="nav-text">Some Modest Proposals</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Potential-Changes-to-Jupyter"><span class="nav-number">1.4.1.</span> <span class="nav-text">Potential Changes to Jupyter</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Potential-Changes-to-pip"><span class="nav-number">1.4.2.</span> <span class="nav-text">Potential Changes to pip</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Changes-to-Conda"><span class="nav-number">1.4.3.</span> <span class="nav-text">Changes to Conda</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Explicit-invocation"><span class="nav-number">1.4.3.1.</span> <span class="nav-text">Explicit invocation</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#A-pip-channel-for-conda"><span class="nav-number">1.4.3.2.</span> <span class="nav-text">A pip channel for conda?</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#New-Jupyter-Magic-Functions"><span class="nav-number">1.4.4.</span> <span class="nav-text">New Jupyter Magic Functions</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#pip-magic"><span class="nav-number">1.4.4.1.</span> <span class="nav-text">pip magic</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#conda-magic"><span class="nav-number">1.4.4.2.</span> <span class="nav-text">conda magic</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Summary"><span class="nav-number">1.5.</span> <span class="nav-text">Summary</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2019/01/08/1%E5%BC%80%E5%8F%91%E8%BD%AF%E4%BB%B6/jupyter/jupyter%E5%AE%89%E8%A3%85%E6%A8%A1%E5%9D%97/",
+            identifier: "2019/01/08/1开发软件/jupyter/jupyter安装模块/",
+            title: "jupyter安装模块"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

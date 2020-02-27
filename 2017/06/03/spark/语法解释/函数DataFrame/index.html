@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="DataFrame函数[TOC] 一、Action 操作1.1 collect()返回值是一个数组，返回dataframe集合所有的行 1.2 collectAsList()返回值是一个java类型的数组，返回dataframe集合所有的行 1.3  count()返回一个number类型的，返回dataframe集合的行数 1.4 describe(cols: String*)描述某些列的cou">
+<meta property="og:type" content="article">
+<meta property="og:title" content="DataFrame函数">
+<meta property="og:url" content="https://longzl2015.github.io/2017/06/03/spark/%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A/%E5%87%BD%E6%95%B0DataFrame/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="DataFrame函数[TOC] 一、Action 操作1.1 collect()返回值是一个数组，返回dataframe集合所有的行 1.2 collectAsList()返回值是一个java类型的数组，返回dataframe集合所有的行 1.3  count()返回一个number类型的，返回dataframe集合的行数 1.4 describe(cols: String*)描述某些列的cou">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2017-06-03T16:00:01.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.872Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="spark">
+<meta name="twitter:card" content="summary">
+
+<link rel="canonical" href="https://longzl2015.github.io/2017/06/03/spark/%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A/%E5%87%BD%E6%95%B0DataFrame/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>DataFrame函数 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2017/06/03/spark/%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A/%E5%87%BD%E6%95%B0DataFrame/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          DataFrame函数
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2017-06-04 00:00:01" itemprop="dateCreated datePublished" datetime="2017-06-04T00:00:01+08:00">2017-06-04</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/" itemprop="url" rel="index">
+                    <span itemprop="name">spark</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/spark/%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A/" itemprop="url" rel="index">
+                    <span itemprop="name">语法解释</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2017/06/03/spark/%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A/%E5%87%BD%E6%95%B0DataFrame/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2017/06/03/spark/语法解释/函数DataFrame/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="DataFrame函数"><a href="#DataFrame函数" class="headerlink" title="DataFrame函数"></a>DataFrame函数</h1><p>[TOC]</p>
+<h2 id="一、Action-操作"><a href="#一、Action-操作" class="headerlink" title="一、Action 操作"></a>一、Action 操作</h2><h3 id="1-1-collect"><a href="#1-1-collect" class="headerlink" title="1.1 collect()"></a>1.1 collect()</h3><p>返回值是一个数组，返回dataframe集合所有的行</p>
+<h3 id="1-2-collectAsList"><a href="#1-2-collectAsList" class="headerlink" title="1.2 collectAsList()"></a>1.2 collectAsList()</h3><p>返回值是一个java类型的数组，返回dataframe集合所有的行</p>
+<h3 id="1-3-count"><a href="#1-3-count" class="headerlink" title="1.3  count()"></a>1.3  count()</h3><p>返回一个number类型的，返回dataframe集合的行数</p>
+<h3 id="1-4-describe-cols-String"><a href="#1-4-describe-cols-String" class="headerlink" title="1.4 describe(cols: String*)"></a>1.4 describe(cols: String*)</h3><p>描述某些列的count, mean, stddev, min, max。这个可以传多个参数，中间用逗号分隔，如果有字段为空，那么不参与运算。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">df.describe(<span class="string">"age"</span>, <span class="string">"height"</span>).show()</span><br></pre></td></tr></table></figure>
+
+<h3 id="1-5-first"><a href="#1-5-first" class="headerlink" title="1.5 first()"></a>1.5 first()</h3><p>返回第一行 ，类型是row类型</p>
+<h3 id="1-6-head"><a href="#1-6-head" class="headerlink" title="1.6 head()"></a>1.6 head()</h3><p>返回第一行 ，类型是row类型</p>
+<h3 id="1-7-head-n-Int"><a href="#1-7-head-n-Int" class="headerlink" title="1.7 head(n:Int)"></a>1.7 head(n:Int)</h3><p>返回n行  ，类型是row 类型</p>
+<h3 id="1-8-show"><a href="#1-8-show" class="headerlink" title="1.8 show()"></a>1.8 show()</h3><p>返回dataframe集合的值 默认是20行，返回类型是unit</p>
+<h3 id="1-9-show-n-Int"><a href="#1-9-show-n-Int" class="headerlink" title="1.9  show(n:Int)"></a>1.9  show(n:Int)</h3><p>返回n行，返回值类型是unit</p>
+<h3 id="1-10-table-n-Int"><a href="#1-10-table-n-Int" class="headerlink" title="1.10 table(n:Int)"></a>1.10 table(n:Int)</h3><p>返回n行  ，类型是row 类型</p>
+<h2 id="二、-dataframe的基本操作"><a href="#二、-dataframe的基本操作" class="headerlink" title="二、 dataframe的基本操作"></a>二、 dataframe的基本操作</h2><h3 id="2-1-cache"><a href="#2-1-cache" class="headerlink" title="2.1 cache()"></a>2.1 cache()</h3><p>将DataFrame缓存到内存中，以便之后加速运算</p>
+<h3 id="2-2-columns"><a href="#2-2-columns" class="headerlink" title="2.2 columns"></a>2.2 columns</h3><p>返回一个string类型的数组，返回值是所有列的名字</p>
+<h3 id="2-3-dtypes"><a href="#2-3-dtypes" class="headerlink" title="2.3 dtypes"></a>2.3 dtypes</h3><p>返回一个string类型的二维数组，返回值是所有列的名字以及类型</p>
+<h3 id="2-4-explan"><a href="#2-4-explan" class="headerlink" title="2.4 explan()"></a>2.4 explan()</h3><p>打印物理执行计划  </p>
+<h3 id="2-5-explain-n-Boolean"><a href="#2-5-explain-n-Boolean" class="headerlink" title="2.5 explain(n:Boolean)"></a>2.5 explain(n:Boolean)</h3><p>输入值为 false 或者true ，返回值是unit  默认是false ，如果输入true 将会打印 逻辑的和物理的</p>
+<h3 id="2-6-isLocal"><a href="#2-6-isLocal" class="headerlink" title="2.6 isLocal"></a>2.6 isLocal</h3><p>返回值是Boolean类型，如果允许模式是local返回true 否则返回false</p>
+<h3 id="2-7-persist-newlevel-StorageLevel"><a href="#2-7-persist-newlevel-StorageLevel" class="headerlink" title="2.7 persist(newlevel:StorageLevel)"></a>2.7 persist(newlevel:StorageLevel)</h3><p>与cache类似。不同的是：cache只有一个默认的缓存级别MEMORY_ONLY ，而persist可以根据情况设置其它的缓存级别。</p>
+<h3 id="2-8-printSchema"><a href="#2-8-printSchema" class="headerlink" title="2.8 printSchema()"></a>2.8 printSchema()</h3><p>打印出字段名称和类型 按照树状结构来打印</p>
+<h3 id="2-9-registerTempTable-tablename-String"><a href="#2-9-registerTempTable-tablename-String" class="headerlink" title="2.9 registerTempTable(tablename:String)"></a>2.9 registerTempTable(tablename:String)</h3><p>返回Unit ，将df的对象只放在一张表里面，这个表随着对象的删除而删除了</p>
+<h3 id="2-10-schema"><a href="#2-10-schema" class="headerlink" title="2.10 schema"></a>2.10 schema</h3><p>返回structType 类型，将字段名称和类型按照结构体类型返回</p>
+<h3 id="2-11-toDF"><a href="#2-11-toDF" class="headerlink" title="2.11 toDF()"></a>2.11 toDF()</h3><p>返回一个新的dataframe类型的</p>
+<h3 id="2-12-toDF-colnames：String"><a href="#2-12-toDF-colnames：String" class="headerlink" title="2.12 toDF(colnames：String*)"></a>2.12 toDF(colnames：String*)</h3><p>将参数中的几个字段返回一个新的dataframe类型的，</p>
+<h3 id="2-13-unpersist"><a href="#2-13-unpersist" class="headerlink" title="2.13 unpersist()"></a>2.13 unpersist()</h3><p>返回dataframe.this.type 类型，去除模式中的数据</p>
+<h3 id="2-14-unpersist-blocking-Boolean"><a href="#2-14-unpersist-blocking-Boolean" class="headerlink" title="2.14 unpersist(blocking:Boolean)"></a>2.14 unpersist(blocking:Boolean)</h3><p>返回dataframe.this.type类型 true 和unpersist是一样的作用false 是去除RDD</p>
+<p>##三、集成查询：</p>
+<h3 id="3-1-数据说明"><a href="#3-1-数据说明" class="headerlink" title="3.1 数据说明"></a>3.1 数据说明</h3><figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> org.apache.spark.sql.<span class="type">SparkSession</span></span><br><span class="line"><span class="keyword">val</span> spark = <span class="type">SparkSession</span>.builder().appName(<span class="string">"Spark SQL basic example"</span>).config(<span class="string">"spark.some.config.option"</span>, <span class="string">"some-value"</span>).getOrCreate()</span><br><span class="line"><span class="keyword">import</span> spark.implicits._</span><br><span class="line"><span class="keyword">val</span> df = spark.read.format(<span class="string">"csv"</span>).option(<span class="string">"header"</span>, <span class="literal">true</span>).load(<span class="string">"/user/hadoop/csvdata/csvdata"</span>)</span><br><span class="line">df.show()</span><br><span class="line">scala &gt;</span><br><span class="line">scala&gt; df.show()</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">| id|name|subject|score|</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|   <span class="number">50</span>|</span><br><span class="line">|  <span class="number">6</span>|  n6|     s1|   <span class="number">60</span>|</span><br><span class="line">|  <span class="number">7</span>|  n6|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|   <span class="number">90</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|   <span class="number">70</span>|</span><br><span class="line">+---+----+-------+-----+</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-2-agg"><a href="#3-2-agg" class="headerlink" title="3.2 agg"></a>3.2 agg</h3><p>在整个数据集范围类进行聚合操作。该函数相当于：<code>ds.groupBy().agg(…)</code></p>
+<ul>
+<li>函数原型</li>
+</ul>
+<p>1、 agg(expers:column*) </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">df.agg(max(<span class="string">"age"</span>), avg(<span class="string">"salary"</span>))</span><br><span class="line">df.groupBy().agg(max(<span class="string">"age"</span>), avg(<span class="string">"salary"</span>))</span><br></pre></td></tr></table></figure>
+
+<p>2、 agg(exprs: Map[String, String])  </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">df.agg(<span class="type">Map</span>(<span class="string">"age"</span> -&gt; <span class="string">"max"</span>, <span class="string">"salary"</span> -&gt; <span class="string">"avg"</span>))</span><br><span class="line">df.groupBy().agg(<span class="type">Map</span>(<span class="string">"age"</span> -&gt; <span class="string">"max"</span>, <span class="string">"salary"</span> -&gt; <span class="string">"avg"</span>))</span><br></pre></td></tr></table></figure>
+
+<p>3、 agg(aggExpr: (String, String), aggExprs: (String, String)*)  </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">df.agg(<span class="type">Map</span>(<span class="string">"age"</span> -&gt; <span class="string">"max"</span>, <span class="string">"salary"</span> -&gt; <span class="string">"avg"</span>))</span><br><span class="line">df.groupBy().agg(<span class="type">Map</span>(<span class="string">"age"</span> -&gt; <span class="string">"max"</span>, <span class="string">"salary"</span> -&gt; <span class="string">"avg"</span>))</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子：</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.agg(<span class="string">"score"</span>-&gt;<span class="string">"avg"</span>, <span class="string">"score"</span>-&gt;<span class="string">"max"</span>, <span class="string">"score"</span>-&gt;<span class="string">"min"</span>, <span class="string">"score"</span>-&gt;<span class="string">"count"</span>).show()</span><br><span class="line">+----------+----------+----------+------------+</span><br><span class="line">|avg(score)|max(score)|min(score)|count(score)|</span><br><span class="line">+----------+----------+----------+------------+</span><br><span class="line">|      <span class="number">40.0</span>|        <span class="number">90</span>|        <span class="number">10</span>|          <span class="number">12</span>|</span><br><span class="line">+----------+----------+----------+------------+</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-3-groupBy"><a href="#3-3-groupBy" class="headerlink" title="3.3  groupBy"></a>3.3  groupBy</h3><p>使用指定的列对数据集进行分组，以便我们可以对其进行聚合。请参阅RelationalGroupedDataset获取所有可用的聚合函数。<br>这是groupBy的一个变体，它只能使用列名称对现有列进行分组（即不能构造表达式）。</p>
+<ul>
+<li>函数原型</li>
+</ul>
+<p>1、def groupBy(col1: String, cols: String<em>): RelationalGroupedDataset<br>2、def groupBy(cols: Column</em>): RelationalGroupedDataset </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">df.groupBy(<span class="string">"age"</span>).agg(<span class="type">Map</span>(<span class="string">"age"</span> -&gt;<span class="string">"count"</span>)).show();</span><br><span class="line">df.groupBy(<span class="string">"age"</span>).avg().show();</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子1 </li>
+</ul>
+<p>在使用groupBy函数时，一般都是先分组，在使用agg等聚合函数对数据进行聚合。<br>按name字段进行聚合，然后再使用agg聚合函数进行聚合。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.groupBy(<span class="string">"name"</span>).agg(<span class="string">"score"</span>-&gt;<span class="string">"avg"</span>).sort(<span class="string">"name"</span>).show()</span><br><span class="line">+----+----------+</span><br><span class="line">|name|avg(score)|</span><br><span class="line">+----+----------+</span><br><span class="line">|  n1|      <span class="number">10.0</span>|</span><br><span class="line">|  n2|      <span class="number">20.0</span>|</span><br><span class="line">|  n3|      <span class="number">25.0</span>|</span><br><span class="line">|  n4|      <span class="number">40.0</span>|</span><br><span class="line">|  n5|      <span class="number">50.0</span>|</span><br><span class="line">|  n6|      <span class="number">50.0</span>|</span><br><span class="line">|  n8|      <span class="number">90.0</span>|</span><br><span class="line">|  n9|      <span class="number">40.0</span>|</span><br><span class="line">+----+----------+</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子2 </li>
+</ul>
+<p>按id和name两个字段对数据集进行分组，然后求score列的平均值。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.groupBy(<span class="string">"id"</span>,<span class="string">"name"</span>).agg(<span class="string">"score"</span>-&gt;<span class="string">"avg"</span>).sort(<span class="string">"name"</span>).show()</span><br><span class="line">+---+----+----------+</span><br><span class="line">| id|name|avg(score)|</span><br><span class="line">+---+----+----------+</span><br><span class="line">|  <span class="number">1</span>|  n1|      <span class="number">10.0</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|      <span class="number">20.0</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|      <span class="number">25.0</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|      <span class="number">40.0</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|      <span class="number">50.0</span>|</span><br><span class="line">|  <span class="number">7</span>|  n6|      <span class="number">40.0</span>|</span><br><span class="line">|  <span class="number">6</span>|  n6|      <span class="number">60.0</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|      <span class="number">90.0</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|      <span class="number">45.0</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|      <span class="number">30.0</span>|</span><br><span class="line">+---+----+----------+</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子3 </li>
+</ul>
+<p>计算每个subject的平均分数：</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.groupBy(<span class="string">"subject"</span>).agg(<span class="string">"score"</span>-&gt;<span class="string">"avg"</span>).sort(<span class="string">"subject"</span>).show()</span><br><span class="line">+-------+------------------+</span><br><span class="line">|subject|        avg(score)|</span><br><span class="line">+-------+------------------+</span><br><span class="line">|     s1|              <span class="number">28.0</span>|</span><br><span class="line">|     s2|              <span class="number">42.5</span>|</span><br><span class="line">|     s3|<span class="number">56.666666666666664</span>|</span><br><span class="line">+-------+------------------+</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子4 </li>
+</ul>
+<p>同时计算多个列值的平均值，最小值，最大值。<br>（注：我这里用的是同一列，完全可以是不同列）</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.groupBy(<span class="string">"subject"</span>).agg(<span class="string">"score"</span>-&gt;<span class="string">"avg"</span>, <span class="string">"score"</span>-&gt;<span class="string">"max"</span>, <span class="string">"score"</span>-&gt;<span class="string">"min"</span>, <span class="string">"score"</span>-&gt;<span class="string">"count"</span>).sort(<span class="string">"subject"</span>).show()</span><br><span class="line">+-------+------------------+----------+----------+------------+</span><br><span class="line">|subject|        avg(score)|max(score)|min(score)|count(score)|</span><br><span class="line">+-------+------------------+----------+----------+------------+</span><br><span class="line">|     s1|              <span class="number">28.0</span>|        <span class="number">60</span>|        <span class="number">10</span>|           <span class="number">5</span>|</span><br><span class="line">|     s2|              <span class="number">42.5</span>|        <span class="number">70</span>|        <span class="number">20</span>|           <span class="number">4</span>|</span><br><span class="line">|     s3|<span class="number">56.666666666666664</span>|        <span class="number">90</span>|        <span class="number">30</span>|           <span class="number">3</span>|</span><br><span class="line">+-------+------------------+----------+----------+------------+</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-4-apply-和-col"><a href="#3-4-apply-和-col" class="headerlink" title="3.4 apply 和 col"></a>3.4 apply 和 col</h3><p>根据列名选择列并将其作为列返回。</p>
+<ul>
+<li>函数原型</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">apply</span></span>(colName: <span class="type">String</span>): <span class="type">Column</span> </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">col</span></span>(colName: <span class="type">String</span>): <span class="type">Column</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子1</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.apply(<span class="string">"name"</span>)</span><br><span class="line">res11: org.apache.spark.sql.<span class="type">Column</span> = name</span><br><span class="line"></span><br><span class="line">scala&gt; df.col(<span class="string">"name"</span>)</span><br><span class="line">res16: org.apache.spark.sql.<span class="type">Column</span> = name</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-7-cube"><a href="#3-7-cube" class="headerlink" title="3.7 cube"></a>3.7 cube</h3><p>使用指定的列为当前数据集创建一个多维数据集，因此我们可以对它们运行聚合。请参阅RelationalGroupedDataset获取所有可用的聚合函数。<br>这是立方体的变体，只能使用列名称对现有列进行分组（即不能构造表达式）。</p>
+<ul>
+<li>原型</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cube</span></span>(col1: <span class="type">String</span>, cols: <span class="type">String</span>*): <span class="type">RelationalGroupedDataset</span> </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">cube</span></span>(cols: <span class="type">Column</span>*): <span class="type">RelationalGroupedDataset</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子1</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.cube(<span class="string">"name"</span>, <span class="string">"score"</span>)</span><br><span class="line">res18: org.apache.spark.sql.<span class="type">RelationalGroupedDataset</span> = org.apache.spark.sql.<span class="type">RelationalGroupedDataset</span>@<span class="number">3</span>f88db17</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-8-drop"><a href="#3-8-drop" class="headerlink" title="3.8 drop"></a>3.8 drop</h3><p>删除数据集中的某个列。</p>
+<ul>
+<li>函数原型</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">drop</span></span>(col: <span class="type">Column</span>): <span class="type">DataFrame</span> </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">drop</span></span>(colNames: <span class="type">String</span>*): <span class="type">DataFrame</span> </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">drop</span></span>(colName: <span class="type">String</span>): <span class="type">DataFrame</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子1</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.drop(<span class="string">"id"</span>).show()</span><br><span class="line">+----+-------+-----+</span><br><span class="line">|name|subject|score|</span><br><span class="line">+----+-------+-----+</span><br><span class="line">|  n1|     s1|   <span class="number">10</span>|</span><br><span class="line">|  n2|     s2|   <span class="number">20</span>|</span><br><span class="line">|  n3|     s3|   <span class="number">30</span>|</span><br><span class="line">|  n3|     s1|   <span class="number">20</span>|</span><br><span class="line">|  n4|     s2|   <span class="number">40</span>|</span><br><span class="line">|  n5|     s3|   <span class="number">50</span>|</span><br><span class="line">|  n6|     s1|   <span class="number">60</span>|</span><br><span class="line">|  n6|     s2|   <span class="number">40</span>|</span><br><span class="line">|  n8|     s3|   <span class="number">90</span>|</span><br><span class="line">|  n9|     s1|   <span class="number">30</span>|</span><br><span class="line">|  n9|     s1|   <span class="number">20</span>|</span><br><span class="line">|  n9|     s2|   <span class="number">70</span>|</span><br><span class="line">+----+-------+-----+</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-9-join"><a href="#3-9-join" class="headerlink" title="3.9 join"></a>3.9 join</h3><ul>
+<li>join类型的说明<br>内连接 : 只连接匹配的行<br>左外连接 : 包含左边表的全部行（不管右边的表中是否存在与它们匹配的行），以及右边表中全部匹配的行<br>右外连接 : 包含右边表的全部行（不管左边的表中是否存在与它们匹配的行），以及左边表中全部匹配的行<br>全外连接 : 包含左、右两个表的全部行，不管另外一边的表中是否存在与它们匹配的行。</li>
+<li>功能说明<br>使用给定的连接表达式连接另一个DataFrame。以下执行df1和df2之间的完整外部联接。<br>使用给定的连接表达式与另一个DataFrame进行内部连接。<br>使用给定的列与另一个DataFrame进行设置连接。<br>加入另一个DataFrame。</li>
+<li>函数原型</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">join</span></span>(right: <span class="type">Dataset</span>[_], joinExprs: <span class="type">Column</span>, joinType: <span class="type">String</span>): <span class="type">DataFrame</span> </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">join</span></span>(right: <span class="type">Dataset</span>[_], joinExprs: <span class="type">Column</span>): <span class="type">DataFrame</span> </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">join</span></span>(right: <span class="type">Dataset</span>[_], usingColumns: <span class="type">Seq</span>[<span class="type">String</span>], joinType: <span class="type">String</span>): <span class="type">DataFrame</span> </span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">join</span></span>(right: <span class="type">Dataset</span>[_], usingColumns: <span class="type">Seq</span>[<span class="type">String</span>]): <span class="type">DataFrame</span> </span><br><span class="line"><span class="comment">// 内部使用给定的列与另一个DataFrame进行同等连接。</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">join</span></span>(right: <span class="type">Dataset</span>[_], usingColumn: <span class="type">String</span>): <span class="type">DataFrame</span> </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">join</span></span>(right: <span class="type">Dataset</span>[_]): <span class="type">DataFrame</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：这里的joinType必须是这几个中的一个：<code>inner</code>, <code>outer</code>, <code>left_outer</code>, <code>right_outer</code>, <code>leftsemi</code>.</p>
+<ul>
+<li>例子1<br>该例子演示inner join。</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.show()</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">| id|name|subject|score|</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|   <span class="number">50</span>|</span><br><span class="line">|  <span class="number">6</span>|  n6|     s1|   <span class="number">60</span>|</span><br><span class="line">|  <span class="number">7</span>|  n6|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|   <span class="number">90</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|   <span class="number">70</span>|</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">val</span> df2 = df.select(<span class="string">"id"</span>, <span class="string">"subject"</span>,<span class="string">"score"</span>)</span><br><span class="line">df2: org.apache.spark.sql.<span class="type">DataFrame</span> = [id: string, subject: string ... <span class="number">1</span> more field]</span><br><span class="line"></span><br><span class="line">scala&gt; df2.show()</span><br><span class="line">+---+-------+-----+</span><br><span class="line">| id|subject|score|</span><br><span class="line">+---+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">4</span>|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|     s3|   <span class="number">50</span>|</span><br><span class="line">|  <span class="number">6</span>|     s1|   <span class="number">60</span>|</span><br><span class="line">|  <span class="number">7</span>|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">8</span>|     s3|   <span class="number">90</span>|</span><br><span class="line">|  <span class="number">8</span>|     s1|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">9</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">9</span>|     s2|   <span class="number">70</span>|</span><br><span class="line">+---+-------+-----+</span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">val</span> df3 = df.join(df2, df(<span class="string">"id"</span>)===df2(<span class="string">"id"</span>))</span><br><span class="line"><span class="number">17</span>/<span class="number">12</span>/<span class="number">03</span> <span class="number">21</span>:<span class="number">40</span>:<span class="number">59</span> <span class="type">WARN</span> <span class="type">Column</span>: <span class="type">Constructing</span> trivially <span class="literal">true</span> equals predicate, <span class="symbol">'id</span>#<span class="number">0</span> = id#<span class="number">0</span>'. <span class="type">Perhaps</span> you need to use aliases.</span><br><span class="line">df3: org.apache.spark.sql.<span class="type">DataFrame</span> = [id: string, name: string ... <span class="number">5</span> more fields]</span><br><span class="line"></span><br><span class="line">scala&gt; df3.show()</span><br><span class="line">+---+----+-------+-----+---+-------+-----+</span><br><span class="line">| id|name|subject|score| id|subject|score|</span><br><span class="line">+---+----+-------+-----+---+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|   <span class="number">10</span>|  <span class="number">1</span>|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|   <span class="number">20</span>|  <span class="number">2</span>|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|  <span class="number">3</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|  <span class="number">3</span>|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|  <span class="number">3</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|  <span class="number">3</span>|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|   <span class="number">40</span>|  <span class="number">4</span>|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|   <span class="number">50</span>|  <span class="number">5</span>|     s3|   <span class="number">50</span>|</span><br><span class="line">|  <span class="number">6</span>|  n6|     s1|   <span class="number">60</span>|  <span class="number">6</span>|     s1|   <span class="number">60</span>|</span><br><span class="line">|  <span class="number">7</span>|  n6|     s2|   <span class="number">40</span>|  <span class="number">7</span>|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|   <span class="number">90</span>|  <span class="number">8</span>|     s1|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|   <span class="number">90</span>|  <span class="number">8</span>|     s3|   <span class="number">90</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|   <span class="number">30</span>|  <span class="number">8</span>|     s1|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|   <span class="number">30</span>|  <span class="number">8</span>|     s3|   <span class="number">90</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|   <span class="number">20</span>|  <span class="number">9</span>|     s2|   <span class="number">70</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|   <span class="number">20</span>|  <span class="number">9</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|   <span class="number">70</span>|  <span class="number">9</span>|     s2|   <span class="number">70</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|   <span class="number">70</span>|  <span class="number">9</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">+---+----+-------+-----+---+-------+-----+</span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">val</span> df4 = df2.limit(<span class="number">6</span>)</span><br><span class="line">df4: org.apache.spark.sql.<span class="type">Dataset</span>[org.apache.spark.sql.<span class="type">Row</span>] = [id: string, subject: string ... <span class="number">1</span> more field]</span><br><span class="line"></span><br><span class="line">scala&gt; df4.show()</span><br><span class="line">+---+-------+-----+</span><br><span class="line">| id|subject|score|</span><br><span class="line">+---+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">4</span>|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|     s3|   <span class="number">50</span>|</span><br><span class="line">+---+-------+-----+</span><br><span class="line"></span><br><span class="line">scala&gt; df.show()</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">| id|name|subject|score|</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|   <span class="number">50</span>|</span><br><span class="line">|  <span class="number">6</span>|  n6|     s1|   <span class="number">60</span>|</span><br><span class="line">|  <span class="number">7</span>|  n6|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|   <span class="number">90</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|   <span class="number">70</span>|</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">val</span> df6 = df.join(df4, <span class="string">"id"</span>)</span><br><span class="line">df6: org.apache.spark.sql.<span class="type">DataFrame</span> = [id: string, name: string ... <span class="number">4</span> more fields]</span><br><span class="line"></span><br><span class="line">scala&gt; df6.show()</span><br><span class="line">+---+----+-------+-----+-------+-----+</span><br><span class="line">| id|name|subject|score|subject|score|</span><br><span class="line">+---+----+-------+-----+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|   <span class="number">10</span>|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|   <span class="number">20</span>|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|   <span class="number">40</span>|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|   <span class="number">50</span>|     s3|   <span class="number">50</span>|</span><br><span class="line">+---+----+-------+-----+-------+-----+</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子2<br>本例说明left_outer的使用和结果。<br>注意：数据集df4和df与上例的相同。<br>小结：通过例子可以看到，left_outer的效果是，保留左边表格的所有id，即使右边的表没有这些id（关联字段的值）</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df4.show()</span><br><span class="line">+---+-------+-----+</span><br><span class="line">| id|subject|score|</span><br><span class="line">+---+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">4</span>|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|     s3|   <span class="number">50</span>|</span><br><span class="line">+---+-------+-----+</span><br><span class="line"></span><br><span class="line">scala&gt; df.show()</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">| id|name|subject|score|</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|   <span class="number">50</span>|</span><br><span class="line">|  <span class="number">6</span>|  n6|     s1|   <span class="number">60</span>|</span><br><span class="line">|  <span class="number">7</span>|  n6|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|   <span class="number">90</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|   <span class="number">70</span>|</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line"></span><br><span class="line">scala&gt; <span class="keyword">val</span> df7 = df.join(df4, df(<span class="string">"id"</span>)===df4(<span class="string">"id"</span>), <span class="string">"left_outer"</span>)</span><br><span class="line"><span class="number">17</span>/<span class="number">12</span>/<span class="number">03</span> <span class="number">21</span>:<span class="number">53</span>:<span class="number">40</span> <span class="type">WARN</span> <span class="type">Column</span>: <span class="type">Constructing</span> trivially <span class="literal">true</span> equals predicate, <span class="symbol">'id</span>#<span class="number">0</span> = id#<span class="number">0</span>'. <span class="type">Perhaps</span> you need to use aliases.</span><br><span class="line">df7: org.apache.spark.sql.<span class="type">DataFrame</span> = [id: string, name: string ... <span class="number">5</span> more fields]</span><br><span class="line"></span><br><span class="line">scala&gt; df7.show()</span><br><span class="line">+---+----+-------+-----+----+-------+-----+</span><br><span class="line">| id|name|subject|score|  id|subject|score|</span><br><span class="line">+---+----+-------+-----+----+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|   <span class="number">10</span>|   <span class="number">1</span>|     s1|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|   <span class="number">20</span>|   <span class="number">2</span>|     s2|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|   <span class="number">3</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|   <span class="number">3</span>|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|   <span class="number">3</span>|     s1|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|   <span class="number">3</span>|     s3|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|   <span class="number">40</span>|   <span class="number">4</span>|     s2|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|   <span class="number">50</span>|   <span class="number">5</span>|     s3|   <span class="number">50</span>|</span><br><span class="line">|  <span class="number">6</span>|  n6|     s1|   <span class="number">60</span>|<span class="literal">null</span>|   <span class="literal">null</span>| <span class="literal">null</span>|</span><br><span class="line">|  <span class="number">7</span>|  n6|     s2|   <span class="number">40</span>|<span class="literal">null</span>|   <span class="literal">null</span>| <span class="literal">null</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|   <span class="number">90</span>|<span class="literal">null</span>|   <span class="literal">null</span>| <span class="literal">null</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|   <span class="number">30</span>|<span class="literal">null</span>|   <span class="literal">null</span>| <span class="literal">null</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|   <span class="number">20</span>|<span class="literal">null</span>|   <span class="literal">null</span>| <span class="literal">null</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|   <span class="number">70</span>|<span class="literal">null</span>|   <span class="literal">null</span>| <span class="literal">null</span>|</span><br><span class="line">+---+----+-------+-----+----+-------+-----+</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-10-na"><a href="#3-10-na" class="headerlink" title="3.10 na"></a>3.10 na</h3><p>返回一个DataFrameNaFunctions以处理丢失的数据。</p>
+<ul>
+<li>函数原型</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">na</span></span>: <span class="type">DataFrameNaFunctions</span></span><br></pre></td></tr></table></figure>
+
+<p>注意：该函数会返回一个类型的类，该类包含了各种操作空列的函数。<br>这些函数包括：drop(),fill(),replace(),fillCol(),replaceCol()</p>
+<ul>
+<li>例子1</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 删除包含任何空值的行</span></span><br><span class="line">scala&gt; df.na.drop()</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子2</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 使用常量值填充空值</span></span><br><span class="line">scala&gt; df.na.fill(<span class="string">"null"</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-11-select"><a href="#3-11-select" class="headerlink" title="3.11 select"></a>3.11 select</h3><p>选择一组列。注意：该函数返回的是一个DataFrame类。</p>
+<ul>
+<li>函数原型</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 这是select的一个变体，只能使用列名选择现有的列（即不能构造表达式）。</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">select</span></span>(col: <span class="type">String</span>, cols: <span class="type">String</span>*): <span class="type">DataFrame</span> </span><br><span class="line"></span><br><span class="line"><span class="comment">// 选择一组基于列的表达式。</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">select</span></span>(cols: <span class="type">Column</span>*): <span class="type">DataFrame</span> </span><br><span class="line"></span><br><span class="line"><span class="comment">// 选择一组SQL表达式。这是接受SQL表达式的select的一个变体。</span></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">selectExpr</span></span>(exprs: <span class="type">String</span>*): <span class="type">DataFrame</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子1</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.select(<span class="string">"id"</span>, <span class="string">"score"</span>).show()</span><br><span class="line">+---+-----+</span><br><span class="line">| id|score|</span><br><span class="line">+---+-----+</span><br><span class="line">|  <span class="number">1</span>|   <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">4</span>|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|   <span class="number">50</span>|</span><br><span class="line">|  <span class="number">6</span>|   <span class="number">60</span>|</span><br><span class="line">|  <span class="number">7</span>|   <span class="number">40</span>|</span><br><span class="line">|  <span class="number">8</span>|   <span class="number">90</span>|</span><br><span class="line">|  <span class="number">8</span>|   <span class="number">30</span>|</span><br><span class="line">|  <span class="number">9</span>|   <span class="number">20</span>|</span><br><span class="line">|  <span class="number">9</span>|   <span class="number">70</span>|</span><br><span class="line">+---+-----+</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子2：对select的列值进行操作</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; df.select($<span class="string">"id"</span>, $<span class="string">"score"</span>*<span class="number">10</span>).show()</span><br><span class="line">+---+------------+</span><br><span class="line">| id|(score * <span class="number">10</span>)|</span><br><span class="line">+---+------------+</span><br><span class="line">|  <span class="number">1</span>|       <span class="number">100.0</span>|</span><br><span class="line">|  <span class="number">2</span>|       <span class="number">200.0</span>|</span><br><span class="line">|  <span class="number">3</span>|       <span class="number">300.0</span>|</span><br><span class="line">|  <span class="number">3</span>|       <span class="number">200.0</span>|</span><br><span class="line">|  <span class="number">4</span>|       <span class="number">400.0</span>|</span><br><span class="line">|  <span class="number">5</span>|       <span class="number">500.0</span>|</span><br><span class="line">|  <span class="number">6</span>|       <span class="number">600.0</span>|</span><br><span class="line">|  <span class="number">7</span>|       <span class="number">400.0</span>|</span><br><span class="line">|  <span class="number">8</span>|       <span class="number">900.0</span>|</span><br><span class="line">|  <span class="number">8</span>|       <span class="number">300.0</span>|</span><br><span class="line">|  <span class="number">9</span>|       <span class="number">200.0</span>|</span><br><span class="line">|  <span class="number">9</span>|       <span class="number">700.0</span>|</span><br><span class="line">+---+------------+</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子3：selectExpr的使用(select表达式)</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">ds.selectExpr(<span class="string">"colA"</span>, <span class="string">"colB as newName"</span>, <span class="string">"abs(colC)"</span>)</span><br><span class="line">或</span><br><span class="line">ds.select(expr(<span class="string">"colA"</span>), expr(<span class="string">"colB as newName"</span>), expr(<span class="string">"abs(colC)"</span>))</span><br><span class="line"></span><br><span class="line">scala&gt; df.selectExpr(<span class="string">"id"</span>, <span class="string">"score * 10"</span>).show()</span><br><span class="line">+---+------------+</span><br><span class="line">| id|(score * <span class="number">10</span>)|</span><br><span class="line">+---+------------+</span><br><span class="line">|  <span class="number">1</span>|       <span class="number">100.0</span>|</span><br><span class="line">|  <span class="number">2</span>|       <span class="number">200.0</span>|</span><br><span class="line">|  <span class="number">3</span>|       <span class="number">300.0</span>|</span><br><span class="line">|  <span class="number">3</span>|       <span class="number">200.0</span>|</span><br><span class="line">|  <span class="number">4</span>|       <span class="number">400.0</span>|</span><br><span class="line">|  <span class="number">5</span>|       <span class="number">500.0</span>|</span><br><span class="line">|  <span class="number">6</span>|       <span class="number">600.0</span>|</span><br><span class="line">|  <span class="number">7</span>|       <span class="number">400.0</span>|</span><br><span class="line">|  <span class="number">8</span>|       <span class="number">900.0</span>|</span><br><span class="line">|  <span class="number">8</span>|       <span class="number">300.0</span>|</span><br><span class="line">|  <span class="number">9</span>|       <span class="number">200.0</span>|</span><br><span class="line">|  <span class="number">9</span>|       <span class="number">700.0</span>|</span><br><span class="line">+---+------------+</span><br><span class="line"></span><br><span class="line">或</span><br><span class="line">scala&gt; df.selectExpr(<span class="string">"id"</span>, <span class="string">"score as points"</span>).show()</span><br><span class="line">+---+------+</span><br><span class="line">| id|points|</span><br><span class="line">+---+------+</span><br><span class="line">|  <span class="number">1</span>|    <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|    <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|    <span class="number">30</span>|</span><br><span class="line">... ...</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-12-withColumn-和-withColumnRenamed"><a href="#3-12-withColumn-和-withColumnRenamed" class="headerlink" title="3.12 withColumn 和 withColumnRenamed"></a>3.12 withColumn 和 withColumnRenamed</h3><p>通过添加一列或替换具有相同名称的现有列来返回新的数据集。<br>withColumnRenamed只是重命名列。 </p>
+<ul>
+<li>函数原型</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">withColumn</span></span>(colName: <span class="type">String</span>, col: <span class="type">Column</span>): <span class="type">DataFrame</span> </span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">withColumnRenamed</span></span>(existingName: <span class="type">String</span>, newName: <span class="type">String</span>): <span class="type">DataFrame</span> <span class="number">12</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子1：通过重命名现有列来添加新列</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; <span class="keyword">val</span> df8 = df.withColumn(<span class="string">"subs"</span>, df(<span class="string">"subject"</span>))</span><br><span class="line">df8: org.apache.spark.sql.<span class="type">DataFrame</span> = [id: string, name: string ... <span class="number">3</span> more fields]</span><br><span class="line"></span><br><span class="line">scala&gt; df8.show()</span><br><span class="line">+---+----+-------+-----+----+</span><br><span class="line">| id|name|subject|score|subs|</span><br><span class="line">+---+----+-------+-----+----+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|   <span class="number">10</span>|  s1|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|   <span class="number">20</span>|  s2|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|   <span class="number">30</span>|  s3|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|   <span class="number">20</span>|  s1|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|   <span class="number">40</span>|  s2|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|   <span class="number">50</span>|  s3|</span><br><span class="line">|  <span class="number">6</span>|  n6|     s1|   <span class="number">60</span>|  s1|</span><br><span class="line">|  <span class="number">7</span>|  n6|     s2|   <span class="number">40</span>|  s2|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|   <span class="number">90</span>|  s3|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|   <span class="number">30</span>|  s1|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|   <span class="number">20</span>|  s1|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|   <span class="number">70</span>|  s2|</span><br><span class="line">+---+----+-------+-----+----+</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子2：重命名现有列，但不添加新列</li>
+</ul>
+<p>从下面的例子中可以看出，把score列的值替换了，但并没有添加新的列。</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; <span class="keyword">val</span> df9 = df.withColumn(<span class="string">"score"</span>, df(<span class="string">"score"</span>)/<span class="number">100</span>)</span><br><span class="line">df9: org.apache.spark.sql.<span class="type">DataFrame</span> = [id: string, name: string ... <span class="number">2</span> more fields]</span><br><span class="line"></span><br><span class="line">scala&gt; df9.show()</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">| id|name|subject|score|</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|  <span class="number">0.1</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|  <span class="number">0.2</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|  <span class="number">0.3</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|  <span class="number">0.2</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|  <span class="number">0.4</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|  <span class="number">0.5</span>|</span><br><span class="line">|  <span class="number">6</span>|  n6|     s1|  <span class="number">0.6</span>|</span><br><span class="line">|  <span class="number">7</span>|  n6|     s2|  <span class="number">0.4</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|  <span class="number">0.9</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|  <span class="number">0.3</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|  <span class="number">0.2</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|  <span class="number">0.7</span>|</span><br><span class="line">+---+----+-------+-----+</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// 也可以直接通过withColumnRenamed进行重命名</span></span><br><span class="line">scala&gt; <span class="keyword">val</span> df9 = df.withColumnRenamed(<span class="string">"score"</span>,<span class="string">"score2"</span>) </span><br><span class="line">df9: org.apache.spark.sql.<span class="type">DataFrame</span> = [id: string, name: string ... <span class="number">2</span> more fields]</span><br><span class="line"></span><br><span class="line">scala&gt; df9.show()</span><br><span class="line">+---+----+-------+------+</span><br><span class="line">| id|name|subject|score2|</span><br><span class="line">+---+----+-------+------+</span><br><span class="line">|  <span class="number">1</span>|  n1|     s1|    <span class="number">10</span>|</span><br><span class="line">|  <span class="number">2</span>|  n2|     s2|    <span class="number">20</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s3|    <span class="number">30</span>|</span><br><span class="line">|  <span class="number">3</span>|  n3|     s1|    <span class="number">20</span>|</span><br><span class="line">|  <span class="number">4</span>|  n4|     s2|    <span class="number">40</span>|</span><br><span class="line">|  <span class="number">5</span>|  n5|     s3|    <span class="number">50</span>|</span><br><span class="line">|  <span class="number">6</span>|  n6|     s1|    <span class="number">60</span>|</span><br><span class="line">|  <span class="number">7</span>|  n6|     s2|    <span class="number">40</span>|</span><br><span class="line">|  <span class="number">8</span>|  n8|     s3|    <span class="number">90</span>|</span><br><span class="line">|  <span class="number">8</span>|  n9|     s1|    <span class="number">30</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s1|    <span class="number">20</span>|</span><br><span class="line">|  <span class="number">9</span>|  n9|     s2|    <span class="number">70</span>|</span><br><span class="line">+---+----+-------+-----</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-13-stat"><a href="#3-13-stat" class="headerlink" title="3.13 stat"></a>3.13 stat</h3><p>为工作统计功能支持返回一个DataFrameStatFunctions。<br>该类的函数包括：approxQuantile,corr,cov,freqItems,sampleBy,countMinSketch,bloomFilter,buildBloomFilter等</p>
+<ul>
+<li>函数原型</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">stat</span></span>: <span class="type">DataFrameStatFunctions</span></span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>例子1</li>
+</ul>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">scala&gt; <span class="keyword">val</span> cols = <span class="type">Array</span>(<span class="string">"score"</span>)</span><br><span class="line">cols: <span class="type">Array</span>[<span class="type">String</span>] = <span class="type">Array</span>(score)</span><br><span class="line"></span><br><span class="line">scala&gt; df.stat.freqItems(cols)</span><br><span class="line">res56: org.apache.spark.sql.<span class="type">DataFrame</span> = [score_freqItems: array&lt;string&gt;]</span><br><span class="line"></span><br><span class="line">scala&gt; df.stat.freqItems(cols).show()</span><br><span class="line">+--------------------+</span><br><span class="line">|     score_freqItems|</span><br><span class="line">+--------------------+</span><br><span class="line">|[<span class="number">90</span>, <span class="number">30</span>, <span class="number">60</span>, <span class="number">50</span>, ...|</span><br><span class="line">+--------------------+</span><br></pre></td></tr></table></figure>
+
+<h3 id="3-14-其他"><a href="#3-14-其他" class="headerlink" title="3.14 其他"></a>3.14 其他</h3><ul>
+<li><p>as(alias: String) 返回一个新的dataframe类型，就是原来的一个别名</p>
+</li>
+<li><p>distinct 去重 返回一个dataframe类型</p>
+</li>
+<li><p>dropDuplicates(colNames: Array[String]) 删除相同的列 返回一个dataframe</p>
+</li>
+<li><p>except(other: DataFrame) 返回一个dataframe，返回在当前集合存在的在其他集合不存在的</p>
+</li>
+<li><p>explode[A, B](inputColumn: String, outputColumn: String)(f: (A) ⇒ TraversableOnce[B])(implicit arg0: scala.reflect.api.JavaUniverse.TypeTag[B]) 返回值是dataframe类型，这个 将一个字段进行更多行的拆分</p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">df.explode(<span class="string">"name"</span>,<span class="string">"names"</span>) &#123;name :<span class="type">String</span>=&gt; name.split(<span class="string">" "</span>)&#125;.show();</span><br><span class="line">将name字段根据空格来拆分，拆分的字段放在names里面</span><br></pre></td></tr></table></figure>
+</li>
+<li><p>filter(conditionExpr: String): 刷选部分数据，返回dataframe类型 </p>
+<figure class="highlight scala"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">df.filter(<span class="string">"age&gt;10"</span>).show();   </span><br><span class="line">df.filter(df(<span class="string">"age"</span>)&gt;<span class="number">10</span>).show();   </span><br><span class="line">df.where(df(<span class="string">"age"</span>)&gt;<span class="number">10</span>).show();</span><br></pre></td></tr></table></figure>
+
+</li>
+</ul>
+<ul>
+<li>intersect(other: DataFrame) 返回一个dataframe，在2个dataframe都存在的元素</li>
+<li>limit(n: Int) 返回dataframe类型  去n 条数据出来</li>
+<li>orderBy(sortExprs: Column*)  做alise排序</li>
+<li>sort(sortExprs: Column*)    排序 df.sort(df(“age”).desc).show(); 默认是asc</li>
+<li>unionAll(other:Dataframe) 合并 df.unionAll(ds).show();</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/spark/" rel="tag"># spark</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2017/06/03/spark/%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A/RDD_DataFrame_DataSet/" rel="prev" title="rdd dataframe dataset介绍">
+      <i class="fa fa-chevron-left"></i> rdd dataframe dataset介绍
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2017/06/03/spark/%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A/%E5%87%BD%E6%95%B0RDD/" rel="next" title="RDD函数">
+      RDD函数 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#DataFrame函数"><span class="nav-number">1.</span> <span class="nav-text">DataFrame函数</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#一、Action-操作"><span class="nav-number">1.1.</span> <span class="nav-text">一、Action 操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-1-collect"><span class="nav-number">1.1.1.</span> <span class="nav-text">1.1 collect()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-2-collectAsList"><span class="nav-number">1.1.2.</span> <span class="nav-text">1.2 collectAsList()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-3-count"><span class="nav-number">1.1.3.</span> <span class="nav-text">1.3  count()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-4-describe-cols-String"><span class="nav-number">1.1.4.</span> <span class="nav-text">1.4 describe(cols: String*)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-5-first"><span class="nav-number">1.1.5.</span> <span class="nav-text">1.5 first()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-6-head"><span class="nav-number">1.1.6.</span> <span class="nav-text">1.6 head()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-7-head-n-Int"><span class="nav-number">1.1.7.</span> <span class="nav-text">1.7 head(n:Int)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-8-show"><span class="nav-number">1.1.8.</span> <span class="nav-text">1.8 show()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-9-show-n-Int"><span class="nav-number">1.1.9.</span> <span class="nav-text">1.9  show(n:Int)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-10-table-n-Int"><span class="nav-number">1.1.10.</span> <span class="nav-text">1.10 table(n:Int)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#二、-dataframe的基本操作"><span class="nav-number">1.2.</span> <span class="nav-text">二、 dataframe的基本操作</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-cache"><span class="nav-number">1.2.1.</span> <span class="nav-text">2.1 cache()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-columns"><span class="nav-number">1.2.2.</span> <span class="nav-text">2.2 columns</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-dtypes"><span class="nav-number">1.2.3.</span> <span class="nav-text">2.3 dtypes</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-explan"><span class="nav-number">1.2.4.</span> <span class="nav-text">2.4 explan()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-5-explain-n-Boolean"><span class="nav-number">1.2.5.</span> <span class="nav-text">2.5 explain(n:Boolean)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-6-isLocal"><span class="nav-number">1.2.6.</span> <span class="nav-text">2.6 isLocal</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-7-persist-newlevel-StorageLevel"><span class="nav-number">1.2.7.</span> <span class="nav-text">2.7 persist(newlevel:StorageLevel)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-8-printSchema"><span class="nav-number">1.2.8.</span> <span class="nav-text">2.8 printSchema()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-9-registerTempTable-tablename-String"><span class="nav-number">1.2.9.</span> <span class="nav-text">2.9 registerTempTable(tablename:String)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-10-schema"><span class="nav-number">1.2.10.</span> <span class="nav-text">2.10 schema</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-11-toDF"><span class="nav-number">1.2.11.</span> <span class="nav-text">2.11 toDF()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-12-toDF-colnames：String"><span class="nav-number">1.2.12.</span> <span class="nav-text">2.12 toDF(colnames：String*)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-13-unpersist"><span class="nav-number">1.2.13.</span> <span class="nav-text">2.13 unpersist()</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-14-unpersist-blocking-Boolean"><span class="nav-number">1.2.14.</span> <span class="nav-text">2.14 unpersist(blocking:Boolean)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-数据说明"><span class="nav-number">1.2.15.</span> <span class="nav-text">3.1 数据说明</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-agg"><span class="nav-number">1.2.16.</span> <span class="nav-text">3.2 agg</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-groupBy"><span class="nav-number">1.2.17.</span> <span class="nav-text">3.3  groupBy</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-apply-和-col"><span class="nav-number">1.2.18.</span> <span class="nav-text">3.4 apply 和 col</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-7-cube"><span class="nav-number">1.2.19.</span> <span class="nav-text">3.7 cube</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-8-drop"><span class="nav-number">1.2.20.</span> <span class="nav-text">3.8 drop</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-9-join"><span class="nav-number">1.2.21.</span> <span class="nav-text">3.9 join</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-10-na"><span class="nav-number">1.2.22.</span> <span class="nav-text">3.10 na</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-11-select"><span class="nav-number">1.2.23.</span> <span class="nav-text">3.11 select</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-12-withColumn-和-withColumnRenamed"><span class="nav-number">1.2.24.</span> <span class="nav-text">3.12 withColumn 和 withColumnRenamed</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-13-stat"><span class="nav-number">1.2.25.</span> <span class="nav-text">3.13 stat</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-14-其他"><span class="nav-number">1.2.26.</span> <span class="nav-text">3.14 其他</span></a></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2017/06/03/spark/%E8%AF%AD%E6%B3%95%E8%A7%A3%E9%87%8A/%E5%87%BD%E6%95%B0DataFrame/",
+            identifier: "2017/06/03/spark/语法解释/函数DataFrame/",
+            title: "DataFrame函数"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>

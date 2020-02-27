@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+
+<script id="hexo-configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    hostname: new URL('https://longzl2015.github.io').hostname,
+    root: '/',
+    scheme: 'Gemini',
+    version: '7.7.0',
+    exturl: false,
+    sidebar: {"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},
+    copycode: {"enable":false,"show_result":false,"style":null},
+    back2top: {"enable":true,"sidebar":false,"scrollpercent":false},
+    bookmark: {"enable":false,"color":"#222","save":"auto"},
+    fancybox: false,
+    mediumzoom: false,
+    lazyload: false,
+    pangu: false,
+    comments: {"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},
+    algolia: {
+      appID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"我们没有找到任何搜索结果: ${query}","hits_stats":"找到约${hits}条结果（用时${time}ms）"}
+    },
+    localsearch: {"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":true},
+    path: 'search.xml',
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}
+  };
+</script>
+
+  <meta name="description" content="[TOC]">
+<meta property="og:type" content="article">
+<meta property="og:title" content="jvm对象探秘">
+<meta property="og:url" content="https://longzl2015.github.io/2016/08/04/2%E8%AF%AD%E8%A8%80/java/jvm/jvm%E5%AF%B9%E8%B1%A1%E6%8E%A2%E7%A7%98/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="[TOC]">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://7xlgbq.com1.z0.glb.clouddn.com/%E5%8F%A5%E6%9F%84%E8%AE%BF%E9%97%AE.png">
+<meta property="og:image" content="http://7xlgbq.com1.z0.glb.clouddn.com/%E6%8C%87%E9%92%88%E8%AE%BF%E9%97%AE.png">
+<meta property="article:published_time" content="2016-08-04T19:30:09.000Z">
+<meta property="article:modified_time" content="2020-02-27T09:16:07.741Z">
+<meta property="article:author" content="zhoul">
+<meta property="article:tag" content="jvm">
+<meta property="article:tag" content="对象的创建">
+<meta property="article:tag" content="对象的内存布局">
+<meta property="article:tag" content="对象的访问定位">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://7xlgbq.com1.z0.glb.clouddn.com/%E5%8F%A5%E6%9F%84%E8%AE%BF%E9%97%AE.png">
+
+<link rel="canonical" href="https://longzl2015.github.io/2016/08/04/2%E8%AF%AD%E8%A8%80/java/jvm/jvm%E5%AF%B9%E8%B1%A1%E6%8E%A2%E7%A7%98/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome: false,
+    isPost: true
+  };
+</script>
+
+  <title>jvm对象探秘 | Hexo</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">Hexo</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+  </div>
+
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">190</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">92</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">351</span></a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="popup search-popup">
+    <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="none"
+           placeholder="搜索..." spellcheck="false"
+           type="text" id="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result"></div>
+
+</div>
+<div class="search-pop-overlay"></div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://longzl2015.github.io/2016/08/04/2%E8%AF%AD%E8%A8%80/java/jvm/jvm%E5%AF%B9%E8%B1%A1%E6%8E%A2%E7%A7%98/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="zhoul">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="Hexo">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          jvm对象探秘
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2016-08-05 03:30:09" itemprop="dateCreated datePublished" datetime="2016-08-05T03:30:09+08:00">2016-08-05</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-02-27 17:16:07" itemprop="dateModified" datetime="2020-02-27T17:16:07+08:00">2020-02-27</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%AD%E8%A8%80/" itemprop="url" rel="index">
+                    <span itemprop="name">语言</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%AD%E8%A8%80/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+                  ，
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AF%AD%E8%A8%80/java/jvm/" itemprop="url" rel="index">
+                    <span itemprop="name">jvm</span>
+                  </a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2016/08/04/2%E8%AF%AD%E8%A8%80/java/jvm/jvm%E5%AF%B9%E8%B1%A1%E6%8E%A2%E7%A7%98/#comments" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2016/08/04/2语言/java/jvm/jvm对象探秘/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>[TOC]</p>
+<a id="more"></a>
+
+<h2 id="对象的创建"><a href="#对象的创建" class="headerlink" title="对象的创建"></a>对象的创建</h2><h3 id="new指令"><a href="#new指令" class="headerlink" title="new指令"></a>new指令</h3><p>虚拟机遇到new指令，检查指令的参数是否存在于常量池中，若存在，检测是否被加载。</p>
+<h3 id="类加载"><a href="#类加载" class="headerlink" title="类加载"></a>类加载</h3><p>详见类加载章节。</p>
+<h3 id="分配内存"><a href="#分配内存" class="headerlink" title="分配内存"></a>分配内存</h3><p>类加载完成后，分配对象内存。（从java堆中分配一块内存，其大小在类加载完成后就已确定。）</p>
+<p>分配内存的方式有两种，取决于内存的规整性：</p>
+<ol>
+<li>指针碰撞（内存规整）</li>
+<li>空闲列表（内存散乱）</li>
+</ol>
+<p>内存分配的同步问题解决方案：</p>
+<ol>
+<li>CAS + 失败重试</li>
+<li>TLAN（本地线程分配缓冲）：即每个线程中预留一小块内存。（开启方式：-XX：+/-UseTLAB）</li>
+</ol>
+<h3 id="内存空间初始化"><a href="#内存空间初始化" class="headerlink" title="内存空间初始化"></a>内存空间初始化</h3><p>虚拟机将分配到的内存空间进行初始化为“0”。</p>
+<h3 id="设置对象头"><a href="#设置对象头" class="headerlink" title="设置对象头"></a>设置对象头</h3><p>对象头的信息包含 哪个类的实例，如何找到类的元数据信息，对象的哈希码，对象的GC分代年龄等。还有对象的偏向锁等等。对象头的介绍放于下一小节。</p>
+<h3 id="对象初始化init（java层面）"><a href="#对象初始化init（java层面）" class="headerlink" title="对象初始化init（java层面）"></a>对象初始化init（java层面）</h3><p>这一步就是将对象按照程序员的意愿将对象进行相应初始化，（init方法应该指的是类定义中字段处的初始化值和构造器的调用，自己的猜测）。</p>
+<h2 id="对象的内存布局"><a href="#对象的内存布局" class="headerlink" title="对象的内存布局"></a>对象的内存布局</h2><p>内存布局分为3部分:</p>
+<ol>
+<li>对象头</li>
+<li>实例数据</li>
+<li>对齐填充</li>
+</ol>
+<h3 id="对象头"><a href="#对象头" class="headerlink" title="对象头"></a>对象头</h3><h4 id="运行时数据"><a href="#运行时数据" class="headerlink" title="运行时数据"></a>运行时数据</h4><p>对象头的第一部分存储的是对象的运行时数据：哈希码、GC分代年龄、锁状态标志、线程持有的锁、偏向线程ID、偏向时间戳等。</p>
+<h4 id="类型指针"><a href="#类型指针" class="headerlink" title="类型指针"></a>类型指针</h4><p>对象头的第二部分是类型指针，即对象指向他的类元数据的指针，用来确认这个对象是哪个类的实例。<br>同时通过元数据信息能够确认java对象的大小。</p>
+<p>但如果是数组对象的话，对象头还会有一块用于记录数组长度的数据。</p>
+<h3 id="实例数据"><a href="#实例数据" class="headerlink" title="实例数据"></a>实例数据</h3><p>这部分存储的是程序代码中定义的各种类型的字段内容，包括父类和子类中定义的。</p>
+<h3 id="对齐填充"><a href="#对齐填充" class="headerlink" title="对齐填充"></a>对齐填充</h3><p>这部分仅仅起占位符的作用。用来确保对象头正好占用8字节的整数倍。</p>
+<h2 id="对象的访问定位"><a href="#对象的访问定位" class="headerlink" title="对象的访问定位"></a>对象的访问定位</h2><h3 id="句柄方式定位"><a href="#句柄方式定位" class="headerlink" title="句柄方式定位"></a>句柄方式定位</h3><p>从图中可以看出，句柄包含对象实例指针和对象类型指针。<br>该方式的优点是Reference的值在对象移动时不需要改变（垃圾回收整理）。</p>
+<p><img src="http://7xlgbq.com1.z0.glb.clouddn.com/%E5%8F%A5%E6%9F%84%E8%AE%BF%E9%97%AE.png" alt="句柄访问方式"></p>
+<h3 id="直接指针定位"><a href="#直接指针定位" class="headerlink" title="直接指针定位"></a>直接指针定位</h3><p>优点速度快，减少一次指针定位的时间开销。<br>Sun hotSpot使用的就是这个方式。<br><img src="http://7xlgbq.com1.z0.glb.clouddn.com/%E6%8C%87%E9%92%88%E8%AE%BF%E9%97%AE.png" alt="直接访问方式"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/jvm/" rel="tag"># jvm</a>
+              <a href="/tags/%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%88%9B%E5%BB%BA/" rel="tag"># 对象的创建</a>
+              <a href="/tags/%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%86%85%E5%AD%98%E5%B8%83%E5%B1%80/" rel="tag"># 对象的内存布局</a>
+              <a href="/tags/%E5%AF%B9%E8%B1%A1%E7%9A%84%E8%AE%BF%E9%97%AE%E5%AE%9A%E4%BD%8D/" rel="tag"># 对象的访问定位</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2016/08/04/2%E8%AF%AD%E8%A8%80/java/jvm/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B/" rel="prev" title="类加载过程">
+      <i class="fa fa-chevron-left"></i> 类加载过程
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2016/08/04/2%E8%AF%AD%E8%A8%80/java/jvm/dump%E5%88%86%E6%9E%90-mat/" rel="next" title="dump分析-mat.md">
+      dump分析-mat.md <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let activeClass = CONFIG.comments.activeClass;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#对象的创建"><span class="nav-number">1.</span> <span class="nav-text">对象的创建</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#new指令"><span class="nav-number">1.1.</span> <span class="nav-text">new指令</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#类加载"><span class="nav-number">1.2.</span> <span class="nav-text">类加载</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#分配内存"><span class="nav-number">1.3.</span> <span class="nav-text">分配内存</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#内存空间初始化"><span class="nav-number">1.4.</span> <span class="nav-text">内存空间初始化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#设置对象头"><span class="nav-number">1.5.</span> <span class="nav-text">设置对象头</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#对象初始化init（java层面）"><span class="nav-number">1.6.</span> <span class="nav-text">对象初始化init（java层面）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#对象的内存布局"><span class="nav-number">2.</span> <span class="nav-text">对象的内存布局</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#对象头"><span class="nav-number">2.1.</span> <span class="nav-text">对象头</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#运行时数据"><span class="nav-number">2.1.1.</span> <span class="nav-text">运行时数据</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#类型指针"><span class="nav-number">2.1.2.</span> <span class="nav-text">类型指针</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#实例数据"><span class="nav-number">2.2.</span> <span class="nav-text">实例数据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#对齐填充"><span class="nav-number">2.3.</span> <span class="nav-text">对齐填充</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#对象的访问定位"><span class="nav-number">3.</span> <span class="nav-text">对象的访问定位</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#句柄方式定位"><span class="nav-number">3.1.</span> <span class="nav-text">句柄方式定位</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#直接指针定位"><span class="nav-number">3.2.</span> <span class="nav-text">直接指针定位</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">zhoul</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">351</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">92</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">190</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/longzl2015" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;longzl2015" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:289570126@qq.com" title="E-Mail → mailto:289570126@qq.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="https://stackoverflow.com/users/5276366/egg" title="StackOverflow → https:&#x2F;&#x2F;stackoverflow.com&#x2F;users&#x2F;5276366&#x2F;egg" rel="noopener" target="_blank"><i class="fa fa-fw fa-stack-overflow"></i>StackOverflow</a>
+      </span>
+  </div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">zhoul</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.0
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.0
+  </div>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://long12356-gitee-io.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: {page: {
+            url: "https://longzl2015.github.io/2016/08/04/2%E8%AF%AD%E8%A8%80/java/jvm/jvm%E5%AF%B9%E8%B1%A1%E6%8E%A2%E7%A7%98/",
+            identifier: "2016/08/04/2语言/java/jvm/jvm对象探秘/",
+            title: "jvm对象探秘"
+          }
+        }
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://long12356-gitee-io.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
